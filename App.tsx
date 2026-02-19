@@ -4,17 +4,17 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import ServiceOrders from './components/ServiceOrders';
 import ClientModal from './components/ClientModal';
-// import ClientDetailsModal from './components/ClientDetailsModal'; // No longer needed directly here
 import ProductModal from './components/ProductModal';
 import ServiceModal from './components/ServiceModal';
 import Reports from './components/Reports';
 import CashFlowView from './components/CashFlowView';
 import CashFlowModal from './components/CashFlowModal';
-import LoginPage from './components/LoginPage';
+// import LoginPage from './components/LoginPage'; // Removed, replaced by AuthScreen
+import AuthScreen from './components/AuthScreen'; // New: Import AuthScreen
 import AdminDocs from './components/AdminDocs';
-import ClientsView from './components/ClientsView'; // Import new ClientsView
+import ClientsView from './components/ClientsView';
 import { useStore } from './store';
-import { Client, Product, Service, TransactionType, CashFlow } from './types';
+import { Client, Product, Service, TransactionType, CashFlow, User } from './types'; // Import User interface
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -25,9 +25,10 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : false;
   });
 
-  // State for Current User (Stored in sessionStorage now)
-  const [currentUser, setCurrentUser] = useState<string | null>(() => {
-    return sessionStorage.getItem('upa_currentUser'); // Returns string or null
+  // State for Current User (Stored in sessionStorage now), using new User interface
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const savedUser = sessionStorage.getItem('upa_currentUser');
+    return savedUser ? JSON.parse(savedUser) : null;
   });
 
   // New: State for controlling Gemini Insights (default to false, persists in localStorage)
@@ -46,7 +47,7 @@ const App: React.FC = () => {
   // Persist currentUser state to Session Storage
   useEffect(() => {
     if (currentUser) {
-      sessionStorage.setItem('upa_currentUser', currentUser);
+      sessionStorage.setItem('upa_currentUser', JSON.stringify(currentUser));
     } else {
       sessionStorage.removeItem('upa_currentUser');
     }
@@ -58,20 +59,27 @@ const App: React.FC = () => {
   }, [showGeminiInsights]);
 
 
-  // Handle Login with License File Content
-  const handleLogin = (fileContent: string): boolean => {
-    try {
-      const license = JSON.parse(fileContent);
-      if (license && license.isValidLicense === true) {
-        // We can optionally use license.licensedTo for display
-        setCurrentUser('licensed_user'); // Grant generic licensed user access
-        return true;
-      }
-      return false; // Invalid license content
-    } catch (e) {
-      console.error("Failed to parse license file:", e);
-      return false; // Invalid JSON
-    }
+  // New: Simulate Google Sign-In
+  const signInWithGoogle = async () => {
+    // In a real app, you would integrate with Google Identity Services here.
+    // For this demo, we simulate a successful login after a short delay.
+    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call delay
+
+    // Fix: Changed `const` to `let` for mockUserEmail to allow comparison.
+    let mockUserEmail = 'usuario@example.com'; // Default user
+    // To simulate an admin, change this email or create a separate button
+    // mockUserEmail = 'admin@example.com'; 
+
+    const mockUser: User = {
+      id: crypto.randomUUID(),
+      name: 'Usuário Google',
+      email: mockUserEmail,
+      photoUrl: 'https://lh3.googleusercontent.com/a/ACg8ocJO0r6_S2l7yX_J_iT1N-L7o_n1X-0vN3R-Q9Q=s96-c', // Example placeholder photo
+      role: mockUserEmail === 'admin@example.com' ? 'admin' : 'licensed_user',
+    };
+
+    setCurrentUser(mockUser);
+    setActiveTab('dashboard'); // Redirect to dashboard after login
   };
 
   // Handle Logout
@@ -84,11 +92,6 @@ const App: React.FC = () => {
   // State for Client Add/Edit Modal
   const [isClientEditModalOpen, setIsClientEditModalOpen] = useState(false);
   const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
-
-  // ClientDetailsModal state is now managed within ClientsView, but we keep the handlers here
-  // because the modal itself might be here if needed globally. For now, it's moved.
-  // const [isClientDetailsModalOpen, setIsClientDetailsModalOpen] = useState(false);
-  // const [clientToView, setClientToView] = useState<Client | null>(null);
 
   // State for Product Add/Edit Modal
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -126,17 +129,6 @@ const App: React.FC = () => {
     }
     handleCloseClientEditModal();
   };
-
-  // Handlers for Client Details View Modal (now internal to ClientsView, but kept for type signature)
-  // const handleOpenClientDetailsModal = (client: Client) => {
-  //   setClientToView(client);
-  //   setIsClientDetailsModalOpen(true);
-  // };
-
-  // const handleCloseClientDetailsModal = () => {
-  //   setIsClientDetailsModalOpen(false);
-  //   setClientToView(null);
-  // };
 
   // Handlers for Product Add/Edit Modal
   const handleOpenAddProductModal = () => {
@@ -217,8 +209,8 @@ const App: React.FC = () => {
                  cashFlow={store.cashFlow} 
                  clients={store.clients} 
                  products={store.products}
-                 showGeminiInsights={showGeminiInsights} // Pass new state
-                 setShowGeminiInsights={setShowGeminiInsights} // Pass new setter
+                 showGeminiInsights={showGeminiInsights}
+                 setShowGeminiInsights={setShowGeminiInsights}
                />;
       case 'orders':
         return (
@@ -237,10 +229,9 @@ const App: React.FC = () => {
         return (
           <ClientsView 
             clients={store.clients}
-            orders={store.orders} // Pass orders for ClientDetailsModal
+            orders={store.orders}
             onOpenAddClientModal={handleOpenAddClientModal}
             onOpenEditClientModal={handleOpenEditClientModal}
-            // onOpenClientDetailsModal={handleOpenClientDetailsModal} // No longer needed here
           />
         );
       case 'inventory':
@@ -330,9 +321,8 @@ const App: React.FC = () => {
       case 'reports':
         return <Reports orders={store.orders} cashFlow={store.cashFlow} />;
       case 'admin':
-        // Only render if user is admin (e.g., if a specific license grants 'admin' role)
-        // For simplicity, 'licensed_user' from file won't be 'admin' by default
-        if (currentUser === 'admin') {
+        // Only render if user has 'admin' role
+        if (currentUser?.role === 'admin') {
           return <AdminDocs />;
         }
         return <div className="p-8 text-center text-red-500 font-bold">Acesso negado. Esta área é restrita a administradores.</div>;
@@ -350,7 +340,7 @@ const App: React.FC = () => {
           useMockData={useMockData} 
           setUseMockData={setUseMockData} 
           onLogout={handleLogout}
-          currentUser={currentUser} // Pass currentUser to Layout
+          currentUser={currentUser} // Pass currentUser object to Layout
         >
           {renderContent()}
           <ClientModal
@@ -359,13 +349,6 @@ const App: React.FC = () => {
             onClose={handleCloseClientEditModal}
             onSave={handleSaveClient}
           />
-          {/* ClientDetailsModal is now managed by ClientsView */}
-          {/* <ClientDetailsModal
-            isOpen={isClientDetailsModalOpen}
-            client={clientToView}
-            orders={store.orders}
-            onClose={handleCloseClientDetailsModal}
-          /> */}
           <ProductModal
             isOpen={isProductModalOpen}
             product={productToEdit}
@@ -387,7 +370,7 @@ const App: React.FC = () => {
           />
         </Layout>
       ) : (
-        <LoginPage onLogin={handleLogin} />
+        <AuthScreen onLogin={signInWithGoogle} />
       )}
     </>
   );

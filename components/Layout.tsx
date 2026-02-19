@@ -1,5 +1,6 @@
 
 import React, { ReactNode, useState } from 'react';
+import { User } from '../types'; // Import User interface
 
 interface LayoutProps {
   children: ReactNode;
@@ -8,7 +9,7 @@ interface LayoutProps {
   useMockData: boolean;
   setUseMockData: (value: boolean) => void;
   onLogout: () => void;
-  currentUser: string | null; // New Prop to identify the user role
+  currentUser: User | null; // New Prop to identify the user role, now a User object
 }
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, useMockData, setUseMockData, onLogout, currentUser }) => {
@@ -24,8 +25,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, useM
   ];
 
   // Conditionally add Admin menu if currentUser is 'admin'
-  // With license file, currentUser will typically be 'licensed_user' unless file specifies 'admin'
-  if (currentUser === 'admin') {
+  if (currentUser?.role === 'admin') { // Check role property
     menuItems.push({ id: 'admin', label: 'Administração', icon: '🛡️' });
   }
 
@@ -105,27 +105,35 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, useM
           </div>
 
           {/* User Profile & Logout */}
-          <div className={`flex items-center ${isCollapsed ? 'flex-col space-y-3' : 'space-x-3'}`}>
-             <div className="w-9 h-9 flex-shrink-0 rounded-full bg-primary-light/20 text-primary-light border border-primary-light/50 flex items-center justify-center font-bold text-xs select-none">
-               {currentUser ? currentUser.substring(0, 2).toUpperCase() : 'US'}
-             </div>
-             
-             <div className={`flex-1 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 h-0 opacity-0' : 'w-auto opacity-100'}`}>
-                <p className="text-sm font-medium text-white truncate capitalize">{currentUser === 'licensed_user' ? 'Usuário Licenciado' : (currentUser || 'Usuário')}</p>
-                <p className="text-[10px] text-slate-400 truncate">{currentUser === 'admin' ? 'Administrador' : 'Gerente'}</p>
-             </div>
+          {currentUser && (
+            <div className={`flex items-center ${isCollapsed ? 'flex-col space-y-3' : 'space-x-3'}`}>
+              {currentUser.photoUrl ? (
+                <img src={currentUser.photoUrl} alt={currentUser.name} className="w-9 h-9 flex-shrink-0 rounded-full object-cover" />
+              ) : (
+                <div className="w-9 h-9 flex-shrink-0 rounded-full bg-primary-light/20 text-primary-light border border-primary-light/50 flex items-center justify-center font-bold text-xs select-none">
+                  {currentUser.name.substring(0, 2).toUpperCase()}
+                </div>
+              )}
+              
+              <div className={`flex-1 overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 h-0 opacity-0' : 'w-auto opacity-100'}`}>
+                <p className="text-sm font-medium text-white truncate capitalize">{currentUser.name}</p>
+                <p className="text-[10px] text-slate-400 truncate">
+                  {currentUser.role === 'admin' ? 'Administrador' : 'Usuário Licenciado'}
+                </p>
+              </div>
 
-             <button
-              onClick={onLogout}
-              className={`text-slate-400 hover:text-danger hover:bg-white/5 rounded-lg p-1.5 transition-colors ${isCollapsed ? 'mt-2' : ''}`}
-              title="Sair"
-              aria-label="Sair"
-             >
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+              <button
+                onClick={onLogout}
+                className={`text-slate-400 hover:text-danger hover:bg-white/5 rounded-lg p-1.5 transition-colors ${isCollapsed ? 'mt-2' : ''}`}
+                title="Sair"
+                aria-label="Sair"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
-               </svg>
-             </button>
-          </div>
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

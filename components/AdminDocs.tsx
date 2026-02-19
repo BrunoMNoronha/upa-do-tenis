@@ -181,6 +181,8 @@ const AdminDocs: React.FC = () => {
                     <tr><td className="p-3 font-mono text-primary">upa_orders</td><td className="p-3">Ordens de Serviço e Histórico (JSON)</td></tr>
                     <tr><td className="p-3 font-mono text-primary">upa_cashflow</td><td className="p-3">Transações Financeiras (JSON)</td></tr>
                     <tr><td className="p-3 font-mono text-primary">upa_useMockData</td><td className="p-3">Boolean (Estado do modo de demonstração)</td></tr>
+                    <tr><td className="p-3 font-mono text-primary">upa_showGeminiInsights</td><td className="p-3">Boolean (Estado da ativação dos insights Gemini)</td></tr>
+                    <tr><td className="p-3 font-mono text-primary">upa_currentUser (sessionStorage)</td><td className="p-3">Objeto User (JSON) do usuário logado</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -193,10 +195,10 @@ const AdminDocs: React.FC = () => {
               
               <div className="space-y-4">
                 <p className="text-gray-600 text-sm">
-                  A autenticação é baseada em um <strong>arquivo de licença JSON local</strong>. O acesso é concedido se o arquivo selecionado contiver a propriedade <code>"isValidLicense": true</code>.
+                  A autenticação no sistema é realizada através de um <strong>Login com Google simulado</strong>. Após o login bem-sucedido, um objeto <code>User</code> é armazenado no <code>sessionStorage</code>.
                 </p>
                 <p className="text-gray-600 text-sm">
-                  Existem dois níveis de acesso implícitos:
+                  Existem dois níveis de acesso definidos pela propriedade <code>role</code> do objeto <code>User</code>:
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -204,9 +206,9 @@ const AdminDocs: React.FC = () => {
                   <div className="border border-red-200 bg-red-50 rounded-xl p-5 relative overflow-hidden">
                     <div className="absolute top-0 right-0 bg-red-200 text-red-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg">ADMIN</div>
                     <h3 className="font-bold text-red-900 mb-1">Super Admin</h3>
-                    <p className="text-xs text-red-800 mb-3">Acesso total ao sistema, incluindo este menu administrativo. Este perfil é explicitamente definido no código ou via um arquivo de licença específico que configure o usuário como 'admin'.</p>
+                    <p className="text-xs text-red-800 mb-3">Acesso total ao sistema, incluindo este menu administrativo. Este perfil é concedido quando o email do usuário logado (simulado) corresponde a um email de administrador pré-definido (por exemplo, <code>admin@example.com</code>).</p>
                     <div className="bg-white/60 p-2 rounded text-xs font-mono text-red-900 space-y-1">
-                      <p><strong>Licença:</strong> Necessita de um arquivo de licença com papel 'admin'.</p>
+                      <p><strong>Role:</strong> <code>'admin'</code></p>
                     </div>
                   </div>
 
@@ -214,9 +216,9 @@ const AdminDocs: React.FC = () => {
                   <div className="border border-green-200 bg-green-50 rounded-xl p-5 relative overflow-hidden">
                      <div className="absolute top-0 right-0 bg-green-200 text-green-800 text-[10px] font-bold px-2 py-1 rounded-bl-lg">OPERADOR</div>
                     <h3 className="font-bold text-green-900 mb-1">Operador Padrão</h3>
-                    <p className="text-xs text-green-800 mb-3">Acesso às rotinas diárias (OS, Clientes, Caixa), sem acesso à documentação técnica.</p>
+                    <p className="text-xs text-green-800 mb-3">Acesso às rotinas diárias (Dashboard, OS, Clientes, Estoque & Serviços, Fluxo de Caixa, Relatórios), sem acesso à documentação técnica. Este é o perfil padrão para qualquer usuário logado que não seja um administrador.</p>
                     <div className="bg-white/60 p-2 rounded text-xs font-mono text-green-900 space-y-1">
-                      <p><strong>Licença:</strong> Qualquer arquivo de licença válido com <code>"isValidLicense": true</code> concede este acesso.</p>
+                      <p><strong>Role:</strong> <code>'licensed_user'</code></p>
                     </div>
                   </div>
                 </div>

@@ -101,3 +101,12 @@ export interface CashFlow {
   osId?: string;
   metodo?: PaymentMethod;
 }
+
+// New: User interface for authentication
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  photoUrl?: string;
+  role: 'licensed_user' | 'admin';
+}
