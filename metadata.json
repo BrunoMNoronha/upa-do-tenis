@@ -1,0 +1,7 @@
+{
+  "name": "UPA do Tênis - Gestão de OS",
+  "description": "Sistema completo de gestão para sapatarias, com controle de ordens de serviço, clientes, estoque e fluxo de caixa.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
