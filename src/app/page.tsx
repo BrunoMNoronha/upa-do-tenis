@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { AppShell } from "@/components/app-shell";
 import { Badge, Button, Card, SectionTitle } from "@/components/ui";
 

@@ -1,6 +1,6 @@
 # UPA do Tênis - Sapataria Alves
 
-Sistema web interno para apoiar a operação da sapataria, com foco no MVP v1: clientes, ordens de serviço, itens, serviços, pagamentos e acompanhamento de status.
+Sistema web interno para apoiar a operação da sapataria, com foco na base administrativa inicial: clientes, ordens de serviço e a estrutura para evoluir itens, serviços, pagamentos e acompanhamento de status.
 
 ## Stack
 
@@ -33,7 +33,7 @@ npm run build
 ## Visão geral do MVP
 
 - Cadastro e consulta de clientes.
-- Cadastro e consulta de ordens de serviço.
+- Estrutura inicial de ordens de serviço.
 - Itens, serviços e pagamentos ligados à OS.
 - Saldo calculado no backend.
 - Entrega sempre no nível da OS inteira.
@@ -43,3 +43,10 @@ npm run build
 - `src/app` para rotas e páginas.
 - `src/lib` para utilitários e acesso ao Prisma.
 - `prisma/schema.prisma` para o domínio e persistência.
+
+## Estado atual da base
+
+- Shell administrativo com navegação mínima.
+- Home em formato de painel operacional.
+- Tela de clientes com formulário e listagem local.
+- Página inicial de ordens de serviço como ponto de partida para a próxima fatia.
