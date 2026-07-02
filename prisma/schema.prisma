@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id            String           @id @default(cuid())
+  nome          String
+  telefone      String
+  email         String?
+  cpfCnpj       String?
+  observacoes   String?
+  criadoEm      DateTime         @default(now())
+  atualizadoEm  DateTime         @updatedAt
+  ordensServico OrdemServico[]
+
+  @@index([nome])
+  @@index([telefone])
+}
+
+model OrdemServico {
+  id                             String               @id @default(cuid())
+  numero                         String               @unique
+  clienteId                      String
+  cliente                        Cliente              @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  status                         String               @default("ABERTA")
+  dataEntrada                    DateTime
+  dataPrevisao                   DateTime
+  dataConclusao                  DateTime?
+  valorTotal                     Decimal              @default(0)
+  valorDesconto                  Decimal              @default(0)
+  valorSinal                     Decimal              @default(0)
+  valorPago                      Decimal              @default(0)
+  saldo                          Decimal              @default(0)
+  justificativaInicioSemAprovacao String?
+  observacoes                    String?
+  criadoEm                       DateTime             @default(now())
+  atualizadoEm                   DateTime             @updatedAt
+  itens                          ItemOrdemServico[]
+  pagamentos                     Pagamento[]
+  historicosStatus                HistoricoStatus[]
+
+  @@index([numero])
+  @@index([status])
+  @@index([clienteId])
+}
+
+model ItemOrdemServico {
+  id               String            @id @default(cuid())
+  ordemServicoId   String
+  ordemServico     OrdemServico      @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipoItem         String
+  descricao        String
+  marca            String?
+  cor              String?
+  tamanho          String?
+  observacoes      String?
+  valor            Decimal           @default(0)
+  criadoEm         DateTime          @default(now())
+  atualizadoEm     DateTime          @updatedAt
+  servicos         ServicoItemOrdem[]
+
+  @@index([ordemServicoId])
+}
+
+model Servico {
+  id           String            @id @default(cuid())
+  nome         String
+  descricao    String?
+  precoBase    Decimal           @default(0)
+  ativo        Boolean           @default(true)
+  criadoEm     DateTime          @default(now())
+  atualizadoEm DateTime          @updatedAt
+  itens        ServicoItemOrdem[]
+
+  @@index([nome])
+  @@index([ativo])
+}
+
+model ServicoItemOrdem {
+  id                String            @id @default(cuid())
+  itemOrdemServicoId String
+  servicoId         String
+  itemOrdemServico  ItemOrdemServico  @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
+  servico           Servico           @relation(fields: [servicoId], references: [id], onDelete: Restrict)
+  descricao         String?
+  valor             Decimal           @default(0)
+  criadoEm          DateTime          @default(now())
+
+  @@index([itemOrdemServicoId])
+  @@index([servicoId])
+}
+
+model Pagamento {
+  id             String         @id @default(cuid())
+  ordemServicoId  String
+  ordemServico    OrdemServico   @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipo           String
+  valor          Decimal          @default(0)
+  formaPagamento String
+  dataPagamento  DateTime
+  observacoes    String?
+  criadoEm       DateTime       @default(now())
+
+  @@index([ordemServicoId])
+  @@index([tipo])
+}
+
+model HistoricoStatus {
+  id             String             @id @default(cuid())
+  ordemServicoId  String
+  ordemServico    OrdemServico       @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  statusAnterior  String?
+  statusNovo      String
+  observacao     String?
+  criadoEm       DateTime           @default(now())
+
+  @@index([ordemServicoId])
+  @@index([statusNovo])
+}
