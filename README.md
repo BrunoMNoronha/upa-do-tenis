@@ -18,6 +18,7 @@ Sistema web interno para apoiar a operação da sapataria, com foco no MVP v1: c
 2. Copie `.env.example` para `.env`.
 3. Rode a migração inicial do Prisma.
 4. Inicie o servidor de desenvolvimento.
+5. Acesse a home, clientes e a estrutura inicial de ordens de serviço.
 
 ## Comandos
 
@@ -26,6 +27,7 @@ npm install
 npm run prisma:generate
 npm run prisma:migrate
 npm run dev
+npm run build
 ```
 
 ## Visão geral do MVP
