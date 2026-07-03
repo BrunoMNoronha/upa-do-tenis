@@ -43,6 +43,7 @@ model OrdemServico {
   itens                          ItemOrdemServico[]
   pagamentos                     Pagamento[]
   historicosStatus                HistoricoStatus[]
+  movimentacoesEstoque           MovimentacaoEstoqueInsumo[]
 
   @@index([numero])
   @@index([status])
@@ -64,6 +65,7 @@ model ItemOrdemServico {
   atualizadoEm     DateTime          @updatedAt
   servicos         ServicoItemOrdem[]
   insumos          InsumoItemOrdem[]
+  movimentacoesEstoque MovimentacaoEstoqueInsumo[]
 
   @@index([ordemServicoId])
 }
@@ -151,6 +153,7 @@ model Insumo {
   criadoEm          DateTime @default(now())
   atualizadoEm      DateTime @updatedAt
   itensOrdem        InsumoItemOrdem[]
+  movimentacoes     MovimentacaoEstoqueInsumo[]
 
   @@index([nome])
   @@index([ativo])
@@ -171,4 +174,30 @@ model InsumoItemOrdem {
 
   @@index([itemOrdemServicoId])
   @@index([insumoId])
+}
+
+model MovimentacaoEstoqueInsumo {
+  id                 String            @id @default(cuid())
+  insumoId           String
+  insumo             Insumo            @relation(fields: [insumoId], references: [id], onDelete: Restrict)
+  tipo               String
+  quantidade         Decimal           @default(0)
+  custoUnitario      Decimal           @default(0)
+  custoTotal         Decimal           @default(0)
+  saldoAnterior      Decimal           @default(0)
+  saldoPosterior     Decimal           @default(0)
+  origem             String
+  ordemServicoId     String?
+  ordemServico       OrdemServico?     @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+  itemOrdemServicoId String?
+  itemOrdemServico   ItemOrdemServico? @relation(fields: [itemOrdemServicoId], references: [id], onDelete: SetNull)
+  observacao         String?
+  motivo             String?
+  criadoEm           DateTime          @default(now())
+
+  @@index([insumoId])
+  @@index([tipo])
+  @@index([origem])
+  @@index([criadoEm])
+  @@index([ordemServicoId])
 }

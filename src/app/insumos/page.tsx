@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { Badge, Card, SectionTitle } from "@/components/ui";
 import { InsumosForm } from "./insumos-form";
+import Link from "next/link";
 
 import { listarInsumos } from "@/lib/insumos";
 
@@ -65,6 +66,14 @@ export default async function InsumosPage() {
                       <div>
                         <h3 className="text-lg font-semibold text-white">{item.nome}</h3>
                         <p className="mt-1 text-sm text-slate-300">{item.descricao}</p>
+                        <div className="mt-2">
+                           <Link 
+                              href={`/insumos/${item.id}/movimentacoes`} 
+                              className="text-xs uppercase tracking-wider text-[color:var(--accent-base)] hover:text-white transition-colors"
+                            >
+                              Ver Extrato / Lançamentos &rarr;
+                           </Link>
+                        </div>
                       </div>
                       <Badge tone={isBaixoEstoque ? "danger" : "success"}>
                         {isBaixoEstoque ? "Estoque Baixo" : "Normal"}
