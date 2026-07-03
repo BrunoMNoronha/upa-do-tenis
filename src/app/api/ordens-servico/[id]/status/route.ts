@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { statusUpdateSchema } from "@/lib/ordens-servico-schema";
 import { OsStatus, transicoesPermitidas } from "@/lib/ordens-servico";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,

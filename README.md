@@ -66,6 +66,7 @@ Siga os passos abaixo para configurar e executar o projeto do zero:
 - `npm run build`: Compila o projeto para produção.
 - `npm start`: Inicia o servidor em modo de produção.
 - `npm run lint`: Verifica erros de padronização de código.
+- `npm run test`: Executa os testes unitários (Vitest).
 - `npm run typecheck`: Valida a tipagem estática do projeto sem emitir arquivos.
 - `npm run seed`: Popula o banco de dados com a massa inicial.
 

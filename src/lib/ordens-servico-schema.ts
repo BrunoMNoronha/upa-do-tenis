@@ -19,3 +19,7 @@ export const statusUpdateSchema = z.object({
 });
 
 export type StatusUpdateValues = z.infer<typeof statusUpdateSchema>;
+
+export const ordemServicoIdParamsSchema = z.object({
+  id: z.string().min(1, "ID da Ordem de Serviço é obrigatório."),
+});

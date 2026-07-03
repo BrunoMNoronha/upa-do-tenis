@@ -8,8 +8,13 @@ import { useForm } from "react-hook-form";
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
+import {
+  filtrarOrdensServicoListagem,
+  type StatusFinanceiroListagem,
+  type StatusOperacionalListagem,
+} from "@/lib/ordens-servico-listagem";
 
-type StatusFilter = "TODAS" | OsStatus;
+type StatusFilter = StatusOperacionalListagem;
 
 const statusOptions: Array<{ value: OsStatus; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }> = [
   { value: "ABERTA", label: "Aberta", tone: "neutral" },
@@ -24,6 +29,14 @@ const filterOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "EM_ANDAMENTO", label: "Em andamento" },
   { value: "CONCLUIDA", label: "Concluídas" },
   { value: "ENTREGUE", label: "Entregues" },
+];
+
+const financeFilterOptions: Array<{ value: StatusFinanceiroListagem; label: string }> = [
+  { value: "TODAS", label: "Todas" },
+  { value: "PENDENTES", label: "Pendentes" },
+  { value: "PARCIAIS", label: "Parciais" },
+  { value: "PAGAS", label: "Pagas" },
+  { value: "COM_SALDO_EM_ABERTO", label: "Com saldo em aberto" },
 ];
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -71,6 +84,9 @@ type OrdemServicoReal = {
   dataPrevisao: Date;
   valorTotal: any;
   observacoes: string | null;
+  valorPago: number;
+  saldo: number;
+  statusFinanceiro: "PENDENTE" | "PARCIAL" | "PAGO" | "CANCELADO";
   itens: Item[];
   historicosStatus?: HistoricoStatus[];
 };
@@ -84,6 +100,20 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
   const statusLabel = statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
   const itemPrincipal = ordem.itens?.[0];
   const servicoPrincipal = itemPrincipal?.servicos?.[0]?.servico;
+  const statusFinanceiroLabel = ordem.statusFinanceiro === "PARCIAL"
+    ? "Parcial"
+    : ordem.statusFinanceiro === "PENDENTE"
+      ? "Pendente"
+      : ordem.statusFinanceiro === "PAGO"
+        ? "Pago"
+        : "Cancelado";
+  const statusFinanceiroTone = ordem.statusFinanceiro === "PAGO"
+    ? "success"
+    : ordem.statusFinanceiro === "PARCIAL"
+      ? "warning"
+      : ordem.statusFinanceiro === "CANCELADO"
+        ? "danger"
+        : "neutral";
 
   const handleStatusChange = async (novoStatus: OsStatus) => {
     setError(null);
@@ -134,7 +164,10 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
           <p className="mt-1 text-sm text-slate-200">{ordem.cliente?.telefone}</p>
         </div>
 
-        <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
+        <div className="flex flex-col items-end gap-2">
+          <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
+          <Badge tone={statusFinanceiroTone}>{statusFinanceiroLabel}</Badge>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-3">
@@ -154,6 +187,14 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
           <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Total</p>
           <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
         </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Pago</p>
+          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorPago || 0))}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Saldo</p>
+          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.saldo || 0))}</p>
+        </div>
         <div className="sm:col-span-2 lg:col-span-2">
           <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Observações</p>
           <p className="mt-1 text-white">{ordem.observacoes || "Sem observações adicionais."}</p>
@@ -163,7 +204,12 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
       {error && <p className="mt-4 text-sm font-semibold text-red-400">{error}</p>}
 
       <div className="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
-        {actionButton ? actionButton : <div />}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button href={`/ordens-servico/${ordem.id}`} variant="secondary">
+            Ver detalhe
+          </Button>
+          {actionButton}
+        </div>
 
         {ordem.historicosStatus && ordem.historicosStatus.length > 0 && (
           <button
@@ -212,6 +258,7 @@ export function OrdensServicoClient({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("TODAS");
+  const [financeFilter, setFinanceFilter] = useState<StatusFinanceiroListagem>("TODAS");
 
   const {
     register,
@@ -246,7 +293,11 @@ export function OrdensServicoClient({
   });
 
   const ordens = initialOrders as OrdemServicoReal[];
-  const filteredOrders = ordens.filter((ordem) => (statusFilter === "TODAS" ? true : ordem.status === statusFilter));
+  const filteredOrders = filtrarOrdensServicoListagem({
+    ordens,
+    statusOperacional: statusFilter,
+    statusFinanceiro: financeFilter,
+  });
 
   return (
     <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -373,6 +424,26 @@ export function OrdensServicoClient({
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   active
                     ? "border-transparent bg-white text-[color:var(--text)]"
+                    : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mb-5 flex flex-wrap gap-2">
+          {financeFilterOptions.map((option) => {
+            const active = financeFilter === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setFinanceFilter(option.value)}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  active
+                    ? "border-transparent bg-amber-100 text-amber-900"
                     : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
                 }`}
               >

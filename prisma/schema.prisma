@@ -63,6 +63,7 @@ model ItemOrdemServico {
   criadoEm         DateTime          @default(now())
   atualizadoEm     DateTime          @updatedAt
   servicos         ServicoItemOrdem[]
+  insumos          InsumoItemOrdem[]
 
   @@index([ordemServicoId])
 }
@@ -149,7 +150,25 @@ model Insumo {
   ativo             Boolean  @default(true)
   criadoEm          DateTime @default(now())
   atualizadoEm      DateTime @updatedAt
+  itensOrdem        InsumoItemOrdem[]
 
   @@index([nome])
   @@index([ativo])
+}
+
+model InsumoItemOrdem {
+  id                  String           @id @default(cuid())
+  itemOrdemServicoId  String
+  insumoId            String
+  quantidade          Decimal          @default(0)
+  custoUnitarioAplicado Decimal        @default(0)
+  custoTotalAplicado  Decimal          @default(0)
+  observacoes         String?
+  criadoEm            DateTime         @default(now())
+  atualizadoEm        DateTime         @updatedAt
+  itemOrdemServico    ItemOrdemServico @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
+  insumo              Insumo           @relation(fields: [insumoId], references: [id], onDelete: Restrict)
+
+  @@index([itemOrdemServicoId])
+  @@index([insumoId])
 }

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
+import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,6 +20,15 @@ export async function POST(req: NextRequest) {
     // Generate a unique number
     const count = await prisma.ordemServico.count();
     const numeroStr = `OS-${String(count + 1001).padStart(4, "0")}`;
+    const resumoFinanceiro = calcularResumoFinanceiroOS({
+      statusOperacional: "ABERTA",
+      valorTotal: data.valorEstimado,
+      valorDesconto: 0,
+      valorSinal: 0,
+      valorPago: 0,
+      pagamentos: [],
+      itens: [],
+    });
 
     const novaOS = await prisma.ordemServico.create({
       data: {
@@ -29,7 +37,11 @@ export async function POST(req: NextRequest) {
         status: "ABERTA",
         dataEntrada: new Date(),
         dataPrevisao: new Date(`${data.prazoPrevisto}T12:00:00`),
-        valorTotal: data.valorEstimado,
+        valorTotal: resumoFinanceiro.valorTotal,
+        valorDesconto: resumoFinanceiro.valorDesconto,
+        valorSinal: resumoFinanceiro.valorSinal,
+        valorPago: resumoFinanceiro.valorPago,
+        saldo: resumoFinanceiro.saldo,
         observacoes: data.observacoes,
         itens: {
           create: {

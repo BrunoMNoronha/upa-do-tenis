@@ -55,7 +55,9 @@ export function AppShell({ title, description, eyebrow, action, children }: AppS
 
           <nav className="flex flex-wrap items-center gap-2">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = item.href === "/"
+                ? pathname === item.href
+                : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
               return (
                 <Link

@@ -1,0 +1,40 @@
+import { AppShell } from "@/components/app-shell";
+import { listarFormasPagamento } from "@/lib/formas-pagamento";
+import { listarInsumos } from "@/lib/insumos";
+
+import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
+
+type OrdemServicoDetalhePageProps = {
+  params: {
+    id: string;
+  };
+};
+
+export const metadata = {
+  title: "Detalhe da Ordem de Serviço | UPA do Tênis",
+  description: "Visualização consolidada de dados operacionais e financeiros da OS.",
+};
+
+export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDetalhePageProps) {
+  const formasPagamento = await listarFormasPagamento();
+  const insumosDisponiveis = (await listarInsumos()).map((insumo) => ({
+    id: insumo.id,
+    nome: insumo.nome,
+    unidadeMedida: insumo.unidadeMedida,
+  }));
+
+  return (
+    <AppShell
+      eyebrow="Operação e financeiro"
+      title="Detalhe da Ordem de Serviço"
+      description="Consulte dados completos da OS, histórico operacional, pagamentos registrados e resumo financeiro consolidado pelo backend."
+      action={{ href: "/ordens-servico", label: "Voltar para Ordens" }}
+    >
+      <OrdemServicoDetalheClient
+        ordemServicoId={params.id}
+        formasPagamento={formasPagamento}
+        insumosDisponiveis={insumosDisponiveis}
+      />
+    </AppShell>
+  );
+}
