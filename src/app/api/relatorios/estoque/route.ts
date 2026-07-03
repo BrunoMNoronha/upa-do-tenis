@@ -1,0 +1,69 @@
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getEstatisticasGlobaisEstoque,
+  getListaInsumosCriticos,
+  getExtratoMovimentacoes,
+  getResumoPorTipo,
+  FiltrosMovimentacao,
+} from "@/lib/relatorio-estoque-service";
+import { TipoMovimentacao, OrigemMovimentacao } from "@/lib/movimentacao-estoque-service";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    const dataInicioStr = searchParams.get("dataInicio");
+    const dataFimStr = searchParams.get("dataFim");
+    const tipo = searchParams.get("tipo") as TipoMovimentacao | null;
+    const origem = searchParams.get("origem") as OrigemMovimentacao | null;
+    const insumoId = searchParams.get("insumoId");
+
+    const filtros: FiltrosMovimentacao = {};
+
+    if (dataInicioStr) {
+      const dataInicio = new Date(dataInicioStr);
+      if (!isNaN(dataInicio.getTime())) {
+        filtros.dataInicio = dataInicio;
+      }
+    }
+
+    if (dataFimStr) {
+      const dataFim = new Date(dataFimStr);
+      if (!isNaN(dataFim.getTime())) {
+        filtros.dataFim = dataFim;
+      }
+    }
+
+    if (tipo && Object.values(TipoMovimentacao).includes(tipo)) {
+      filtros.tipo = tipo;
+    }
+
+    if (origem && Object.values(OrigemMovimentacao).includes(origem)) {
+      filtros.origem = origem;
+    }
+
+    if (insumoId) {
+      filtros.insumoId = insumoId;
+    }
+
+    const [estatisticas, criticos, movimentacoes, resumoTipos] = await Promise.all([
+      getEstatisticasGlobaisEstoque(),
+      getListaInsumosCriticos(),
+      getExtratoMovimentacoes(filtros, 100), // limite de 100 para o relatório
+      getResumoPorTipo(filtros),
+    ]);
+
+    return NextResponse.json({
+      estatisticas,
+      criticos,
+      movimentacoes,
+      resumoTipos,
+    });
+  } catch (error: any) {
+    console.error("Erro ao gerar relatório de estoque:", error);
+    return NextResponse.json(
+      { error: "Erro ao gerar o relatório. Detalhes: " + error.message },
+      { status: 500 }
+    );
+  }
+}

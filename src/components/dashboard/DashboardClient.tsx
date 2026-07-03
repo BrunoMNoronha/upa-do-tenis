@@ -7,6 +7,7 @@ import { DashboardCardsFinanceiros } from './DashboardCardsFinanceiros';
 import { DashboardCardsOperacionais } from './DashboardCardsOperacionais';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
+import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
 
 export function DashboardClient() {
   const [inicio, setInicio] = useState('');
@@ -63,6 +64,8 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-6">
+      <DashboardAlertasEstoque />
+      
       <DashboardFiltros
         inicio={inicio}
         fim={fim}
