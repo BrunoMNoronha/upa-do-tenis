@@ -121,3 +121,52 @@ export function Badge({ tone = "neutral", className, children }: CardProps & { t
 export function SectionTitle({ className, children }: CardProps) {
   return <h2 className={composeClasses("text-2xl font-semibold tracking-tight text-[color:var(--text)]", className)}>{children}</h2>;
 }
+
+type EmptyStateProps = {
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+  className?: string;
+};
+
+export function EmptyState({ title, description, action, className }: EmptyStateProps) {
+  return (
+    <div className={composeClasses("flex flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center", className)}>
+      <h3 className="mt-2 text-lg font-semibold text-[color:var(--text)]">{title}</h3>
+      <p className="mt-2 text-sm text-slate-600 max-w-sm">{description}</p>
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
+type ErrorStateProps = {
+  title?: string;
+  description: string;
+  action?: React.ReactNode;
+  className?: string;
+};
+
+export function ErrorState({ title = "Ocorreu um erro", description, action, className }: ErrorStateProps) {
+  return (
+    <div className={composeClasses("flex flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center", className)}>
+      <Badge tone="danger">Erro</Badge>
+      <h3 className="mt-4 text-lg font-semibold text-rose-900">{title}</h3>
+      <p className="mt-2 text-sm text-rose-700 max-w-sm">{description}</p>
+      {action && <div className="mt-6">{action}</div>}
+    </div>
+  );
+}
+
+type LoadingStateProps = {
+  text?: string;
+  className?: string;
+};
+
+export function LoadingState({ text = "Carregando...", className }: LoadingStateProps) {
+  return (
+    <div className={composeClasses("flex flex-col items-center justify-center p-12 text-center", className)}>
+      <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-[color:var(--accent-strong)]"></div>
+      <p className="mt-4 text-sm font-medium text-slate-600">{text}</p>
+    </div>
+  );
+}

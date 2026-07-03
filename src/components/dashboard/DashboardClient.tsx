@@ -8,6 +8,8 @@ import { DashboardCardsOperacionais } from './DashboardCardsOperacionais';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
 import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
+import { DashboardQuickActions } from './DashboardQuickActions';
+import { LoadingState, EmptyState, ErrorState } from '@/components/ui';
 
 export function DashboardClient() {
   const [inicio, setInicio] = useState('');
@@ -66,6 +68,8 @@ export function DashboardClient() {
     <div className="space-y-6">
       <DashboardAlertasEstoque />
       
+      <DashboardQuickActions />
+
       <DashboardFiltros
         inicio={inicio}
         fim={fim}
@@ -76,23 +80,18 @@ export function DashboardClient() {
       />
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
-          <h3 className="font-semibold">Erro</h3>
-          <p className="mt-1 text-sm">{error}</p>
-        </div>
+        <ErrorState description={error} />
       )}
 
       {!error && !metrics && !loading && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
-          <h3 className="font-semibold">Sem Dados</h3>
-          <p className="mt-1 text-sm">Nenhum dado encontrado para o período selecionado.</p>
-        </div>
+        <EmptyState 
+          title="Sem Dados" 
+          description="Nenhum dado encontrado para o período selecionado." 
+        />
       )}
 
       {loading && !metrics && (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <LoadingState text="Carregando métricas do dashboard..." />
       )}
 
       {metrics && (

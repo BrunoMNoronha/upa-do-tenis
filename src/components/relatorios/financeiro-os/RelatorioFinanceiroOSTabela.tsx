@@ -1,6 +1,7 @@
 import React from 'react';
+import Link from 'next/link';
 import { RelatorioOSItem } from '@/lib/relatorio-financeiro-os-service';
-import { Badge } from '@/components/ui';
+import { Badge, EmptyState } from '@/components/ui';
 
 interface TabelaProps {
   itens: RelatorioOSItem[];
@@ -22,8 +23,11 @@ const formatarData = (dataStr: string) => {
 export function RelatorioFinanceiroOSTabela({ itens }: TabelaProps) {
   if (itens.length === 0) {
     return (
-      <div className="rounded-2xl border border-black/10 bg-white p-8 text-center text-slate-500">
-        Nenhuma Ordem de Serviço encontrada para os filtros aplicados.
+      <div className="mt-8">
+        <EmptyState 
+          title="Nenhuma Ordem de Serviço encontrada" 
+          description="Ajuste os filtros de período, cliente ou status para encontrar os registros desejados."
+        />
       </div>
     );
   }
@@ -47,7 +51,9 @@ export function RelatorioFinanceiroOSTabela({ itens }: TabelaProps) {
           {itens.map((item) => (
             <tr key={item.id} className="hover:bg-slate-50 transition">
               <td className="px-6 py-4 font-medium">
-                {item.numero}
+                <Link href={`/ordens-servico/${item.id}`} className="text-[color:var(--accent-strong)] hover:underline">
+                  {item.numero}
+                </Link>
                 {item.atrasada && (
                   <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
                     Atrasada

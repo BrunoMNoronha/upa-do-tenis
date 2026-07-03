@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
 import Link from "next/link";
+import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -149,16 +150,11 @@ export function RelatorioEstoqueClient() {
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-800 flex items-center">
-          <span className="h-5 w-5 mr-2">⚠️</span>
-          <p className="text-sm">{error}</p>
-        </div>
+        <ErrorState description={error} />
       )}
 
       {loading && !estatisticas && (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <LoadingState text="Processando relatório de estoque..." />
       )}
 
       {estatisticas && (
@@ -208,7 +204,11 @@ export function RelatorioEstoqueClient() {
               </div>
               
               {criticos.length === 0 ? (
-                <div className="p-6 text-center text-sm text-gray-500">Nenhum insumo crítico encontrado.</div>
+                <EmptyState 
+                  title="Nenhum insumo crítico" 
+                  description="Todos os insumos estão acima do estoque mínimo."
+                  className="border-none"
+                />
               ) : (
                 <ul className="divide-y divide-gray-200">
                   {criticos.map((insumo) => (
@@ -233,7 +233,7 @@ export function RelatorioEstoqueClient() {
                         </div>
                       </div>
                       <div className="mt-2 text-right">
-                        <Link href={`/insumos/${insumo.id}/extrato`} className="text-xs font-medium text-primary hover:underline">
+                        <Link href={`/insumos/${insumo.id}/movimentacoes`} className="text-xs font-medium text-primary hover:underline">
                           Ver extrato
                         </Link>
                       </div>
@@ -266,8 +266,12 @@ export function RelatorioEstoqueClient() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {movimentacoes.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="py-8 text-center text-sm text-gray-500">
-                          Nenhuma movimentação no período selecionado.
+                        <td colSpan={5} className="py-8">
+                          <EmptyState 
+                            title="Sem movimentações" 
+                            description="Nenhuma movimentação de estoque encontrada neste período."
+                            className="border-none bg-transparent"
+                          />
                         </td>
                       </tr>
                     ) : (

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useTransition, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
@@ -91,7 +91,7 @@ type OrdemServicoReal = {
   historicosStatus?: HistoricoStatus[];
 };
 
-function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
+function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAtrasada: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +156,9 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
   }
 
   return (
-    <article className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+    <article className={`rounded-3xl border p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)] ${
+      isAtrasada ? "border-rose-500/50 bg-rose-950/20" : "border-white/10 bg-white/5"
+    }`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
@@ -165,6 +167,7 @@ function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          {isAtrasada && <Badge tone="danger">Atrasada</Badge>}
           <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
           <Badge tone={statusFinanceiroTone}>{statusFinanceiroLabel}</Badge>
         </div>
@@ -255,10 +258,37 @@ export function OrdensServicoClient({
   servicos: Servico[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("TODAS");
-  const [financeFilter, setFinanceFilter] = useState<StatusFinanceiroListagem>("TODAS");
+  
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
+    (searchParams.get("statusOp") as StatusFilter) || "TODAS"
+  );
+  const [financeFilter, setFinanceFilter] = useState<StatusFinanceiroListagem>(
+    (searchParams.get("statusFin") as StatusFinanceiroListagem) || "TODAS"
+  );
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("busca") || "");
+  const [showAtrasadas, setShowAtrasadas] = useState(searchParams.get("atrasadas") === "true");
+
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (value && value !== "TODAS" && value !== "false") {
+        params.set(name, value);
+      } else {
+        params.delete(name);
+      }
+      return params.toString();
+    },
+    [searchParams]
+  );
+
+  const updateFilters = (key: string, value: string) => {
+    const qs = createQueryString(key, value);
+    router.replace(`${pathname}?${qs}`, { scroll: false });
+  };
 
   const {
     register,
@@ -293,11 +323,37 @@ export function OrdensServicoClient({
   });
 
   const ordens = initialOrders as OrdemServicoReal[];
+  
   const filteredOrders = filtrarOrdensServicoListagem({
     ordens,
     statusOperacional: statusFilter,
     statusFinanceiro: financeFilter,
+  }).filter((ordem) => {
+    // Aplica filtro de texto (Busca)
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const matchCliente = ordem.cliente?.nome.toLowerCase().includes(term);
+      const matchNumero = ordem.numero.toLowerCase().includes(term);
+      if (!matchCliente && !matchNumero) return false;
+    }
+    
+    // Aplica filtro de atrasadas
+    if (showAtrasadas) {
+      if (ordem.status === "CONCLUIDA" || ordem.status === "ENTREGUE" || ordem.status === "CANCELADA") return false;
+      const prev = new Date(ordem.dataPrevisao);
+      prev.setHours(23, 59, 59, 999);
+      if (prev >= new Date()) return false;
+    }
+    
+    return true;
   });
+
+  const checkIsAtrasada = (ordem: OrdemServicoReal) => {
+    if (ordem.status === "CONCLUIDA" || ordem.status === "ENTREGUE" || ordem.status === "CANCELADA") return false;
+    const prev = new Date(ordem.dataPrevisao);
+    prev.setHours(23, 59, 59, 999);
+    return prev < new Date();
+  };
 
   return (
     <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
@@ -413,6 +469,18 @@ export function OrdensServicoClient({
           <Badge tone="accent">{ordens.length} ordens</Badge>
         </div>
 
+        <div className="mb-4">
+          <Input 
+            placeholder="Buscar por cliente ou número da OS..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              updateFilters("busca", e.target.value);
+            }}
+            className="max-w-md !bg-white/10 !text-white !border-white/20 placeholder:text-slate-400"
+          />
+        </div>
+
         <div className="mb-5 flex flex-wrap gap-2">
           {filterOptions.map((option) => {
             const active = statusFilter === option.value;
@@ -420,7 +488,10 @@ export function OrdensServicoClient({
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setStatusFilter(option.value as StatusFilter)}
+                onClick={() => {
+                  setStatusFilter(option.value as StatusFilter);
+                  updateFilters("statusOp", option.value);
+                }}
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   active
                     ? "border-transparent bg-white text-[color:var(--text)]"
@@ -431,6 +502,21 @@ export function OrdensServicoClient({
               </button>
             );
           })}
+          
+          <button
+            type="button"
+            onClick={() => {
+              setShowAtrasadas(!showAtrasadas);
+              updateFilters("atrasadas", (!showAtrasadas).toString());
+            }}
+            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              showAtrasadas
+                ? "border-transparent bg-rose-500 text-white"
+                : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
+            }`}
+          >
+            Atrasadas
+          </button>
         </div>
 
         <div className="mb-5 flex flex-wrap gap-2">
@@ -440,7 +526,10 @@ export function OrdensServicoClient({
               <button
                 key={option.value}
                 type="button"
-                onClick={() => setFinanceFilter(option.value)}
+                onClick={() => {
+                  setFinanceFilter(option.value);
+                  updateFilters("statusFin", option.value);
+                }}
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                   active
                     ? "border-transparent bg-amber-100 text-amber-900"
@@ -460,7 +549,7 @@ export function OrdensServicoClient({
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((ordem) => (
-              <OrdemServicoCard key={ordem.id} ordem={ordem} />
+              <OrdemServicoCard key={ordem.id} ordem={ordem} isAtrasada={checkIsAtrasada(ordem)} />
             ))}
           </div>
         )}

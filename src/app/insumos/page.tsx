@@ -19,8 +19,18 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-export default async function InsumosPage() {
-  const insumos = await listarInsumos();
+export default async function InsumosPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
+  let insumos = await listarInsumos();
+  
+  const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
+  
+  if (mostrarAlerta) {
+    insumos = insumos.filter(item => Number(item.quantidadeEstoque) <= Number(item.estoqueMinimo));
+  }
 
   return (
     <AppShell
@@ -43,9 +53,16 @@ export default async function InsumosPage() {
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista de Estoque</p>
-              <h2 className="mt-2 text-2xl font-semibold">Itens Cadastrados</h2>
+              <h2 className="mt-2 text-2xl font-semibold">
+                {mostrarAlerta ? "Itens em Alerta" : "Itens Cadastrados"}
+              </h2>
             </div>
-            <Badge tone="accent">Total: {insumos.length}</Badge>
+            <div className="flex items-center gap-2">
+              {mostrarAlerta && (
+                <Link href="/insumos" className="text-xs text-[color:var(--accent-base)] hover:underline">Limpar filtros</Link>
+              )}
+              <Badge tone="accent">Total: {insumos.length}</Badge>
+            </div>
           </div>
 
           {insumos.length === 0 ? (
@@ -58,10 +75,11 @@ export default async function InsumosPage() {
                 const quantidadeEstoqueNum = Number(item.quantidadeEstoque);
                 const estoqueMinimoNum = Number(item.estoqueMinimo);
                 
-                const isBaixoEstoque = quantidadeEstoqueNum <= estoqueMinimoNum;
+                const isZerado = quantidadeEstoqueNum === 0;
+                const isBaixoEstoque = quantidadeEstoqueNum <= estoqueMinimoNum && !isZerado;
 
                 return (
-                  <article key={item.id} className="rounded-3xl border border-white/10 bg-white/5 p-5">
+                  <article key={item.id} className={`rounded-3xl border p-5 ${isZerado ? "border-rose-500/50 bg-rose-950/20" : isBaixoEstoque ? "border-amber-500/50 bg-amber-950/20" : "border-white/10 bg-white/5"}`}>
                     <div className="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <h3 className="text-lg font-semibold text-white">{item.nome}</h3>
@@ -75,8 +93,8 @@ export default async function InsumosPage() {
                            </Link>
                         </div>
                       </div>
-                      <Badge tone={isBaixoEstoque ? "danger" : "success"}>
-                        {isBaixoEstoque ? "Estoque Baixo" : "Normal"}
+                      <Badge tone={isZerado ? "danger" : isBaixoEstoque ? "warning" : "success"}>
+                        {isZerado ? "Sem Estoque" : isBaixoEstoque ? "Estoque Baixo" : "Normal"}
                       </Badge>
                     </div>
 

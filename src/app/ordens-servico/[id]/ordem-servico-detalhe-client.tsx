@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
 
 type Cliente = {
   id: string;
@@ -351,40 +351,26 @@ export function OrdemServicoDetalheClient({
   const resumo = useMemo(() => ordem?.resumoFinanceiro, [ordem]);
 
   if (estado === "carregando") {
-    return (
-      <Card className="p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">Carregando</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">Buscando detalhe da OS...</h2>
-        <p className="mt-3 text-sm text-slate-600">Estamos consultando os dados consolidados de atendimento e financeiro.</p>
-      </Card>
-    );
+    return <LoadingState text="Buscando detalhe da OS..." />;
   }
 
   if (estado === "erro") {
     return (
-      <Card className="p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-red-600">Erro</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">Falha ao carregar a OS</h2>
-        <p className="mt-3 text-sm text-slate-700">{erro || "Ocorreu um erro inesperado."}</p>
-        <div className="mt-5">
-          <Button type="button" onClick={() => void carregarDetalhe()}>
-            Tentar novamente
-          </Button>
-        </div>
-      </Card>
+      <ErrorState 
+        title="Falha ao carregar a OS" 
+        description={erro || "Ocorreu um erro inesperado."} 
+        action={<Button type="button" onClick={() => void carregarDetalhe()}>Tentar novamente</Button>}
+      />
     );
   }
 
   if (estado === "nao-encontrada") {
     return (
-      <Card className="p-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--warning)]">OS inexistente</p>
-        <h2 className="mt-2 text-2xl font-semibold text-[color:var(--text)]">Ordem de Serviço não encontrada</h2>
-        <p className="mt-3 text-sm text-slate-700">Verifique se o identificador está correto ou retorne para a listagem.</p>
-        <div className="mt-5">
-          <Button href="/ordens-servico">Ir para listagem</Button>
-        </div>
-      </Card>
+      <EmptyState 
+        title="Ordem de Serviço não encontrada" 
+        description="Verifique se o identificador está correto ou retorne para a listagem."
+        action={<Button href="/ordens-servico">Ir para listagem</Button>}
+      />
     );
   }
 
@@ -395,14 +381,45 @@ export function OrdemServicoDetalheClient({
   return (
     <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
       <div className="space-y-6">
+        <Card className="p-6 border-l-4 border-l-[color:var(--accent-strong)] bg-slate-50">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)] mb-4">Resumo Operacional</p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Cliente</p>
+              <p className="font-semibold text-[color:var(--text)]">{ordem.cliente.nome}</p>
+              <p className="text-sm text-slate-600">{ordem.cliente.telefone}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Status Operacional</p>
+              <p className="mt-1"><Badge tone="neutral">{formatarStatus(ordem.status)}</Badge></p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Prazos</p>
+              <p className="text-sm text-slate-700">
+                <span className="font-medium text-slate-900">Prev:</span> {dateFormatter.format(new Date(ordem.dataPrevisao))}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Valor Total</p>
+              <p className="font-semibold text-[color:var(--text)]">{currencyFormatter.format(Number(resumo.valorTotal || 0))}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Valor Pago</p>
+              <p className="font-semibold text-emerald-700">{currencyFormatter.format(Number(resumo.valorPago || 0))}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wider">Saldo a Pagar</p>
+              <p className="font-semibold text-rose-700">{currencyFormatter.format(Number(resumo.saldo || 0))}</p>
+            </div>
+          </div>
+        </Card>
+
         <Card className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Cabeçalho da OS</p>
               <SectionTitle className="mt-2">{ordem.numero}</SectionTitle>
-              <p className="mt-2 text-sm text-slate-700">Status operacional: {formatarStatus(ordem.status)}</p>
             </div>
-
             <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
           </div>
 
@@ -422,24 +439,6 @@ export function OrdemServicoDetalheClient({
             <p>
               <span className="font-semibold text-[color:var(--text)]">Observações:</span>{" "}
               {ordem.observacoes || "Sem observações adicionais."}
-            </p>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Dados do cliente</p>
-          <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
-            <p>
-              <span className="font-semibold text-[color:var(--text)]">Nome:</span> {ordem.cliente.nome}
-            </p>
-            <p>
-              <span className="font-semibold text-[color:var(--text)]">Telefone:</span> {ordem.cliente.telefone}
-            </p>
-            <p>
-              <span className="font-semibold text-[color:var(--text)]">E-mail:</span> {ordem.cliente.email || "-"}
-            </p>
-            <p>
-              <span className="font-semibold text-[color:var(--text)]">CPF/CNPJ:</span> {ordem.cliente.cpfCnpj || "-"}
             </p>
           </div>
         </Card>

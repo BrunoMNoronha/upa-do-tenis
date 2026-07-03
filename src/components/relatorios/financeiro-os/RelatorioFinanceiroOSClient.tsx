@@ -5,6 +5,7 @@ import { RelatorioFinanceiroOSResponse } from '@/lib/relatorio-financeiro-os-ser
 import { RelatorioFinanceiroOSFiltros } from './RelatorioFinanceiroOSFiltros';
 import { RelatorioFinanceiroOSTabela } from './RelatorioFinanceiroOSTabela';
 import { MetricCard } from '@/components/dashboard/MetricCard';
+import { LoadingState, ErrorState } from '@/components/ui';
 
 export function RelatorioFinanceiroOSClient() {
   const [inicio, setInicio] = useState('');
@@ -96,16 +97,11 @@ export function RelatorioFinanceiroOSClient() {
       />
 
       {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-rose-800">
-          <h3 className="font-semibold">Erro</h3>
-          <p className="mt-1 text-sm">{error}</p>
-        </div>
+        <ErrorState description={error} />
       )}
 
       {loading && !relatorio && (
-        <div className="flex justify-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
+        <LoadingState text="Processando relatório financeiro..." />
       )}
 
       {relatorio && (
