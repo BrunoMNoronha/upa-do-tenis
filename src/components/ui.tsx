@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import Link from "next/link";
 
 type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -69,33 +70,41 @@ export function Label({ className, children, ...props }: LabelProps) {
   );
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  const { className, ...rest } = props;
+export const Input = forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  (props, ref) => {
+    const { className, ...rest } = props;
 
-  return (
-    <input
-      className={composeClasses(
-        "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition placeholder:text-slate-400 focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]",
-        className,
-      )}
-      {...rest}
-    />
-  );
-}
+    return (
+      <input
+        ref={ref}
+        className={composeClasses(
+          "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition placeholder:text-slate-400 focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]",
+          className,
+        )}
+        {...rest}
+      />
+    );
+  }
+);
+Input.displayName = "Input";
 
-export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  const { className, ...rest } = props;
+export const Textarea = forwardRef<HTMLTextAreaElement, React.TextareaHTMLAttributes<HTMLTextAreaElement>>(
+  (props, ref) => {
+    const { className, ...rest } = props;
 
-  return (
-    <textarea
-      className={composeClasses(
-        "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition placeholder:text-slate-400 focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]",
-        className,
-      )}
-      {...rest}
-    />
-  );
-}
+    return (
+      <textarea
+        ref={ref}
+        className={composeClasses(
+          "w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition placeholder:text-slate-400 focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]",
+          className,
+        )}
+        {...rest}
+      />
+    );
+  }
+);
+Textarea.displayName = "Textarea";
 
 export function Badge({ tone = "neutral", className, children }: CardProps & { tone?: BadgeTone }) {
   const toneClasses = {
