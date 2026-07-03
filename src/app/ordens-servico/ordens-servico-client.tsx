@@ -62,6 +62,7 @@ type Cliente = { id: string; nome: string; telefone: string };
 type Servico = { id: string; nome: string };
 type ItemServico = { servico: Servico };
 type Item = { descricao: string; valor: any; servicos: ItemServico[] };
+type HistoricoStatus = { id: string; statusAnterior: string | null; statusNovo: string; observacao: string | null; criadoEm: Date };
 type OrdemServicoReal = {
   id: string;
   numero: string;
@@ -71,7 +72,132 @@ type OrdemServicoReal = {
   valorTotal: any;
   observacoes: string | null;
   itens: Item[];
+  historicosStatus?: HistoricoStatus[];
 };
+
+function OrdemServicoCard({ ordem }: { ordem: OrdemServicoReal }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const statusLabel = statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
+  const itemPrincipal = ordem.itens?.[0];
+  const servicoPrincipal = itemPrincipal?.servicos?.[0]?.servico;
+
+  const handleStatusChange = async (novoStatus: OsStatus) => {
+    setError(null);
+    const response = await fetch(`/api/ordens-servico/${ordem.id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statusNovo: novoStatus }),
+    });
+
+    if (!response.ok) {
+      const payload = await response.json();
+      setError(payload.message || "Erro ao atualizar status.");
+      return;
+    }
+
+    startTransition(() => {
+      router.refresh();
+    });
+  };
+
+  let actionButton = null;
+  if (ordem.status === "ABERTA") {
+    actionButton = (
+      <Button type="button" onClick={() => handleStatusChange("EM_ANDAMENTO")} disabled={isPending}>
+        {isPending ? "Processando..." : "Iniciar Serviço"}
+      </Button>
+    );
+  } else if (ordem.status === "EM_ANDAMENTO") {
+    actionButton = (
+      <Button type="button" onClick={() => handleStatusChange("CONCLUIDA")} disabled={isPending}>
+        {isPending ? "Processando..." : "Marcar como Concluída"}
+      </Button>
+    );
+  } else if (ordem.status === "CONCLUIDA") {
+    actionButton = (
+      <Button type="button" onClick={() => handleStatusChange("ENTREGUE")} disabled={isPending}>
+        {isPending ? "Processando..." : "Entregar ao Cliente"}
+      </Button>
+    );
+  }
+
+  return (
+    <article className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
+          <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente?.nome}</h3>
+          <p className="mt-1 text-sm text-slate-200">{ordem.cliente?.telefone}</p>
+        </div>
+
+        <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
+      </div>
+
+      <div className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Item</p>
+          <p className="mt-1 text-white">{itemPrincipal?.descricao || "Nenhum"}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Serviço</p>
+          <p className="mt-1 text-white">{servicoPrincipal?.nome || "Geral"}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Prazo</p>
+          <p className="mt-1 text-white">{ordem.dataPrevisao ? dateFormatter.format(new Date(ordem.dataPrevisao)) : "-"}</p>
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Total</p>
+          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
+        </div>
+        <div className="sm:col-span-2 lg:col-span-2">
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Observações</p>
+          <p className="mt-1 text-white">{ordem.observacoes || "Sem observações adicionais."}</p>
+        </div>
+      </div>
+
+      {error && <p className="mt-4 text-sm font-semibold text-red-400">{error}</p>}
+
+      <div className="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+        {actionButton ? actionButton : <div />}
+
+        {ordem.historicosStatus && ordem.historicosStatus.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowHistory(!showHistory)}
+            className="text-sm font-semibold text-[color:var(--accent-soft)] hover:underline"
+          >
+            {showHistory ? "Ocultar Histórico" : "Ver Histórico"}
+          </button>
+        )}
+      </div>
+
+      {showHistory && ordem.historicosStatus && (
+        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Histórico de Status</p>
+          <div className="space-y-2">
+            {ordem.historicosStatus.map((h) => (
+              <div key={h.id} className="flex items-start gap-3 text-sm">
+                <span className="whitespace-nowrap text-slate-400">
+                  {new Date(h.criadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                </span>
+                <span className="text-slate-200">
+                  {h.statusAnterior ? `${h.statusAnterior} → ` : ""}
+                  <span className="font-semibold text-white">{h.statusNovo}</span>
+                  {h.observacao ? ` - ${h.observacao}` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </article>
+  );
+}
 
 export function OrdensServicoClient({
   initialOrders,
@@ -262,48 +388,9 @@ export function OrdensServicoClient({
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredOrders.map((ordem) => {
-              const statusLabel = statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
-              const itemPrincipal = ordem.itens?.[0];
-              const servicoPrincipal = itemPrincipal?.servicos?.[0]?.servico;
-
-              return (
-                <article key={ordem.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
-                      <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente?.nome}</h3>
-                      <p className="mt-1 text-sm text-slate-200">{ordem.cliente?.telefone}</p>
-                    </div>
-
-                    <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Item</p>
-                      <p className="mt-1 text-white">{itemPrincipal?.descricao || "Nenhum"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Serviço</p>
-                      <p className="mt-1 text-white">{servicoPrincipal?.nome || "Geral"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Prazo</p>
-                      <p className="mt-1 text-white">{ordem.dataPrevisao ? dateFormatter.format(new Date(ordem.dataPrevisao)) : "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Total</p>
-                      <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
-                    </div>
-                    <div className="sm:col-span-2 lg:col-span-2">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Observações</p>
-                      <p className="mt-1 text-white">{ordem.observacoes || "Sem observações adicionais."}</p>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {filteredOrders.map((ordem) => (
+              <OrdemServicoCard key={ordem.id} ordem={ordem} />
+            ))}
           </div>
         )}
       </Card>

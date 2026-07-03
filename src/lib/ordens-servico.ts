@@ -4,6 +4,13 @@ const prisma = new PrismaClient();
 
 export type OsStatus = "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE";
 
+export const transicoesPermitidas: Record<OsStatus, OsStatus[]> = {
+  ABERTA: ["EM_ANDAMENTO"],
+  EM_ANDAMENTO: ["CONCLUIDA"],
+  CONCLUIDA: ["ENTREGUE"],
+  ENTREGUE: [], // Estado final
+};
+
 export async function listarOrdensServico() {
   return prisma.ordemServico.findMany({
     include: {
@@ -15,6 +22,11 @@ export async function listarOrdensServico() {
               servico: true,
             },
           },
+        },
+      },
+      historicosStatus: {
+        orderBy: {
+          criadoEm: "desc",
         },
       },
     },

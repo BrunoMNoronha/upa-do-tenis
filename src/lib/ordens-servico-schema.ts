@@ -10,3 +10,12 @@ export const ordemServicoFormSchema = z.object({
 });
 
 export type OrdemServicoFormValues = z.infer<typeof ordemServicoFormSchema>;
+
+export const statusUpdateSchema = z.object({
+  statusNovo: z.enum(["EM_ANDAMENTO", "CONCLUIDA", "ENTREGUE"], {
+    errorMap: () => ({ message: "Status inválido." }),
+  }),
+  observacao: z.string().optional(),
+});
+
+export type StatusUpdateValues = z.infer<typeof statusUpdateSchema>;
