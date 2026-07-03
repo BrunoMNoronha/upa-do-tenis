@@ -59,21 +59,26 @@ export default function HomePage() {
         </Card>
       </section>
 
-      <section className="mt-6 grid gap-6 md:grid-cols-3">
+      <section className="mt-6 grid gap-6 md:grid-cols-4">
         <Card className="p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Atalho</p>
           <SectionTitle className="mt-3 text-xl">Clientes</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Cadastro e consulta de clientes com foco em atendimento rápido.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-700">Cadastro e consulta rápida no balcão.</p>
         </Card>
         <Card className="p-6">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Atalho</p>
           <SectionTitle className="mt-3 text-xl">Ordens de Serviço</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Estrutura inicial para evoluir o fluxo operacional da sapataria.</p>
+          <p className="mt-3 text-sm leading-6 text-slate-700">Acompanhamento e registro de novas ordens.</p>
         </Card>
         <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Atalho</p>
-          <SectionTitle className="mt-3 text-xl">Próxima entrega</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Tema global, shell administrativo e padronização visual das telas principais.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Catálogo</p>
+          <SectionTitle className="mt-3 text-xl">Serviços</SectionTitle>
+          <p className="mt-3 text-sm leading-6 text-slate-700">Serviços oferecidos e precificação base.</p>
+        </Card>
+        <Card className="p-6">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Estoque</p>
+          <SectionTitle className="mt-3 text-xl">Insumos</SectionTitle>
+          <p className="mt-3 text-sm leading-6 text-slate-700">Controle de materiais e estoque mínimo.</p>
         </Card>
       </section>
     </AppShell>

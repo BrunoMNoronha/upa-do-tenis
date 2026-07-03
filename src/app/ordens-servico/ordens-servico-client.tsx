@@ -1,88 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
+import type { OsStatus } from "@/lib/ordens-servico";
 
-type OsStatus = "ABERTA" | "EM_ANDAMENTO" | "AGUARDANDO_APROVACAO" | "FINALIZADA" | "ENTREGUE";
-
-type OrdemServico = {
-  numero: number;
-  cliente: string;
-  telefone: string;
-  item: string;
-  servico: string;
-  observacoes: string;
-  prazoPrevisto: string;
-  valorEstimado: number;
-  status: OsStatus;
-};
-
-type NovaOrdemForm = {
-  cliente: string;
-  telefone: string;
-  itemRecebido: string;
-  servicoSolicitado: string;
-  observacoes: string;
-  prazoPrevisto: string;
-  valorEstimado: string;
-  status: OsStatus;
-};
+type StatusFilter = "TODAS" | OsStatus;
 
 const statusOptions: Array<{ value: OsStatus; label: string; tone: "neutral" | "success" | "warning" | "danger" | "accent" }> = [
   { value: "ABERTA", label: "Aberta", tone: "neutral" },
   { value: "EM_ANDAMENTO", label: "Em andamento", tone: "warning" },
-  { value: "AGUARDANDO_APROVACAO", label: "Aguardando aprovação", tone: "accent" },
-  { value: "FINALIZADA", label: "Finalizada", tone: "success" },
+  { value: "CONCLUIDA", label: "Concluída", tone: "success" },
   { value: "ENTREGUE", label: "Entregue", tone: "neutral" },
 ];
 
-const initialOrders: OrdemServico[] = [
-  {
-    numero: 1201,
-    cliente: "Marcos Almeida",
-    telefone: "(11) 98888-1201",
-    item: "Tênis casual preto",
-    servico: "Troca de sola e limpeza",
-    observacoes: "Cliente pediu prioridade para sexta-feira.",
-    prazoPrevisto: "2026-07-04",
-    valorEstimado: 120,
-    status: "EM_ANDAMENTO",
-  },
-  {
-    numero: 1202,
-    cliente: "Carla Souza",
-    telefone: "(11) 97777-1202",
-    item: "Sapatilha de couro",
-    servico: "Reforço nas laterais",
-    observacoes: "Aguardando confirmação do valor.",
-    prazoPrevisto: "2026-07-05",
-    valorEstimado: 85,
-    status: "AGUARDANDO_APROVACAO",
-  },
-  {
-    numero: 1203,
-    cliente: "João Pedro",
-    telefone: "(11) 96666-1203",
-    item: "Bota marrom",
-    servico: "Troca de zíper",
-    observacoes: "Recebida com desgaste interno.",
-    prazoPrevisto: "2026-07-03",
-    valorEstimado: 95,
-    status: "ABERTA",
-  },
+const filterOptions: Array<{ value: StatusFilter; label: string }> = [
+  { value: "TODAS", label: "Todas" },
+  { value: "ABERTA", label: "Abertas" },
+  { value: "EM_ANDAMENTO", label: "Em andamento" },
+  { value: "CONCLUIDA", label: "Concluídas" },
+  { value: "ENTREGUE", label: "Entregues" },
 ];
-
-const defaultFormValues: NovaOrdemForm = {
-  cliente: "",
-  telefone: "",
-  itemRecebido: "",
-  servicoSolicitado: "",
-  observacoes: "",
-  prazoPrevisto: "",
-  valorEstimado: "",
-  status: "ABERTA",
-};
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -93,17 +35,11 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-function formatOsNumero(numero: number) {
-  return `OS-${String(numero).padStart(4, "0")}`;
-}
-
-function getStatusTone(status: OsStatus): "neutral" | "success" | "warning" | "danger" | "accent" {
+function getStatusTone(status: string): "neutral" | "success" | "warning" | "danger" | "accent" {
   switch (status) {
     case "EM_ANDAMENTO":
       return "warning";
-    case "AGUARDANDO_APROVACAO":
-      return "accent";
-    case "FINALIZADA":
+    case "CONCLUIDA":
       return "success";
     case "ENTREGUE":
       return "neutral";
@@ -112,167 +48,181 @@ function getStatusTone(status: OsStatus): "neutral" | "success" | "warning" | "d
   }
 }
 
-export function OrdensServicoClient() {
-  const [ordens, setOrdens] = useState(initialOrders);
-  const [formValues, setFormValues] = useState(defaultFormValues);
+const defaultValues: OrdemServicoFormValues = {
+  clienteId: "",
+  itemRecebido: "",
+  servicoId: "",
+  prazoPrevisto: "",
+  valorEstimado: 0,
+  observacoes: "",
+};
 
-  function updateField(field: keyof NovaOrdemForm, value: string) {
-    setFormValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  }
+// Types corresponding to what Prisma returns
+type Cliente = { id: string; nome: string; telefone: string };
+type Servico = { id: string; nome: string };
+type ItemServico = { servico: Servico };
+type Item = { descricao: string; valor: any; servicos: ItemServico[] };
+type OrdemServicoReal = {
+  id: string;
+  numero: string;
+  cliente: Cliente;
+  status: string;
+  dataPrevisao: Date;
+  valorTotal: any;
+  observacoes: string | null;
+  itens: Item[];
+};
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+export function OrdensServicoClient({
+  initialOrders,
+  clientes,
+  servicos,
+}: {
+  initialOrders: any[];
+  clientes: Cliente[];
+  servicos: Servico[];
+}) {
+  const router = useRouter();
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("TODAS");
 
-    setOrdens((current) => {
-      const nextNumero = current.reduce((maxNumero, ordem) => Math.max(maxNumero, ordem.numero), 1200) + 1;
-      const novaOrdem: OrdemServico = {
-        numero: nextNumero,
-        cliente: formValues.cliente.trim(),
-        telefone: formValues.telefone.trim(),
-        item: formValues.itemRecebido.trim(),
-        servico: formValues.servicoSolicitado.trim(),
-        observacoes: formValues.observacoes.trim(),
-        prazoPrevisto: formValues.prazoPrevisto,
-        valorEstimado: Number(formValues.valorEstimado),
-        status: formValues.status,
-      };
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<OrdemServicoFormValues>({
+    resolver: zodResolver(ordemServicoFormSchema),
+    defaultValues,
+  });
 
-      return [novaOrdem, ...current];
+  const onSubmit = handleSubmit(async (values) => {
+    setSubmitError(null);
+
+    const response = await fetch("/api/ordens-servico", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
     });
 
-    setFormValues(defaultFormValues);
-  }
+    if (!response.ok) {
+      const payload = await response.json();
+      setSubmitError(payload.message ?? "Não foi possível criar a ordem de serviço.");
+      return;
+    }
+
+    reset(defaultValues);
+
+    startTransition(() => {
+      router.refresh();
+    });
+  });
+
+  const ordens = initialOrders as OrdemServicoReal[];
+  const filteredOrders = ordens.filter((ordem) => (statusFilter === "TODAS" ? true : ordem.status === statusFilter));
 
   return (
     <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
       <section id="nova-ordem">
         <Card className="p-6">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Nova ordem</p>
-            <SectionTitle className="mt-2 text-2xl">Cadastro rápido em memória</SectionTitle>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-              Preencha os dados principais da OS para simular o fluxo de atendimento e ver o novo registro imediatamente na listagem ao lado.
-            </p>
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Nova ordem</p>
+              <SectionTitle className="mt-2 text-2xl">Cadastro de OS</SectionTitle>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
+                Selecione o cliente e os dados do serviço para registrar no banco de dados.
+              </p>
+            </div>
+            <Badge tone="accent">Banco Real</Badge>
           </div>
 
-          <Badge tone="accent">Local</Badge>
-        </div>
-
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="cliente">Cliente</Label>
-            <Input
-              id="cliente"
-              required
-              value={formValues.cliente}
-              onChange={(event) => updateField("cliente", event.target.value)}
-              placeholder="Nome do cliente"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="telefone">Telefone</Label>
-            <Input
-              id="telefone"
-              required
-              value={formValues.telefone}
-              onChange={(event) => updateField("telefone", event.target.value)}
-              placeholder="(11) 99999-9999"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="itemRecebido">Item recebido</Label>
-            <Input
-              id="itemRecebido"
-              required
-              value={formValues.itemRecebido}
-              onChange={(event) => updateField("itemRecebido", event.target.value)}
-              placeholder="Ex.: tênis, bota, sandália"
-            />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="servicoSolicitado">Serviço solicitado</Label>
-            <Input
-              id="servicoSolicitado"
-              required
-              value={formValues.servicoSolicitado}
-              onChange={(event) => updateField("servicoSolicitado", event.target.value)}
-              placeholder="Ex.: colagem, troca de sola, ajuste"
-            />
-          </div>
-
-          <div className="grid gap-2 md:grid-cols-2">
+          <form className="grid gap-4" onSubmit={onSubmit}>
             <div className="grid gap-2">
-              <Label htmlFor="prazoPrevisto">Prazo previsto</Label>
-              <Input
-                id="prazoPrevisto"
-                required
-                type="date"
-                value={formValues.prazoPrevisto}
-                onChange={(event) => updateField("prazoPrevisto", event.target.value)}
-              />
+              <Label htmlFor="clienteId">Cliente</Label>
+              <select
+                id="clienteId"
+                {...register("clienteId")}
+                className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Selecione um cliente...</option>
+                {clientes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome} - {c.telefone}
+                  </option>
+                ))}
+              </select>
+              {errors.clienteId ? <p className="text-sm text-red-600">{errors.clienteId.message}</p> : null}
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="valorEstimado">Valor estimado</Label>
+              <Label htmlFor="itemRecebido">Item recebido</Label>
               <Input
-                id="valorEstimado"
-                required
-                inputMode="decimal"
-                type="number"
-                min="0"
-                step="0.01"
-                value={formValues.valorEstimado}
-                onChange={(event) => updateField("valorEstimado", event.target.value)}
-                placeholder="0,00"
+                id="itemRecebido"
+                {...register("itemRecebido")}
+                placeholder="Ex.: tênis preto"
+              />
+              {errors.itemRecebido ? <p className="text-sm text-red-600">{errors.itemRecebido.message}</p> : null}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="servicoId">Serviço Solicitado (Opcional)</Label>
+              <select
+                id="servicoId"
+                {...register("servicoId")}
+                className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Nenhum / Cadastrar depois</option>
+                {servicos.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-2 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="prazoPrevisto">Prazo previsto</Label>
+                <Input
+                  id="prazoPrevisto"
+                  type="date"
+                  {...register("prazoPrevisto")}
+                />
+                {errors.prazoPrevisto ? <p className="text-sm text-red-600">{errors.prazoPrevisto.message}</p> : null}
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="valorEstimado">Valor total (R$)</Label>
+                <Input
+                  id="valorEstimado"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  {...register("valorEstimado")}
+                  placeholder="0,00"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                rows={4}
+                {...register("observacoes")}
+                placeholder="Detalhes adicionais do atendimento"
               />
             </div>
-          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="status">Status inicial</Label>
-            <select
-              id="status"
-              className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
-              value={formValues.status}
-              onChange={(event) => updateField("status", event.target.value as OsStatus)}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+            {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
-          <div className="grid gap-2">
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              rows={4}
-              value={formValues.observacoes}
-              onChange={(event) => updateField("observacoes", event.target.value)}
-              placeholder="Detalhes adicionais do atendimento"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button type="submit">Cadastrar ordem</Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setFormValues(defaultFormValues)}
-            >
-              Limpar
-            </Button>
-          </div>
-        </form>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Salvando..." : "Cadastrar ordem"}
+              </Button>
+            </div>
+          </form>
         </Card>
       </section>
 
@@ -280,31 +230,50 @@ export function OrdensServicoClient() {
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista de ordens</p>
-            <h2 className="mt-2 text-2xl font-semibold">OS mockadas e novas inclusões</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-200">
-              A fila abaixo representa a visão inicial do balcão, com os campos essenciais para consulta rápida e uma nova ordem adicionada em memória.
-            </p>
+            <h2 className="mt-2 text-2xl font-semibold">OS Registradas</h2>
           </div>
 
           <Badge tone="accent">{ordens.length} ordens</Badge>
         </div>
 
-        {ordens.length === 0 ? (
+        <div className="mb-5 flex flex-wrap gap-2">
+          {filterOptions.map((option) => {
+            const active = statusFilter === option.value;
+            return (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setStatusFilter(option.value as StatusFilter)}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  active
+                    ? "border-transparent bg-white text-[color:var(--text)]"
+                    : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
+                }`}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredOrders.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            Nenhuma ordem cadastrada ainda. Use o formulário ao lado para criar a primeira OS.
+            Nenhuma ordem encontrada.
           </div>
         ) : (
           <div className="space-y-4">
-            {ordens.map((ordem) => {
-              const statusLabel = statusOptions.find((option) => option.value === ordem.status)?.label ?? ordem.status;
+            {filteredOrders.map((ordem) => {
+              const statusLabel = statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
+              const itemPrincipal = ordem.itens?.[0];
+              const servicoPrincipal = itemPrincipal?.servicos?.[0]?.servico;
 
               return (
-                <article key={ordem.numero} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
+                <article key={ordem.id} className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)]">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{formatOsNumero(ordem.numero)}</p>
-                      <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente}</h3>
-                      <p className="mt-1 text-sm text-slate-200">{ordem.telefone}</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
+                      <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente?.nome}</h3>
+                      <p className="mt-1 text-sm text-slate-200">{ordem.cliente?.telefone}</p>
                     </div>
 
                     <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
@@ -313,19 +282,19 @@ export function OrdensServicoClient() {
                   <div className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-3">
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Item</p>
-                      <p className="mt-1 text-white">{ordem.item}</p>
+                      <p className="mt-1 text-white">{itemPrincipal?.descricao || "Nenhum"}</p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Serviço</p>
-                      <p className="mt-1 text-white">{ordem.servico}</p>
+                      <p className="mt-1 text-white">{servicoPrincipal?.nome || "Geral"}</p>
                     </div>
                     <div>
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Prazo</p>
-                      <p className="mt-1 text-white">{dateFormatter.format(new Date(`${ordem.prazoPrevisto}T12:00:00`))}</p>
+                      <p className="mt-1 text-white">{ordem.dataPrevisao ? dateFormatter.format(new Date(ordem.dataPrevisao)) : "-"}</p>
                     </div>
                     <div>
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor estimado</p>
-                      <p className="mt-1 text-white">{currencyFormatter.format(ordem.valorEstimado)}</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Total</p>
+                      <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
                     </div>
                     <div className="sm:col-span-2 lg:col-span-2">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Observações</p>

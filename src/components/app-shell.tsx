@@ -14,6 +14,9 @@ const navItems: NavItem[] = [
   { href: "/", label: "Início" },
   { href: "/clientes", label: "Clientes" },
   { href: "/ordens-servico", label: "Ordens de Serviço" },
+  { href: "/servicos", label: "Serviços" },
+  { href: "/insumos", label: "Insumos" },
+  { href: "/formas-pagamento", label: "Financeiro" },
 ];
 
 type AppShellProps = {

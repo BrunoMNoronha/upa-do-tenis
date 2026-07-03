@@ -95,18 +95,33 @@ model ServicoItemOrdem {
   @@index([servicoId])
 }
 
+model FormaPagamento {
+  id           String      @id @default(cuid())
+  nome         String
+  tipo         String?
+  ativo        Boolean     @default(true)
+  criadoEm     DateTime    @default(now())
+  atualizadoEm DateTime    @updatedAt
+  pagamentos   Pagamento[]
+
+  @@index([nome])
+  @@index([ativo])
+}
+
 model Pagamento {
-  id             String         @id @default(cuid())
-  ordemServicoId  String
-  ordemServico    OrdemServico   @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  tipo           String
-  valor          Decimal          @default(0)
-  formaPagamento String
-  dataPagamento  DateTime
-  observacoes    String?
-  criadoEm       DateTime       @default(now())
+  id               String         @id @default(cuid())
+  ordemServicoId   String
+  ordemServico     OrdemServico   @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipo             String
+  valor            Decimal        @default(0)
+  formaPagamentoId String
+  formaPagamento   FormaPagamento @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
+  dataPagamento    DateTime
+  observacoes      String?
+  criadoEm         DateTime       @default(now())
 
   @@index([ordemServicoId])
+  @@index([formaPagamentoId])
   @@index([tipo])
 }
 
@@ -121,4 +136,20 @@ model HistoricoStatus {
 
   @@index([ordemServicoId])
   @@index([statusNovo])
+}
+
+model Insumo {
+  id                String   @id @default(cuid())
+  nome              String
+  descricao         String?
+  unidadeMedida     String
+  quantidadeEstoque Decimal  @default(0)
+  estoqueMinimo     Decimal  @default(0)
+  custoUnitario     Decimal  @default(0)
+  ativo             Boolean  @default(true)
+  criadoEm          DateTime @default(now())
+  atualizadoEm      DateTime @updatedAt
+
+  @@index([nome])
+  @@index([ativo])
 }
