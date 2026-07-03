@@ -8,6 +8,8 @@ import {
 } from "@/lib/relatorio-estoque-service";
 import { TipoMovimentacao, OrigemMovimentacao } from "@/lib/movimentacao-estoque-service";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
