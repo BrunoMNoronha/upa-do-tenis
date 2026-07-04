@@ -174,8 +174,18 @@ export async function registrarMovimentacaoAutomaticaCaixa(
   return normalizarValoresDecimalParaClient(movimentacao);
 }
 
-export async function listarCaixas(params?: { take?: number; skip?: number }) {
+export async function listarCaixas(params?: { take?: number; skip?: number; dataInicio?: string; dataFim?: string }) {
+  const where: any = {};
+  
+  if (params?.dataInicio && params?.dataFim) {
+    where.dataAbertura = {
+      gte: new Date(`${params.dataInicio}T00:00:00`),
+      lte: new Date(`${params.dataFim}T23:59:59`)
+    };
+  }
+
   const caixas = await prisma.caixa.findMany({
+    where,
     orderBy: { dataAbertura: "desc" },
     take: params?.take,
     skip: params?.skip,

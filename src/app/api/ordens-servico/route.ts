@@ -17,9 +17,24 @@ export async function POST(req: NextRequest) {
 
     const data = result.data;
 
-    // Generate a unique number
-    const count = await prisma.ordemServico.count();
-    const numeroStr = `OS-${String(count + 1001).padStart(4, "0")}`;
+    // Generate a unique number OS-DDMMAAAA-XXXX
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const aaaa = now.getFullYear();
+    const numeroStr = `OS-${dd}${mm}${aaaa}-${data.numeroSufixo}`;
+
+    const existingOs = await prisma.ordemServico.findUnique({
+      where: { numero: numeroStr },
+    });
+
+    if (existingOs) {
+      return NextResponse.json(
+        { message: `Já existe uma Ordem de Serviço com o número ${numeroStr}.` },
+        { status: 409 }
+      );
+    }
+
     const resumoFinanceiro = calcularResumoFinanceiroOS({
       statusOperacional: "ABERTA",
       valorTotal: data.valorEstimado,

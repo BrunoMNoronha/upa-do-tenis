@@ -179,7 +179,7 @@ describe("ordens-servico-pagamentos", () => {
         valor: 30,
         dataPagamento: new Date("2026-07-03T10:00:00.000Z"),
       }),
-    ).rejects.toMatchObject<PagamentoOrdemServicoError>({
+    ).rejects.toMatchObject({
       message: "Pagamento acima do saldo pendente não é permitido.",
       status: 400,
     });
@@ -219,7 +219,7 @@ describe("ordens-servico-pagamentos", () => {
         valor: 10,
         dataPagamento: new Date("2026-07-03T10:00:00.000Z"),
       }),
-    ).rejects.toMatchObject<PagamentoOrdemServicoError>({
+    ).rejects.toMatchObject({
       message: "Forma de pagamento inválida.",
       status: 400,
     });
@@ -257,7 +257,7 @@ describe("ordens-servico-pagamentos", () => {
         valor: 10,
         dataPagamento: new Date("2026-07-03T10:00:00.000Z"),
       }),
-    ).rejects.toMatchObject<PagamentoOrdemServicoError>({
+    ).rejects.toMatchObject({
       message: "Ordem de serviço não encontrada.",
       status: 404,
     });

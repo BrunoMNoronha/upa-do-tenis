@@ -120,9 +120,7 @@ describe("ordens-servico detalhe", () => {
   it("falha para OS inexistente", async () => {
     prismaMock.ordemServico.findUnique.mockResolvedValueOnce(null);
 
-    await expect(obterDetalheOrdemServico("os-inexistente")).rejects.toMatchObject<
-      OrdemServicoDetalheError
-    >({
+    await expect(obterDetalheOrdemServico("os-inexistente")).rejects.toMatchObject({
       message: "Ordem de serviço não encontrada.",
       status: 404,
     });

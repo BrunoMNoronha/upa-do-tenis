@@ -3,8 +3,10 @@ import { NextResponse } from "next/server";
 import { criarCliente, listarClientes } from "@/lib/clientes";
 import { clienteFormSchema } from "@/lib/clientes-schema";
 
-export async function GET() {
-  const clientes = await listarClientes();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const search = searchParams.get("search") || undefined;
+  const clientes = await listarClientes(search);
 
   return NextResponse.json({ clientes });
 }

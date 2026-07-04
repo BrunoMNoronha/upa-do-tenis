@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { sanitizeCurrency } from "@/lib/sanitizers";
+import { formatCurrency } from "@/lib/formatters";
 
 type FormaPagamento = {
   id: string;
@@ -106,7 +108,7 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
     e.preventDefault();
     setAbrirLoading(true);
     try {
-      const valor = Number(saldoInicial.replace(",", "."));
+      const valor = sanitizeCurrency(saldoInicial);
       const res = await fetch("/api/caixa", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -130,7 +132,7 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
     if (!caixa) return;
     setMovLoading(true);
     try {
-      const valor = Number(movimentacaoForm.valor.replace(",", "."));
+      const valor = sanitizeCurrency(movimentacaoForm.valor);
       const res = await fetch(`/api/caixa/${caixa.id}/movimentacoes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,7 +162,7 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
     if (!caixa) return;
     setFecharLoading(true);
     try {
-      const valor = Number(fecharForm.saldoFinalInformado.replace(",", "."));
+      const valor = sanitizeCurrency(fecharForm.saldoFinalInformado);
       const res = await fetch(`/api/caixa/${caixa.id}/fechar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -196,12 +198,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
             <Label htmlFor="saldoInicial">Saldo Inicial Físico (Dinheiro em gaveta)</Label>
             <Input
               id="saldoInicial"
-              type="number"
-              min="0"
-              step="0.01"
+              type="text"
               value={saldoInicial}
-              onChange={(e) => setSaldoInicial(e.target.value)}
-              placeholder="0,00"
+              onChange={(e) => setSaldoInicial(formatCurrency(e.target.value))}
+              placeholder="R$ 0,00"
               required
             />
           </div>
@@ -268,12 +268,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
                   <Label htmlFor="valorMov">Valor</Label>
                   <Input
                     id="valorMov"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
+                    type="text"
                     value={movimentacaoForm.valor}
-                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, valor: e.target.value })}
-                    placeholder="0,00"
+                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, valor: formatCurrency(e.target.value) })}
+                    placeholder="R$ 0,00"
                     required
                   />
                 </div>
@@ -313,25 +311,42 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
           {caixa.movimentacoes.length === 0 ? (
             <p className="text-sm text-slate-600">Nenhuma movimentação registrada.</p>
           ) : (
-            <div className="space-y-3">
-              {caixa.movimentacoes.map(mov => (
-                <div key={mov.id} className="flex justify-between items-center p-3 border rounded-lg hover:bg-slate-50">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Badge tone={mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "success" : "danger"}>{mov.tipo}</Badge>
-                      <span className="font-medium text-sm">{mov.descricao}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {dateFormatter.format(new Date(mov.criadoEm))} • {mov.origem}
-                      {mov.formaPagamento ? ` • ${mov.formaPagamento.nome}` : ""}
-                      {mov.ordemServicoId ? ` • OS Vínculada` : ""}
-                    </p>
-                  </div>
-                  <div className={`font-semibold ${mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "text-emerald-600" : "text-rose-600"}`}>
-                    {mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "+" : "-"}{currencyFormatter.format(mov.valor)}
-                  </div>
-                </div>
-              ))}
+            <div className="rounded-xl border overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Data/Hora</th>
+                    <th className="px-4 py-3 font-semibold">Tipo</th>
+                    <th className="px-4 py-3 font-semibold">Descrição</th>
+                    <th className="px-4 py-3 font-semibold">Origem</th>
+                    <th className="px-4 py-3 font-semibold">Forma Pgto</th>
+                    <th className="px-4 py-3 font-semibold text-right">Valor</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {caixa.movimentacoes.map(mov => (
+                    <tr key={mov.id} className="hover:bg-slate-50">
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {dateFormatter.format(new Date(mov.criadoEm))}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge tone={mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "success" : "danger"}>{mov.tipo}</Badge>
+                      </td>
+                      <td className="px-4 py-3 font-medium">
+                        {mov.descricao}
+                        {mov.ordemServicoId && <span className="ml-2 text-xs text-slate-400 font-normal">(OS Vinculada)</span>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{mov.origem}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {mov.formaPagamento?.nome || "-"}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "text-emerald-600" : "text-rose-600"}`}>
+                        {mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "+" : "-"}{currencyFormatter.format(mov.valor)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </Card>
@@ -382,12 +397,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
                 <Label htmlFor="saldoInformado">Dinheiro Físico na Gaveta</Label>
                 <Input
                   id="saldoInformado"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
                   value={fecharForm.saldoFinalInformado}
-                  onChange={(e) => setFecharForm({ ...fecharForm, saldoFinalInformado: e.target.value })}
-                  placeholder="0,00"
+                  onChange={(e) => setFecharForm({ ...fecharForm, saldoFinalInformado: formatCurrency(e.target.value) })}
+                  placeholder="R$ 0,00"
                   required
                 />
               </div>

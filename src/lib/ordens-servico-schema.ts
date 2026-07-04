@@ -1,16 +1,13 @@
 import { z } from "zod";
+import { sanitizeCurrency } from "./sanitizers";
 
 const safeNumber = (minMessage: string) => z.preprocess((val) => {
-  if (typeof val === "string") {
-    if (val.trim() === "") return 0;
-    const parsed = parseFloat(val.replace(",", "."));
-    return isNaN(parsed) ? 0 : parsed;
-  }
-  return Number(val) || 0;
+  return sanitizeCurrency(val as any);
 }, z.number().min(0, minMessage));
 
 export const ordemServicoFormSchema = z.object({
   clienteId: z.string().min(1, "O cliente é obrigatório."),
+  numeroSufixo: z.string().regex(/^[0-9]{4}$/, "O sufixo deve ter exatamente 4 dígitos numéricos."),
   itemRecebido: z.string().min(2, "A descrição do item é obrigatória."),
   servicoId: z.string().optional(),
   prazoPrevisto: z.string().min(1, "A data de previsão é obrigatória."),

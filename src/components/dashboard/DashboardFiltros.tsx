@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, Input, Label } from '@/components/ui';
+import { Button } from '@/components/ui';
+import { DateRangePicker, type DateRange } from '@/components/date-range-picker';
 
 interface DashboardFiltrosProps {
   inicio: string;
@@ -18,30 +19,28 @@ export function DashboardFiltros({
   onFiltrar,
   loading,
 }: DashboardFiltrosProps) {
+  
+  const handleRangeChange = (range: DateRange) => {
+    onInicioChange(range.from ? range.from.toISOString().split("T")[0] : "");
+    onFimChange(range.to ? range.to.toISOString().split("T")[0] : "");
+  };
+
+  const currentRange = {
+    from: inicio ? new Date(`${inicio}T00:00:00`) : undefined,
+    to: fim ? new Date(`${fim}T23:59:59`) : undefined,
+  };
+
   return (
-    <div className="flex flex-col md:flex-row gap-4 items-end bg-card p-4 rounded-lg border shadow-sm">
-      <div className="flex flex-col gap-2 w-full md:w-auto">
-        <Label htmlFor="dataInicio">Data Inicial</Label>
-        <Input
-          id="dataInicio"
-          type="date"
-          value={inicio}
-          onChange={(e) => onInicioChange(e.target.value)}
-        />
-      </div>
-      <div className="flex flex-col gap-2 w-full md:w-auto">
-        <Label htmlFor="dataFim">Data Final</Label>
-        <Input
-          id="dataFim"
-          type="date"
-          value={fim}
-          onChange={(e) => onFimChange(e.target.value)}
-        />
-      </div>
+    <div className="flex flex-col xl:flex-row gap-4 items-end">
+      <DateRangePicker 
+        value={currentRange} 
+        onChange={handleRangeChange} 
+        className="w-full xl:w-auto"
+      />
       <Button 
         onClick={onFiltrar} 
         disabled={loading}
-        className="w-full md:w-auto"
+        className="w-full xl:w-auto h-11 px-8"
       >
         {loading ? 'Carregando...' : 'Filtrar'}
       </Button>

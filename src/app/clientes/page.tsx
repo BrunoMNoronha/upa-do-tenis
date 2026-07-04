@@ -1,5 +1,6 @@
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { Badge, Card, SectionTitle } from "@/components/ui";
+import { Badge, Card, SectionTitle, Input, Button } from "@/components/ui";
 import { ClientesForm } from "./clientes-form";
 
 import { listarClientes } from "@/lib/clientes";
@@ -14,8 +15,9 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-export default async function ClientesPage() {
-  const clientes = await listarClientes();
+export default async function ClientesPage({ searchParams }: { searchParams: { busca?: string } }) {
+  const busca = searchParams.busca || "";
+  const clientes = await listarClientes(busca);
 
   return (
     <AppShell
@@ -30,7 +32,7 @@ export default async function ClientesPage() {
           <div className="mt-3 flex items-end justify-between gap-4">
             <div>
               <p className="text-4xl font-semibold text-[color:var(--text)]">{clientes.length}</p>
-              <p className="mt-2 text-sm text-slate-600">clientes cadastrados</p>
+              <p className="mt-2 text-sm text-slate-600">clientes encontrados</p>
             </div>
             <Badge tone="accent">Local</Badge>
           </div>
@@ -58,7 +60,7 @@ export default async function ClientesPage() {
         </Card>
 
         <Card className="bg-[color:var(--text)] p-6 text-white">
-          <div className="mb-6 flex items-start justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista de clientes</p>
               <h2 className="mt-2 text-2xl font-semibold">Clientes cadastrados</h2>
@@ -66,9 +68,22 @@ export default async function ClientesPage() {
             <Badge tone="accent">SQLite</Badge>
           </div>
 
+          <form className="mb-6 flex gap-2">
+            <Input 
+              name="busca"
+              defaultValue={busca}
+              placeholder="Buscar por nome ou telefone..."
+              className="!bg-white/10 !text-white !border-white/20 placeholder:text-slate-400"
+            />
+            <Button type="submit" variant="secondary">Buscar</Button>
+            {busca && (
+              <Button href="/clientes" variant="ghost" className="!border-white/20 !text-white hover:!bg-white/10">Limpar</Button>
+            )}
+          </form>
+
           {clientes.length === 0 ? (
             <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-              Nenhum cliente cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
+              Nenhum cliente encontrado.
             </div>
           ) : (
             <div className="space-y-4">

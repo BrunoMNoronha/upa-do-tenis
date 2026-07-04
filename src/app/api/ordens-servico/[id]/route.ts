@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 import { ordemServicoIdParamsSchema } from "@/lib/ordens-servico-schema";
 import {
@@ -38,3 +39,47 @@ export async function GET(
     );
   }
 }
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const parsedParams = ordemServicoIdParamsSchema.safeParse(params);
+    if (!parsedParams.success) {
+      return NextResponse.json({ message: "Parâmetros inválidos." }, { status: 400 });
+    }
+
+    const osId = parsedParams.data.id;
+    
+    const countPagamentos = await prisma.pagamento.count({ where: { ordemServicoId: osId } });
+    const countMovEstoque = await prisma.movimentacaoEstoqueInsumo.count({ where: { ordemServicoId: osId } });
+    const countMovCaixa = await prisma.movimentacaoCaixa.count({ where: { ordemServicoId: osId } });
+    
+    const countHistory = await prisma.historicoStatus.count({ 
+      where: { 
+        ordemServicoId: osId,
+        statusAnterior: { not: null } 
+      } 
+    });
+
+    if (countPagamentos > 0 || countMovEstoque > 0 || countMovCaixa > 0 || countHistory > 0) {
+      return NextResponse.json(
+        { message: "Esta ordem de serviço não pode ser excluída fisicamente pois possui histórico, pagamentos ou movimentações vinculadas." },
+        { status: 409 }
+      );
+    }
+
+    await prisma.ordemServico.delete({
+      where: { id: osId }
+    });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    console.error("Erro ao excluir OS:", error);
+    return NextResponse.json(
+      { message: "Ocorreu um erro interno ao excluir a OS." },
+      { status: 500 }
+    );
+  }
+}

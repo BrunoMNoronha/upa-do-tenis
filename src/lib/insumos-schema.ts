@@ -1,12 +1,9 @@
 import { z } from "zod";
 
+import { sanitizeCurrency } from "./sanitizers";
+
 const safeNumber = (minMessage: string) => z.preprocess((val) => {
-  if (typeof val === "string") {
-    if (val.trim() === "") return 0;
-    const parsed = parseFloat(val.replace(",", "."));
-    return isNaN(parsed) ? 0 : parsed;
-  }
-  return Number(val) || 0;
+  return sanitizeCurrency(val as any);
 }, z.number().min(0, minMessage));
 
 export const insumoFormSchema = z.object({

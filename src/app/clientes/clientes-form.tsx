@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Button, Input, Label, Textarea } from "@/components/ui";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
+import { formatPhone, formatCPFCNPJ } from "@/lib/formatters";
 
 const defaultValues: ClienteFormValues = {
   nome: "",
@@ -73,6 +74,10 @@ export function ClientesForm() {
         <Input
           id="telefone"
           {...register("telefone")}
+          onChange={(e) => {
+            e.target.value = formatPhone(e.target.value);
+            register("telefone").onChange(e);
+          }}
           placeholder="(11) 99999-9999"
         />
         {errors.telefone ? <p className="text-sm text-red-600">{errors.telefone.message}</p> : null}
@@ -94,6 +99,10 @@ export function ClientesForm() {
           <Input
             id="cpfCnpj"
             {...register("cpfCnpj")}
+            onChange={(e) => {
+              e.target.value = formatCPFCNPJ(e.target.value);
+              register("cpfCnpj").onChange(e);
+            }}
             placeholder="Opcional"
           />
         </div>

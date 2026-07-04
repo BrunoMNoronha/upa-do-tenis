@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Combobox } from "@/components/combobox";
+import { formatCurrency } from "@/lib/formatters";
 import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
@@ -63,6 +65,7 @@ function getStatusTone(status: string): "neutral" | "success" | "warning" | "dan
 
 const defaultValues: OrdemServicoFormValues = {
   clienteId: "",
+  numeroSufixo: "",
   itemRecebido: "",
   servicoId: "",
   prazoPrevisto: "",
@@ -72,7 +75,7 @@ const defaultValues: OrdemServicoFormValues = {
 
 // Types corresponding to what Prisma returns
 type Cliente = { id: string; nome: string; telefone: string };
-type Servico = { id: string; nome: string };
+type Servico = { id: string; nome: string; precoBase: any };
 type ItemServico = { servico: Servico };
 type Item = { descricao: string; valor: any; servicos: ItemServico[] };
 type HistoricoStatus = { id: string; statusAnterior: string | null; statusNovo: string; observacao: string | null; criadoEm: Date };
@@ -294,12 +297,25 @@ export function OrdensServicoClient({
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<OrdemServicoFormValues>({
     resolver: zodResolver(ordemServicoFormSchema),
     defaultValues,
     mode: "onChange",
   });
+
+  const selectedServicoId = watch("servicoId");
+
+  useEffect(() => {
+    if (selectedServicoId) {
+      const servico = servicos.find(s => s.id === selectedServicoId);
+      if (servico && servico.precoBase) {
+        setValue("valorEstimado", Number(servico.precoBase));
+      }
+    }
+  }, [selectedServicoId, servicos, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
@@ -374,19 +390,34 @@ export function OrdensServicoClient({
           <form className="grid gap-4" onSubmit={onSubmit}>
             <div className="grid gap-2">
               <Label htmlFor="clienteId">Cliente</Label>
-              <select
+              <Combobox
                 id="clienteId"
-                {...register("clienteId")}
-                className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Selecione um cliente...</option>
-                {clientes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome} - {c.telefone}
-                  </option>
-                ))}
-              </select>
+                options={clientes.map(c => ({ value: c.id, label: c.nome, subLabel: c.telefone }))}
+                value={watch("clienteId")}
+                onChange={(val) => setValue("clienteId", val, { shouldValidate: true })}
+                placeholder="Selecione um cliente..."
+                emptyText="Cliente não encontrado"
+              />
               {errors.clienteId ? <p className="text-sm text-red-600">{errors.clienteId.message}</p> : null}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="numeroSufixo">Número da OS (4 dígitos finais)</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500 font-semibold uppercase">OS-{new Date().toLocaleDateString('pt-BR', {timeZone: 'America/Sao_Paulo'}).replace(/\//g, '')}-</span>
+                <Input
+                  id="numeroSufixo"
+                  {...register("numeroSufixo")}
+                  onChange={(e) => {
+                    e.target.value = e.target.value.replace(/\D/g, "");
+                    register("numeroSufixo").onChange(e);
+                  }}
+                  placeholder="Ex.: 0001"
+                  maxLength={4}
+                  className="w-32"
+                />
+              </div>
+              {errors.numeroSufixo ? <p className="text-sm text-red-600">{errors.numeroSufixo.message}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -401,18 +432,14 @@ export function OrdensServicoClient({
 
             <div className="grid gap-2">
               <Label htmlFor="servicoId">Serviço Solicitado (Opcional)</Label>
-              <select
+              <Combobox
                 id="servicoId"
-                {...register("servicoId")}
-                className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Nenhum / Cadastrar depois</option>
-                {servicos.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.nome}
-                  </option>
-                ))}
-              </select>
+                options={servicos.map(s => ({ value: s.id, label: s.nome }))}
+                value={watch("servicoId") || ""}
+                onChange={(val) => setValue("servicoId", val, { shouldValidate: true })}
+                placeholder="Nenhum / Cadastrar depois"
+                emptyText="Serviço não encontrado"
+              />
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
@@ -430,11 +457,13 @@ export function OrdensServicoClient({
                 <Label htmlFor="valorEstimado">Valor total (R$)</Label>
                 <Input
                   id="valorEstimado"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
                   {...register("valorEstimado")}
-                  placeholder="0,00"
+                  onChange={(e) => {
+                    e.target.value = formatCurrency(e.target.value);
+                    register("valorEstimado").onChange(e);
+                  }}
+                  placeholder="R$ 0,00"
                 />
               </div>
             </div>

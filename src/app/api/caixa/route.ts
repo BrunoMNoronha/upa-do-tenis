@@ -7,8 +7,10 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const take = searchParams.get("take") ? parseInt(searchParams.get("take")!, 10) : undefined;
     const skip = searchParams.get("skip") ? parseInt(searchParams.get("skip")!, 10) : undefined;
+    const dataInicio = searchParams.get("dataInicio") || undefined;
+    const dataFim = searchParams.get("dataFim") || undefined;
     
-    const caixas = await listarCaixas({ take, skip });
+    const caixas = await listarCaixas({ take, skip, dataInicio, dataFim });
     return NextResponse.json(caixas);
   } catch (error) {
     console.error("Erro ao listar caixas:", error);

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Card, SectionTitle, LoadingState, ErrorState, Button, Badge } from "@/components/ui";
+import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 
 type Caixa = {
   id: string;
@@ -30,30 +31,45 @@ export function CaixaHistoricoClient() {
   const [erro, setErro] = useState<string | null>(null);
   const [caixas, setCaixas] = useState<Caixa[]>([]);
 
-  useEffect(() => {
-    async function fetchCaixas() {
-      try {
-        const response = await fetch("/api/caixa");
-        if (!response.ok) throw new Error("Falha ao carregar histórico.");
-        const data = await response.json();
-        setCaixas(data);
-        setEstado("sucesso");
-      } catch (e: any) {
-        setErro(e.message);
-        setEstado("erro");
-      }
+  const [range, setRange] = useState<DateRange>({});
+
+  const fetchCaixas = useCallback(async () => {
+    setEstado("carregando");
+    setErro(null);
+    try {
+      const params = new URLSearchParams();
+      if (range.from) params.append("dataInicio", range.from.toISOString().split("T")[0]);
+      if (range.to) params.append("dataFim", range.to.toISOString().split("T")[0]);
+
+      const response = await fetch(`/api/caixa?${params.toString()}`);
+      if (!response.ok) throw new Error("Falha ao carregar histórico.");
+      const data = await response.json();
+      setCaixas(data);
+      setEstado("sucesso");
+    } catch (e: any) {
+      setErro(e.message);
+      setEstado("erro");
     }
-    void fetchCaixas();
-  }, []);
+  }, [range]);
+
+  useEffect(() => {
+    fetchCaixas();
+  }, [fetchCaixas]);
 
   if (estado === "carregando") return <LoadingState text="Carregando histórico..." />;
   if (estado === "erro") return <ErrorState title="Erro" description={erro || ""} />;
 
   return (
-    <Card className="p-6">
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm text-slate-600">
-          <thead className="border-b border-black/10 bg-slate-50/50 text-xs uppercase tracking-wider text-slate-500">
+    <div className="space-y-6">
+      <Card className="p-6 bg-[color:var(--surface)] text-[color:var(--text)]">
+        <SectionTitle className="mb-4">Filtros</SectionTitle>
+        <DateRangePicker value={range} onChange={setRange} />
+      </Card>
+
+      <Card className="p-6">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-slate-600">
+            <thead className="border-b border-black/10 bg-slate-50/50 text-xs uppercase tracking-wider text-slate-500">
             <tr>
               <th className="px-4 py-3 font-semibold">Data Abertura</th>
               <th className="px-4 py-3 font-semibold">Data Fechamento</th>
@@ -95,5 +111,6 @@ export function CaixaHistoricoClient() {
         </table>
       </div>
     </Card>
+    </div>
   );
 }

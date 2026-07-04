@@ -98,7 +98,7 @@ describe("ordens-servico-insumos", () => {
           quantidade: 2,
           custoUnitarioAplicado: 1,
         }),
-      ).rejects.toMatchObject<InsumoItemOrdemServicoError>({
+      ).rejects.toMatchObject({
         message: "Estoque insuficiente.",
         status: 400,
       });

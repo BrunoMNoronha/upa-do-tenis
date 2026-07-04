@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Button, Input, Label, Textarea } from "@/components/ui";
 import { insumoFormSchema, type InsumoFormValues } from "@/lib/insumos-schema";
+import { formatCurrency } from "@/lib/formatters";
 
 const defaultValues: InsumoFormValues = {
   nome: "",
@@ -84,11 +85,13 @@ export function InsumosForm() {
           <Label htmlFor="custoUnitario">Custo Unitário (R$)</Label>
           <Input
             id="custoUnitario"
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
             {...register("custoUnitario")}
-            placeholder="0,00"
+            onChange={(e) => {
+              e.target.value = formatCurrency(e.target.value);
+              register("custoUnitario").onChange(e);
+            }}
+            placeholder="R$ 0,00"
           />
         </div>
       </div>
