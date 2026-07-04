@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
 import Link from "next/link";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { formatarDataLocal } from "@/lib/date-range";
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -28,11 +29,9 @@ export function RelatorioEstoqueClient() {
   useEffect(() => {
     const hoje = new Date();
     const trintaDiasAtras = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    const formataData = (d: Date) => d.toISOString().split("T")[0];
-    
-    setInicio(formataData(trintaDiasAtras));
-    setFim(formataData(hoje));
+
+    setInicio(formatarDataLocal(trintaDiasAtras));
+    setFim(formatarDataLocal(hoje));
   }, []);
 
   const fetchRelatorio = useCallback(async (dataInicio: string, dataFim: string) => {

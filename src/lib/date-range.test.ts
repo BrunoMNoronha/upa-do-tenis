@@ -73,6 +73,48 @@ describe("date-range", () => {
     });
   });
 
+  describe("regressão: filtro do Histórico do Caixa não desloca dia em UTC-3", () => {
+    it("data local perto de 23:59 não vira o dia seguinte ao ser serializada", () => {
+      const quaseMeiaNoite = new Date(2026, 6, 4, 23, 59, 0);
+
+      expect(formatarDataLocal(quaseMeiaNoite)).toBe("2026-07-04");
+    });
+
+    it("'Hoje' envia a data local correta, diferente de toISOString em fusos negativos", () => {
+      const agora = new Date();
+      const offsetNegativo = agora.getTimezoneOffset() > 0;
+
+      if (offsetNegativo) {
+        const proximoDaMeiaNoite = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate(), 23, 30, 0);
+        expect(formatarDataLocal(proximoDaMeiaNoite)).not.toBe(
+          proximoDaMeiaNoite.toISOString().split("T")[0]
+        );
+      }
+
+      expect(formatarDataLocal(agora)).toBe(
+        `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, "0")}-${String(agora.getDate()).padStart(2, "0")}`
+      );
+    });
+  });
+
+  describe("regressão: filtros padrão dos relatórios financeiro e estoque não deslocam dia em UTC-3", () => {
+    it("relatório financeiro: 'fim' (hoje) perto da meia-noite local não vira o dia seguinte", () => {
+      const hoje = new Date(2026, 6, 4, 23, 45, 0);
+      const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+      expect(formatarDataLocal(primeiroDia)).toBe("2026-07-01");
+      expect(formatarDataLocal(hoje)).toBe("2026-07-04");
+    });
+
+    it("relatório estoque: intervalo de 30 dias com 'fim' perto da meia-noite local não vira o dia seguinte", () => {
+      const hoje = new Date(2026, 6, 4, 23, 45, 0);
+      const trintaDiasAtras = new Date(hoje.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      expect(formatarDataLocal(hoje)).toBe("2026-07-04");
+      expect(formatarDataLocal(trintaDiasAtras)).toBe("2026-06-04");
+    });
+  });
+
   describe("intervalo semiaberto com data final igual a hoje", () => {
     it("inclui registro criado agora quando o filtro termina hoje", () => {
       const agora = new Date();

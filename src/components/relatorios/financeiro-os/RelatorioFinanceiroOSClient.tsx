@@ -6,6 +6,7 @@ import { RelatorioFinanceiroOSFiltros } from './RelatorioFinanceiroOSFiltros';
 import { RelatorioFinanceiroOSTabela } from './RelatorioFinanceiroOSTabela';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { LoadingState, ErrorState } from '@/components/ui';
+import { formatarDataLocal } from '@/lib/date-range';
 
 export function RelatorioFinanceiroOSClient() {
   const [inicio, setInicio] = useState('');
@@ -22,10 +23,9 @@ export function RelatorioFinanceiroOSClient() {
   useEffect(() => {
     const hoje = new Date();
     const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const formataData = (d: Date) => d.toISOString().split('T')[0];
-    
-    setInicio(formataData(primeiroDia));
-    setFim(formataData(hoje));
+
+    setInicio(formatarDataLocal(primeiroDia));
+    setFim(formatarDataLocal(hoje));
   }, []);
 
   const fetchRelatorio = useCallback(async () => {

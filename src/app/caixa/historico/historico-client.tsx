@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { Card, SectionTitle, LoadingState, ErrorState, Button, Badge } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
+import { formatarDataLocal } from "@/lib/date-range";
 
 type Caixa = {
   id: string;
@@ -38,8 +39,8 @@ export function CaixaHistoricoClient() {
     setErro(null);
     try {
       const params = new URLSearchParams();
-      if (range.from) params.append("dataInicio", range.from.toISOString().split("T")[0]);
-      if (range.to) params.append("dataFim", range.to.toISOString().split("T")[0]);
+      if (range.from) params.append("dataInicio", formatarDataLocal(range.from));
+      if (range.to) params.append("dataFim", formatarDataLocal(range.to));
 
       const response = await fetch(`/api/caixa?${params.toString()}`);
       if (!response.ok) throw new Error("Falha ao carregar histórico.");
