@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
 import Link from "next/link";
 import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
 
 const formatCurrency = (value: number) => {
@@ -65,9 +66,18 @@ export function RelatorioEstoqueClient() {
     }
   }, [inicio, fim, fetchRelatorio]);
 
-  const handleFiltrar = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleFiltrar = () => {
     fetchRelatorio(inicio, fim);
+  };
+
+  const currentRange: DateRange = {
+    from: inicio ? new Date(`${inicio}T00:00:00`) : undefined,
+    to: fim ? new Date(`${fim}T23:59:59`) : undefined,
+  };
+
+  const handleRangeChange = (range: DateRange) => {
+    setInicio(range.from ? formatarDataLocal(range.from) : "");
+    setFim(range.to ? formatarDataLocal(range.to) : "");
   };
 
   const getTipoLabel = (tipo: string) => {
@@ -114,39 +124,13 @@ export function RelatorioEstoqueClient() {
   return (
     <div className="space-y-6">
       {/* Filtros */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
-        <form onSubmit={handleFiltrar} className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex-1 space-y-1">
-            <label htmlFor="inicio" className="text-sm font-medium text-gray-700">Data Inicial</label>
-            <input
-              type="date"
-              id="inicio"
-              value={inicio}
-              onChange={(e) => setInicio(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3 border"
-            />
-          </div>
-          <div className="flex-1 space-y-1">
-            <label htmlFor="fim" className="text-sm font-medium text-gray-700">Data Final</label>
-            <input
-              type="date"
-              id="fim"
-              value={fim}
-              onChange={(e) => setFim(e.target.value)}
-              className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-10 px-3 border"
-            />
-          </div>
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 h-10 w-full sm:w-auto"
-            >
-              {loading ? "Filtrando..." : "Filtrar Período"}
-            </button>
-          </div>
-        </form>
-      </div>
+      <DateRangePicker
+        value={currentRange}
+        onChange={handleRangeChange}
+        onApply={handleFiltrar}
+        applying={loading}
+        applyLabel="Filtrar Período"
+      />
 
       {error && (
         <ErrorState description={error} />

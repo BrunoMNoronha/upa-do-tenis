@@ -49,3 +49,35 @@ export function formatarDataLocal(data: Date): string {
   const dia = String(data.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
+
+export type PresetIntervalo = "hoje" | "semana" | "mes" | "mesAtual";
+
+/**
+ * Calcula início/fim (strings "YYYY-MM-DD" locais) de um preset de período,
+ * a partir de uma data de referência (padrão: agora).
+ */
+export function calcularIntervaloPreset(
+  preset: PresetIntervalo,
+  referencia: Date = new Date()
+): { inicio: string; fim: string } {
+  const fim = formatarDataLocal(referencia);
+
+  switch (preset) {
+    case "hoje":
+      return { inicio: fim, fim };
+    case "semana": {
+      const inicio = new Date(referencia);
+      inicio.setDate(referencia.getDate() - 7);
+      return { inicio: formatarDataLocal(inicio), fim };
+    }
+    case "mes": {
+      const inicio = new Date(referencia);
+      inicio.setDate(referencia.getDate() - 30);
+      return { inicio: formatarDataLocal(inicio), fim };
+    }
+    case "mesAtual": {
+      const inicio = new Date(referencia.getFullYear(), referencia.getMonth(), 1);
+      return { inicio: formatarDataLocal(inicio), fim };
+    }
+  }
+}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, Input, Label } from "@/components/ui";
-import { formatarDataLocal } from "@/lib/date-range";
+import { calcularIntervaloPreset, formatarDataLocal, parseDataLocal, type PresetIntervalo } from "@/lib/date-range";
 
 export type DateRange = {
   from?: Date;
@@ -12,16 +12,37 @@ export type DateRange = {
 type DateRangePickerProps = {
   value?: DateRange;
   onChange: (range: DateRange) => void;
+  /** Quando informado, exibe um botão de ação que dispara a busca com o período atual. */
+  onApply?: () => void;
+  /** Chamado (além de onChange) quando o usuário limpa o período. */
+  onClear?: () => void;
+  applyLabel?: string;
+  applying?: boolean;
   className?: string;
 };
 
-export function DateRangePicker({ value, onChange, className = "" }: DateRangePickerProps) {
+const periodoFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+
+export function DateRangePicker({
+  value,
+  onChange,
+  onApply,
+  onClear,
+  applyLabel = "Filtrar",
+  applying = false,
+  className = "",
+}: DateRangePickerProps) {
   const [from, setFrom] = useState<string>(
     value?.from ? formatarDataLocal(value.from) : ""
   );
   const [to, setTo] = useState<string>(
     value?.to ? formatarDataLocal(value.to) : ""
   );
+
+  useEffect(() => {
+    setFrom(value?.from ? formatarDataLocal(value.from) : "");
+    setTo(value?.to ? formatarDataLocal(value.to) : "");
+  }, [value?.from, value?.to]);
 
   const applyRange = (f: string, t: string) => {
     setFrom(f);
@@ -32,58 +53,57 @@ export function DateRangePicker({ value, onChange, className = "" }: DateRangePi
     });
   };
 
-  const handleShortcut = (type: "hoje" | "semana" | "mes" | "mes_atual" | "limpar") => {
-    const today = new Date();
-    const todayStr = formatarDataLocal(today);
-
-    if (type === "hoje") {
-      applyRange(todayStr, todayStr);
-    } else if (type === "semana") {
-      const lastWeek = new Date(today);
-      lastWeek.setDate(today.getDate() - 7);
-      applyRange(formatarDataLocal(lastWeek), todayStr);
-    } else if (type === "mes") {
-      const lastMonth = new Date(today);
-      lastMonth.setDate(today.getDate() - 30);
-      applyRange(formatarDataLocal(lastMonth), todayStr);
-    } else if (type === "mes_atual") {
-      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      applyRange(formatarDataLocal(firstDay), todayStr);
-    } else if (type === "limpar") {
-      applyRange("", "");
-    }
+  const handlePreset = (preset: PresetIntervalo) => {
+    const { inicio, fim } = calcularIntervaloPreset(preset);
+    applyRange(inicio, fim);
   };
+
+  const handleLimpar = () => {
+    applyRange("", "");
+    onClear?.();
+  };
+
+  const periodoLegivel = from && to
+    ? `${periodoFormatter.format(parseDataLocal(from))} – ${periodoFormatter.format(parseDataLocal(to))}`
+    : "Nenhum período selecionado";
 
   return (
     <div className={`flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 ${className}`}>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => handleShortcut("hoje")} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Hoje</button>
-        <button type="button" onClick={() => handleShortcut("semana")} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Última semana</button>
-        <button type="button" onClick={() => handleShortcut("mes")} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Último mês</button>
-        <button type="button" onClick={() => handleShortcut("mes_atual")} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-200">Mês atual</button>
-        <button type="button" onClick={() => handleShortcut("limpar")} className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200">Limpar</button>
+        <button type="button" onClick={() => handlePreset("hoje")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Hoje</button>
+        <button type="button" onClick={() => handlePreset("semana")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Última semana</button>
+        <button type="button" onClick={() => handlePreset("mes")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Último mês</button>
+        <button type="button" onClick={() => handlePreset("mesAtual")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Mês atual</button>
+        <button type="button" onClick={handleLimpar} className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200">Limpar</button>
       </div>
-      
+
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid gap-1.5">
           <Label className="text-xs">Data inicial</Label>
-          <Input 
-            type="date" 
-            value={from} 
-            onChange={(e) => applyRange(e.target.value, to)} 
+          <Input
+            type="date"
+            value={from}
+            onChange={(e) => applyRange(e.target.value, to)}
             className="w-40"
           />
         </div>
         <div className="grid gap-1.5">
           <Label className="text-xs">Data final</Label>
-          <Input 
-            type="date" 
-            value={to} 
-            onChange={(e) => applyRange(from, e.target.value)} 
+          <Input
+            type="date"
+            value={to}
+            onChange={(e) => applyRange(from, e.target.value)}
             className="w-40"
           />
         </div>
+        {onApply && (
+          <Button type="button" onClick={onApply} disabled={applying} className="h-11">
+            {applying ? "Carregando..." : applyLabel}
+          </Button>
+        )}
       </div>
+
+      <p className="text-xs text-slate-500">Período: {periodoLegivel}</p>
     </div>
   );
 }

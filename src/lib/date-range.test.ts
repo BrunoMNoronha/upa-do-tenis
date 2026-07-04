@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte, formatarDataLocal } from "./date-range";
+import {
+  parseDataLocal,
+  inicioDoDia,
+  inicioDoDiaSeguinte,
+  formatarDataLocal,
+  calcularIntervaloPreset,
+} from "./date-range";
 
 describe("date-range", () => {
   describe("parseDataLocal", () => {
@@ -112,6 +118,46 @@ describe("date-range", () => {
 
       expect(formatarDataLocal(hoje)).toBe("2026-07-04");
       expect(formatarDataLocal(trintaDiasAtras)).toBe("2026-06-04");
+    });
+  });
+
+  describe("calcularIntervaloPreset (filtro único de período)", () => {
+    const referencia = new Date(2026, 6, 4, 23, 45, 0); // 04/07/2026, perto da meia-noite local
+
+    it("'hoje' retorna início e fim iguais ao dia de referência", () => {
+      expect(calcularIntervaloPreset("hoje", referencia)).toEqual({
+        inicio: "2026-07-04",
+        fim: "2026-07-04",
+      });
+    });
+
+    it("'semana' retorna 7 dias antes da referência até a referência", () => {
+      expect(calcularIntervaloPreset("semana", referencia)).toEqual({
+        inicio: "2026-06-27",
+        fim: "2026-07-04",
+      });
+    });
+
+    it("'mes' retorna 30 dias antes da referência até a referência", () => {
+      expect(calcularIntervaloPreset("mes", referencia)).toEqual({
+        inicio: "2026-06-04",
+        fim: "2026-07-04",
+      });
+    });
+
+    it("'mesAtual' retorna o primeiro dia do mês até a referência", () => {
+      expect(calcularIntervaloPreset("mesAtual", referencia)).toEqual({
+        inicio: "2026-07-01",
+        fim: "2026-07-04",
+      });
+    });
+
+    it("'mesAtual' não desloca por UTC quando referência está perto da virada do dia", () => {
+      const viradaAno = new Date(2027, 0, 1, 0, 30, 0);
+      expect(calcularIntervaloPreset("mesAtual", viradaAno)).toEqual({
+        inicio: "2027-01-01",
+        fim: "2027-01-01",
+      });
     });
   });
 
