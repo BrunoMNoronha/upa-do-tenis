@@ -23,7 +23,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: { b
     <AppShell
       eyebrow="Cadastro e consulta"
       title="Clientes"
-      description="Cadastre e consulte clientes com persistência local em SQLite, mantendo o fluxo simples e consistente para a primeira entrega do MVP."
+      description="Cadastre e consulte clientes com persistência local em banco relacional, mantendo o fluxo simples e consistente para a primeira entrega do MVP."
       action={{ href: "/ordens-servico", label: "Ir para OS" }}
     >
       <div className="grid gap-6 md:grid-cols-3">
@@ -65,7 +65,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: { b
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista de clientes</p>
               <h2 className="mt-2 text-2xl font-semibold">Clientes cadastrados</h2>
             </div>
-            <Badge tone="accent">SQLite</Badge>
+            <Badge tone="accent">PostgreSQL</Badge>
           </div>
 
           <form className="mb-6 flex gap-2">

@@ -22,8 +22,8 @@ O modelo adotado minimiza a necessidade de APIs REST externas tradicionais, inte
 - Ele consome o `schema.prisma` e expõe métodos fortemente tipados baseados nos modelos de dados.
 - Todo o ciclo de vida do banco (migrations, esquema) é controlado e versionado pela pasta `prisma/`.
 
-### 4. Banco de Dados (SQLite)
-- A instância local para o MVP é um banco de dados relacional **SQLite**, armazenado como arquivo físico (`dev.db`).
+### 4. Banco de Dados (PostgreSQL)
+- A instância utilizada é um banco de dados relacional **PostgreSQL**, acessado via `DATABASE_URL`.
 - Estruturado de forma relacional estrita (regras de chaves estrangeiras, deleção em cascata e restrições lógicas mantidas no motor relacional).
 
 ## Padrões Adotados

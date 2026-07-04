@@ -5,7 +5,7 @@ Para realizar o deploy em um ambiente produtivo (ex: VPS Linux ou plataforma com
 ## Pré-Requisitos
 
 1. **Repositório**: Ter o código versionado em um Git host (GitHub, GitLab, etc).
-2. **Banco de Dados**: Para o MVP que usa SQLite, certifique-se de que o provedor permite persistência local de disco (Volumes). Se for migrar para Postgres em prod, a URL no `.env` e o provider no `schema.prisma` precisarão ser alterados.
+2. **Banco de Dados**: O projeto usa PostgreSQL via `DATABASE_URL`. Certifique-se de que o provedor de hospedagem oferece uma instância PostgreSQL acessível (gerenciada ou própria) e que as variáveis de ambiente de produção apontam para o banco correto.
 3. **Node.js**: Máquina ou plataforma deve rodar Node >= 18.x.
 
 ## Checklist

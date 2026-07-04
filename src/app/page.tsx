@@ -53,7 +53,7 @@ export default function HomePage() {
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5">
             <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--accent-soft)]">Base técnica</p>
             <p className="mt-2 text-sm leading-6 text-slate-100">
-              Next.js 14, TypeScript, Prisma, SQLite, Tailwind CSS, Zod e React Hook Form.
+              Next.js 14, TypeScript, Prisma, PostgreSQL, Tailwind CSS, Zod e React Hook Form.
             </p>
           </div>
         </Card>
