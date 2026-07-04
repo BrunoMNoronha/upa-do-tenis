@@ -27,6 +27,7 @@ export function ServicosForm() {
   } = useForm<ServicoFormValues>({
     resolver: zodResolver(servicoFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (values) => {

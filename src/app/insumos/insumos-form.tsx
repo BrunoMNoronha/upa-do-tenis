@@ -30,6 +30,7 @@ export function InsumosForm() {
   } = useForm<InsumoFormValues>({
     resolver: zodResolver(insumoFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (values) => {

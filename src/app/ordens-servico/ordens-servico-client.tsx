@@ -298,6 +298,7 @@ export function OrdensServicoClient({
   } = useForm<OrdemServicoFormValues>({
     resolver: zodResolver(ordemServicoFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (values) => {

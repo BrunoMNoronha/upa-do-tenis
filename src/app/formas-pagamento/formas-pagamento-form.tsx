@@ -26,6 +26,7 @@ export function FormasPagamentoForm() {
   } = useForm<FormaPagamentoFormValues>({
     resolver: zodResolver(formaPagamentoFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (values) => {

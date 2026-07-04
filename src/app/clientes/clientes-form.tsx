@@ -29,6 +29,7 @@ export function ClientesForm() {
   } = useForm<ClienteFormValues>({
     resolver: zodResolver(clienteFormSchema),
     defaultValues,
+    mode: "onChange",
   });
 
   const onSubmit = handleSubmit(async (values) => {

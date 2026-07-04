@@ -1,11 +1,20 @@
 import { z } from "zod";
 
+const safeNumber = (minMessage: string) => z.preprocess((val) => {
+  if (typeof val === "string") {
+    if (val.trim() === "") return 0;
+    const parsed = parseFloat(val.replace(",", "."));
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return Number(val) || 0;
+}, z.number().min(0, minMessage));
+
 export const ordemServicoFormSchema = z.object({
   clienteId: z.string().min(1, "O cliente é obrigatório."),
   itemRecebido: z.string().min(2, "A descrição do item é obrigatória."),
   servicoId: z.string().optional(),
   prazoPrevisto: z.string().min(1, "A data de previsão é obrigatória."),
-  valorEstimado: z.coerce.number().min(0, "O valor não pode ser negativo."),
+  valorEstimado: safeNumber("O valor não pode ser negativo."),
   observacoes: z.string().optional(),
 });
 

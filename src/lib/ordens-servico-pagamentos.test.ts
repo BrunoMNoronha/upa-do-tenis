@@ -67,6 +67,14 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        caixa: {
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: {
+          create: vi.fn(),
+        },
       }),
     );
 
@@ -116,6 +124,14 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        caixa: {
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: {
+          create: vi.fn(),
+        },
       }),
     );
 
@@ -145,6 +161,14 @@ describe("ordens-servico-pagamentos", () => {
         },
         formaPagamento: {
           findUnique: txFormaFindUnique,
+        },
+        caixa: {
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: {
+          create: vi.fn(),
         },
       }),
     );
@@ -178,6 +202,14 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        caixa: {
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: {
+          create: vi.fn(),
+        },
       }),
     );
 
@@ -207,6 +239,14 @@ describe("ordens-servico-pagamentos", () => {
         },
         formaPagamento: {
           findUnique: vi.fn(),
+        },
+        caixa: {
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: {
+          create: vi.fn(),
         },
       }),
     );
@@ -242,6 +282,12 @@ describe("ordens-servico-pagamentos", () => {
         pagamento: { create: txPagamentoCreate },
         ordemServico: { findUnique: txOrdemFindUnique, update: txOrdemUpdate },
         formaPagamento: { findUnique: vi.fn().mockResolvedValueOnce({ id: "fp-1" }) },
+        caixa: { 
+          findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+          update: vi.fn(),
+        },
+        movimentacaoCaixa: { create: vi.fn() },
       }),
     );
 
