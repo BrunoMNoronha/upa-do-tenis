@@ -10,6 +10,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "seed": "tsx prisma/seed.ts",
+    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
