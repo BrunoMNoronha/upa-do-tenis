@@ -85,7 +85,7 @@ describe('Relatorio Financeiro OS Service', () => {
       where: expect.objectContaining({
         dataEntrada: expect.objectContaining({
           gte: expect.any(Date),
-          lte: expect.any(Date)
+          lt: expect.any(Date)
         })
       }),
       take: 100
@@ -103,6 +103,43 @@ describe('Relatorio Financeiro OS Service', () => {
     
     const os2 = result.itens.find(i => i.numero === 'OS-002');
     expect(os2?.atrasada).toBe(false); // Entregue nunca é atrasada
+  });
+
+  it('deve montar intervalo que inclui OS criadas no próprio dia quando fim é hoje', async () => {
+    (prisma.ordemServico.findMany as any).mockResolvedValue([]);
+
+    const agora = new Date();
+    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+
+    await gerarRelatorioFinanceiroOS({ inicio: hojeStr, fim: hojeStr });
+
+    const args = (prisma.ordemServico.findMany as any).mock.calls[0][0];
+    const { gte, lt } = args.where.dataEntrada;
+
+    // Intervalo semiaberto local: início de hoje <= agora < início de amanhã
+    expect(gte.getTime()).toBeLessThanOrEqual(agora.getTime());
+    expect(lt.getTime()).toBeGreaterThan(agora.getTime());
+
+    // gte deve ser meia-noite local de hoje (não do dia anterior via UTC)
+    expect(gte.getDate()).toBe(agora.getDate());
+    expect(gte.getHours()).toBe(0);
+  });
+
+  it('deve montar intervalo local correto para datas YYYY-MM-DD', async () => {
+    (prisma.ordemServico.findMany as any).mockResolvedValue([]);
+
+    await gerarRelatorioFinanceiroOS({ inicio: '2026-07-01', fim: '2026-07-04' });
+
+    const args = (prisma.ordemServico.findMany as any).mock.calls[0][0];
+    const { gte, lt } = args.where.dataEntrada;
+
+    expect(gte.getTime()).toBe(new Date(2026, 6, 1, 0, 0, 0, 0).getTime());
+    expect(lt.getTime()).toBe(new Date(2026, 6, 5, 0, 0, 0, 0).getTime());
+
+    // OS criada às 22h do dia final deve cair dentro do intervalo
+    const osNoiteDoDiaFinal = new Date(2026, 6, 4, 22, 0);
+    expect(osNoiteDoDiaFinal.getTime()).toBeGreaterThanOrEqual(gte.getTime());
+    expect(osNoiteDoDiaFinal.getTime()).toBeLessThan(lt.getTime());
   });
 
   it('deve aplicar filtros de statusFinanceiro em memoria', async () => {

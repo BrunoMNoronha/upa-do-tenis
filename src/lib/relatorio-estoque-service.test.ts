@@ -8,6 +8,7 @@ import {
   getResumoAlertasEstoque
 } from './relatorio-estoque-service';
 import { TipoMovimentacao, OrigemMovimentacao, criarMovimentacaoEstoque } from './movimentacao-estoque-service';
+import { parseDataLocal } from './date-range';
 
 describe('Relatório Global de Estoque', () => {
   let insumoNormalId: string;
@@ -128,6 +129,29 @@ describe('Relatório Global de Estoque', () => {
     const filtroSaida = await getExtratoMovimentacoes({ tipo: TipoMovimentacao.SAIDA_MANUAL });
     expect(filtroSaida.length).toBe(1);
     expect(filtroSaida[0].tipo).toBe(TipoMovimentacao.SAIDA_MANUAL);
+  });
+
+  it('deve incluir movimentacoes criadas hoje quando o filtro termina hoje', async () => {
+    // Simula o filtro "Hoje": data inicial e final iguais à data atual,
+    // parseadas como YYYY-MM-DD (mesmo formato enviado pela UI)
+    const agora = new Date();
+    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const hoje = parseDataLocal(hojeStr);
+
+    const movimentacoes = await getExtratoMovimentacoes({
+      dataInicio: hoje,
+      dataFim: hoje,
+    });
+
+    // As movimentações do beforeEach foram criadas agora e devem aparecer
+    expect(movimentacoes.length).toBe(2);
+
+    const resumo = await getResumoPorTipo({ dataInicio: hoje, dataFim: hoje });
+    expect(resumo.length).toBe(2);
+
+    // Consistência: filtro "Hoje" retorna o mesmo total que sem filtro
+    const semFiltro = await getExtratoMovimentacoes({});
+    expect(movimentacoes.length).toBe(semFiltro.length);
   });
 
   it('deve resumir movimentacoes por tipo', async () => {

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button, Input, Label } from "@/components/ui";
+import { formatarDataLocal } from "@/lib/date-range";
 
 export type DateRange = {
   from?: Date;
@@ -16,10 +17,10 @@ type DateRangePickerProps = {
 
 export function DateRangePicker({ value, onChange, className = "" }: DateRangePickerProps) {
   const [from, setFrom] = useState<string>(
-    value?.from ? value.from.toISOString().split("T")[0] : ""
+    value?.from ? formatarDataLocal(value.from) : ""
   );
   const [to, setTo] = useState<string>(
-    value?.to ? value.to.toISOString().split("T")[0] : ""
+    value?.to ? formatarDataLocal(value.to) : ""
   );
 
   const applyRange = (f: string, t: string) => {
@@ -33,21 +34,21 @@ export function DateRangePicker({ value, onChange, className = "" }: DateRangePi
 
   const handleShortcut = (type: "hoje" | "semana" | "mes" | "mes_atual" | "limpar") => {
     const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
+    const todayStr = formatarDataLocal(today);
 
     if (type === "hoje") {
       applyRange(todayStr, todayStr);
     } else if (type === "semana") {
       const lastWeek = new Date(today);
       lastWeek.setDate(today.getDate() - 7);
-      applyRange(lastWeek.toISOString().split("T")[0], todayStr);
+      applyRange(formatarDataLocal(lastWeek), todayStr);
     } else if (type === "mes") {
       const lastMonth = new Date(today);
       lastMonth.setDate(today.getDate() - 30);
-      applyRange(lastMonth.toISOString().split("T")[0], todayStr);
+      applyRange(formatarDataLocal(lastMonth), todayStr);
     } else if (type === "mes_atual") {
       const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-      applyRange(firstDay.toISOString().split("T")[0], todayStr);
+      applyRange(formatarDataLocal(firstDay), todayStr);
     } else if (type === "limpar") {
       applyRange("", "");
     }

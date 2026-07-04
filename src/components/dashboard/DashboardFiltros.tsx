@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui';
 import { DateRangePicker, type DateRange } from '@/components/date-range-picker';
+import { formatarDataLocal } from '@/lib/date-range';
 
 interface DashboardFiltrosProps {
   inicio: string;
@@ -21,8 +22,8 @@ export function DashboardFiltros({
 }: DashboardFiltrosProps) {
   
   const handleRangeChange = (range: DateRange) => {
-    onInicioChange(range.from ? range.from.toISOString().split("T")[0] : "");
-    onFimChange(range.to ? range.to.toISOString().split("T")[0] : "");
+    onInicioChange(range.from ? formatarDataLocal(range.from) : "");
+    onFimChange(range.to ? formatarDataLocal(range.to) : "");
   };
 
   const currentRange = {

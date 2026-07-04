@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDashboardMetrics } from '@/lib/dashboard-service';
+import { parseDataLocal } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,14 +19,14 @@ export async function GET(request: NextRequest) {
     dataFim.setHours(23, 59, 59, 999); // Today
 
     if (inicioStr) {
-      const parsedInicio = new Date(inicioStr);
+      const parsedInicio = parseDataLocal(inicioStr);
       if (!isNaN(parsedInicio.getTime())) {
         dataInicio = parsedInicio;
       }
     }
 
     if (fimStr) {
-      const parsedFim = new Date(fimStr);
+      const parsedFim = parseDataLocal(fimStr);
       if (!isNaN(parsedFim.getTime())) {
         dataFim = parsedFim;
       }

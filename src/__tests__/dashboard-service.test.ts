@@ -104,10 +104,33 @@ describe('Dashboard Service', () => {
         where: expect.objectContaining({
           dataPagamento: expect.objectContaining({
             gte: expect.any(Date),
-            lte: expect.any(Date),
+            lt: expect.any(Date),
           }),
         }),
       })
     );
+  });
+
+  it('deve incluir registros criados no próprio dia quando dataFim é hoje', async () => {
+    (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 0 } });
+    (prisma.ordemServico.aggregate as any).mockResolvedValue({ _sum: { saldo: 0 }, _avg: { valorTotal: 0 } });
+    (prisma.ordemServico.groupBy as any).mockResolvedValue([]);
+    (prisma.ordemServico.count as any).mockResolvedValue(0);
+    (prisma.servicoItemOrdem.groupBy as any).mockResolvedValue([]);
+    (prisma.servico.findMany as any).mockResolvedValue([]);
+    (prisma.insumoItemOrdem.groupBy as any).mockResolvedValue([]);
+    (prisma.insumo.findMany as any).mockResolvedValue([]);
+
+    const agora = new Date();
+    await getDashboardMetrics(agora, agora);
+
+    const args = (prisma.pagamento.aggregate as any).mock.calls[0][0];
+    const { gte, lt } = args.where.dataPagamento;
+
+    // Intervalo semiaberto: início de hoje <= agora < início de amanhã
+    expect(gte.getTime()).toBeLessThanOrEqual(agora.getTime());
+    expect(lt.getTime()).toBeGreaterThan(agora.getTime());
+    expect(gte.getHours()).toBe(0);
+    expect(lt.getHours()).toBe(0);
   });
 });

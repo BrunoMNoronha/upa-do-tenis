@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { inicioDoDia, inicioDoDiaSeguinte } from './date-range';
 
 export interface DashboardMetrics {
   totalRecebido: number;
@@ -16,12 +17,10 @@ export interface DashboardMetrics {
 }
 
 export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Promise<DashboardMetrics> {
-  // Ajusta a data final para o final do dia para garantir que pega as transações do último dia
-  const fim = new Date(dataFim);
-  fim.setHours(23, 59, 59, 999);
-
-  const inicio = new Date(dataInicio);
-  inicio.setHours(0, 0, 0, 0);
+  // Intervalo semiaberto em dias locais: >= início do dia inicial e
+  // < início do dia seguinte ao final, incluindo registros criados hoje.
+  const inicio = inicioDoDia(dataInicio);
+  const fimExclusivo = inicioDoDiaSeguinte(dataFim);
 
   // 1. Total Recebido no período (Soma de todos os pagamentos)
   const totalRecebidoAgg = await prisma.pagamento.aggregate({
@@ -31,7 +30,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     where: {
       dataPagamento: {
         gte: inicio,
-        lte: fim,
+        lt: fimExclusivo,
       },
     },
   });
@@ -45,7 +44,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     where: {
       dataEntrada: {
         gte: inicio,
-        lte: fim,
+        lt: fimExclusivo,
       },
       status: {
         notIn: ['CANCELADA'],
@@ -66,7 +65,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     where: {
       dataEntrada: {
         gte: inicio,
-        lte: fim,
+        lt: fimExclusivo,
       },
     },
   });
@@ -80,7 +79,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
   // Pagas: saldo = 0 e valorTotal > 0
   const osPagas = await prisma.ordemServico.count({
     where: {
-      dataEntrada: { gte: inicio, lte: fim },
+      dataEntrada: { gte: inicio, lt: fimExclusivo },
       status: { notIn: ['CANCELADA'] },
       saldo: 0,
       valorTotal: { gt: 0 },
@@ -90,7 +89,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
   // Pendentes de Pagamento: valorPago = 0 e valorTotal > 0
   const osPendentesPagamento = await prisma.ordemServico.count({
     where: {
-      dataEntrada: { gte: inicio, lte: fim },
+      dataEntrada: { gte: inicio, lt: fimExclusivo },
       status: { notIn: ['CANCELADA'] },
       valorPago: 0,
       valorTotal: { gt: 0 },
@@ -100,7 +99,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
   // Parcialmente Pagas: valorPago > 0 e saldo > 0
   const osParcialmentePagas = await prisma.ordemServico.count({
     where: {
-      dataEntrada: { gte: inicio, lte: fim },
+      dataEntrada: { gte: inicio, lt: fimExclusivo },
       status: { notIn: ['CANCELADA'] },
       valorPago: { gt: 0 },
       saldo: { gt: 0 },
@@ -113,7 +112,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
       valorTotal: true,
     },
     where: {
-      dataEntrada: { gte: inicio, lte: fim },
+      dataEntrada: { gte: inicio, lt: fimExclusivo },
       status: { notIn: ['CANCELADA'] },
       valorTotal: { gt: 0 },
     },
@@ -129,7 +128,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     where: {
       itemOrdemServico: {
         ordemServico: {
-          dataEntrada: { gte: inicio, lte: fim },
+          dataEntrada: { gte: inicio, lt: fimExclusivo },
           status: { notIn: ['CANCELADA'] },
         }
       }
@@ -166,7 +165,7 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     where: {
       itemOrdemServico: {
         ordemServico: {
-          dataEntrada: { gte: inicio, lte: fim },
+          dataEntrada: { gte: inicio, lt: fimExclusivo },
           status: { notIn: ['CANCELADA'] },
         }
       }

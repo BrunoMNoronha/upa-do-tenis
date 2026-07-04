@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
+import { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } from './date-range';
 
 export interface RelatorioFiltros {
   inicio: string;
@@ -40,8 +41,8 @@ export interface RelatorioFinanceiroOSResponse {
 }
 
 export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Promise<RelatorioFinanceiroOSResponse> {
-  const inicioDate = new Date(filtros.inicio);
-  const fimDate = new Date(filtros.fim);
+  const inicioDate = parseDataLocal(filtros.inicio);
+  const fimDate = parseDataLocal(filtros.fim);
 
   if (isNaN(inicioDate.getTime()) || isNaN(fimDate.getTime())) {
     throw new Error('Datas inválidas.');
@@ -51,13 +52,10 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     throw new Error('A data inicial não pode ser maior que a data final.');
   }
 
-  inicioDate.setHours(0, 0, 0, 0);
-  fimDate.setHours(23, 59, 59, 999);
-
   const queryWhere: any = {
     dataEntrada: {
-      gte: inicioDate,
-      lte: fimDate,
+      gte: inicioDoDia(inicioDate),
+      lt: inicioDoDiaSeguinte(fimDate),
     },
   };
 

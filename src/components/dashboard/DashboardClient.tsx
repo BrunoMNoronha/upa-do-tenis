@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardMetrics } from '@/lib/dashboard-service';
+import { formatarDataLocal } from '@/lib/date-range';
 import { DashboardFiltros } from './DashboardFiltros';
 import { DashboardCardsFinanceiros } from './DashboardCardsFinanceiros';
 import { DashboardCardsOperacionais } from './DashboardCardsOperacionais';
@@ -23,11 +24,8 @@ export function DashboardClient() {
     const hoje = new Date();
     const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
     
-    // Formata para YYYY-MM-DD
-    const formataData = (d: Date) => d.toISOString().split('T')[0];
-    
-    setInicio(formataData(primeiroDia));
-    setFim(formataData(hoje));
+    setInicio(formatarDataLocal(primeiroDia));
+    setFim(formatarDataLocal(hoje));
   }, []);
 
   const fetchMetrics = useCallback(async (dataInicio: string, dataFim: string) => {

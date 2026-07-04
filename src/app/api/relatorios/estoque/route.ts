@@ -7,6 +7,7 @@ import {
   FiltrosMovimentacao,
 } from "@/lib/relatorio-estoque-service";
 import { TipoMovimentacao, OrigemMovimentacao } from "@/lib/movimentacao-estoque-service";
+import { parseDataLocal } from "@/lib/date-range";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,14 +24,14 @@ export async function GET(request: NextRequest) {
     const filtros: FiltrosMovimentacao = {};
 
     if (dataInicioStr) {
-      const dataInicio = new Date(dataInicioStr);
+      const dataInicio = parseDataLocal(dataInicioStr);
       if (!isNaN(dataInicio.getTime())) {
         filtros.dataInicio = dataInicio;
       }
     }
 
     if (dataFimStr) {
-      const dataFim = new Date(dataFimStr);
+      const dataFim = parseDataLocal(dataFimStr);
       if (!isNaN(dataFim.getTime())) {
         filtros.dataFim = dataFim;
       }

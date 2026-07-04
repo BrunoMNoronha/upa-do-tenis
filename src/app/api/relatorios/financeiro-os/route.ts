@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
       const hoje = new Date();
       const primeiroDia = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
       
-      const formataData = (d: Date) => d.toISOString().split('T')[0];
+      // Formata em YYYY-MM-DD usando componentes locais (toISOString usa UTC
+      // e mudaria de dia às 21h no fuso do Brasil)
+      const formataData = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       
       inicio = formataData(primeiroDia);
       fim = formataData(hoje);

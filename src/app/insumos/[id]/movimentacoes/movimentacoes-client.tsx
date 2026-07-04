@@ -130,6 +130,7 @@ export default function MovimentacoesClient({ insumoId, initialData }: { insumoI
             <div>
               <Label>Custo Unitário Referência (Opcional)</Label>
               <Input type="number" step="0.01" {...register("custoUnitario", { valueAsNumber: true })} placeholder={String(insumo.custoUnitario)} />
+              {errors.custoUnitario && <span className="text-xs text-red-500">{errors.custoUnitario.message}</span>}
             </div>
 
             <div>
