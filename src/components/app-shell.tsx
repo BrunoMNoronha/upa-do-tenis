@@ -21,6 +21,7 @@ const navItems: NavItem[] = [
   { href: "/relatorios/financeiro-os", label: "Relatórios" },
   { href: "/caixa", label: "Caixa" },
   { href: "/formas-pagamento", label: "Financeiro" },
+  { href: "/usuarios", label: "Usuários" },
 ];
 
 type AppShellProps = {
