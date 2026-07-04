@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Badge } from "@/components/ui";
@@ -37,7 +37,22 @@ type AppShellProps = {
 
 export function AppShell({ title, description, eyebrow, action, children }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Mesmo com falha de rede, redireciona para a tela de login.
+    }
+
+    router.replace("/login");
+    router.refresh();
+  };
 
   return (
     <div className="flex min-h-screen bg-[color:var(--background)]">
@@ -86,8 +101,16 @@ export function AppShell({ title, description, eyebrow, action, children }: AppS
             })}
           </nav>
 
-          <div className="border-t border-[color:var(--border)] p-4">
+          <div className="flex items-center justify-between gap-3 border-t border-[color:var(--border)] p-4">
             <Badge tone="accent">MVP v1</Badge>
+            <button
+              type="button"
+              onClick={handleLogout}
+              disabled={isLoggingOut}
+              className="rounded-full border border-[color:var(--border)] px-4 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLoggingOut ? "Saindo..." : "Sair"}
+            </button>
           </div>
         </div>
       </aside>

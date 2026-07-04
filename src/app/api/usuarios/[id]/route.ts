@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
 import { hashPassword } from "@/lib/passwords";
 import { usuarioAtualizarSchema } from "@/lib/usuarios-schema";
 import { usuarioPublicoSelect } from "@/lib/usuarios";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const sessao = await obterUsuarioSessaoDaRequest(req);
+
+    if (!sessao) {
+      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    }
+
     const body = await req.json();
     const result = usuarioAtualizarSchema.safeParse(body);
 
