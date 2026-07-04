@@ -1,7 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { filtrarOrdensServicoListagem } from "@/lib/ordens-servico-listagem";
+import {
+  filtrarOrdensServicoListagem,
+  ordemServicoCorrespondeBusca,
+} from "@/lib/ordens-servico-listagem";
 import { listarOrdensServico } from "@/lib/ordens-servico";
 
 const { prismaMock } = vi.hoisted(() => ({
@@ -116,6 +119,43 @@ describe("ordens-servico listagem", () => {
     expect(ordens[0].valorPago).toBe(0);
     expect(ordens[0].saldo).toBe(120);
     expect(ordens[0].statusFinanceiro).toBe("PENDENTE");
+  });
+
+  describe("busca por texto/telefone", () => {
+    const ordem = {
+      numero: "OS-20260704-0001",
+      cliente: { nome: "Bruno Noronha", telefone: "(61) 98530-7168" },
+    };
+
+    it("encontra pelo telefone sem máscara", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "61985307168")).toBe(true);
+    });
+
+    it("encontra pelo telefone com máscara", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "(61) 98530-7168")).toBe(true);
+    });
+
+    it("encontra por trecho parcial do telefone", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "985307168")).toBe(true);
+    });
+
+    it("continua encontrando pelo nome do cliente", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "Bruno")).toBe(true);
+    });
+
+    it("continua encontrando pelo número da OS", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "0001")).toBe(true);
+    });
+
+    it("não encontra quando não há correspondência", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "99999999999")).toBe(false);
+      expect(ordemServicoCorrespondeBusca(ordem, "Maria")).toBe(false);
+    });
+
+    it("retorna todas as OS quando o termo é vazio", () => {
+      expect(ordemServicoCorrespondeBusca(ordem, "")).toBe(true);
+      expect(ordemServicoCorrespondeBusca(ordem, "   ")).toBe(true);
+    });
   });
 
   it("nao quebra com OS antigas (valorPago legado sem pagamentos)", async () => {

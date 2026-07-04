@@ -1,4 +1,4 @@
-import { sanitizeCurrency } from "./sanitizers";
+import { sanitizeCurrency, sanitizePhone } from "./sanitizers";
 
 export function formatPhone(value: string | null | undefined): string {
   if (!value) return "";
@@ -29,6 +29,19 @@ export function formatCEP(value: string | null | undefined): string {
     return `${cleaned.slice(0, 5)}-${cleaned.slice(5)}`;
   }
   return value;
+}
+
+/**
+ * Gera um link para conversa no WhatsApp a partir de um telefone brasileiro.
+ * Prefixa o código do país (55) para números nacionais de 10 ou 11 dígitos.
+ * Retorna string vazia quando não há telefone válido (não deve gerar link).
+ */
+export function whatsappLink(value: string | null | undefined): string {
+  const cleaned = sanitizePhone(value);
+  if (cleaned.length === 10 || cleaned.length === 11) {
+    return `https://wa.me/55${cleaned}`;
+  }
+  return "";
 }
 
 export function formatCurrency(value: number | string | null | undefined): string {

@@ -7,11 +7,12 @@ import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatPhone, whatsappLink } from "@/lib/formatters";
 import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
   filtrarOrdensServicoListagem,
+  ordemServicoCorrespondeBusca,
   type StatusFinanceiroListagem,
   type StatusOperacionalListagem,
 } from "@/lib/ordens-servico-listagem";
@@ -166,7 +167,25 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
           <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente?.nome}</h3>
-          <p className="mt-1 text-sm text-slate-200">{ordem.cliente?.telefone}</p>
+          {(() => {
+            const telefone = ordem.cliente?.telefone;
+            if (!telefone) return null;
+            const telefoneMascarado = formatPhone(telefone);
+            const link = whatsappLink(telefone);
+            if (!link) {
+              return <p className="mt-1 text-sm text-slate-200">{telefoneMascarado}</p>;
+            }
+            return (
+              <a
+                href={link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-block text-sm text-[color:var(--accent-soft)] hover:underline"
+              >
+                {telefoneMascarado}
+              </a>
+            );
+          })()}
         </div>
 
         <div className="flex flex-col items-end gap-2">
@@ -346,12 +365,9 @@ export function OrdensServicoClient({
     statusOperacional: statusFilter,
     statusFinanceiro: financeFilter,
   }).filter((ordem) => {
-    // Aplica filtro de texto (Busca)
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      const matchCliente = ordem.cliente?.nome.toLowerCase().includes(term);
-      const matchNumero = ordem.numero.toLowerCase().includes(term);
-      if (!matchCliente && !matchNumero) return false;
+    // Aplica filtro de texto (Busca): nome, número da OS e telefone normalizado
+    if (searchTerm && !ordemServicoCorrespondeBusca(ordem, searchTerm)) {
+      return false;
     }
     
     // Aplica filtro de atrasadas
