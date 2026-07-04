@@ -3,6 +3,7 @@ import {
   calcularResumoFinanceiroOS,
   normalizarValoresDecimalParaClient,
 } from "@/lib/ordens-servico-financeiro";
+import { registrarMovimentacaoAutomaticaCaixa } from "@/lib/caixa";
 import type { RegistrarPagamentoOrdemServicoValues } from "@/lib/ordens-servico-pagamentos-schema";
 
 export class PagamentoOrdemServicoError extends Error {
@@ -61,6 +62,14 @@ export async function registrarPagamentoOrdemServico(
       throw new PagamentoOrdemServicoError("Ordem de serviço não encontrada.", 404);
     }
 
+    const caixaAberto = await tx.caixa.findFirst({
+      where: { status: "ABERTO" },
+    });
+
+    if (!caixaAberto) {
+      throw new PagamentoOrdemServicoError("Não há caixa aberto. Abra o caixa primeiro.", 400);
+    }
+
     const formaPagamento = await tx.formaPagamento.findUnique({
       where: { id: payload.formaPagamentoId },
       select: { id: true },
@@ -100,6 +109,17 @@ export async function registrarPagamentoOrdemServico(
         formaPagamento: true,
       },
     });
+
+    await registrarMovimentacaoAutomaticaCaixa({
+      caixaId: caixaAberto.id,
+      tipo: "ENTRADA",
+      origem: "PAGAMENTO_OS",
+      valor: payload.valor,
+      descricao: `Recebimento OS #${ordem.numero}`,
+      formaPagamentoId: payload.formaPagamentoId,
+      pagamentoId: pagamento.id,
+      ordemServicoId: ordem.id,
+    }, tx);
 
     const ordemComPagamento = await tx.ordemServico.findUnique({
       where: { id: ordemServicoId },

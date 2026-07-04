@@ -8,14 +8,14 @@ datasource db {
 }
 
 model Cliente {
-  id            String           @id @default(cuid())
+  id            String         @id @default(cuid())
   nome          String
   telefone      String
   email         String?
   cpfCnpj       String?
   observacoes   String?
-  criadoEm      DateTime         @default(now())
-  atualizadoEm  DateTime         @updatedAt
+  criadoEm      DateTime       @default(now())
+  atualizadoEm  DateTime       @updatedAt
   ordensServico OrdemServico[]
 
   @@index([nome])
@@ -23,27 +23,28 @@ model Cliente {
 }
 
 model OrdemServico {
-  id                             String               @id @default(cuid())
-  numero                         String               @unique
-  clienteId                      String
-  cliente                        Cliente              @relation(fields: [clienteId], references: [id], onDelete: Restrict)
-  status                         String               @default("ABERTA")
-  dataEntrada                    DateTime
-  dataPrevisao                   DateTime
-  dataConclusao                  DateTime?
-  valorTotal                     Decimal              @default(0)
-  valorDesconto                  Decimal              @default(0)
-  valorSinal                     Decimal              @default(0)
-  valorPago                      Decimal              @default(0)
-  saldo                          Decimal              @default(0)
+  id                              String                      @id @default(cuid())
+  numero                          String                      @unique
+  clienteId                       String
+  cliente                         Cliente                     @relation(fields: [clienteId], references: [id], onDelete: Restrict)
+  status                          String                      @default("ABERTA")
+  dataEntrada                     DateTime
+  dataPrevisao                    DateTime
+  dataConclusao                   DateTime?
+  valorTotal                      Decimal                     @default(0)
+  valorDesconto                   Decimal                     @default(0)
+  valorSinal                      Decimal                     @default(0)
+  valorPago                       Decimal                     @default(0)
+  saldo                           Decimal                     @default(0)
   justificativaInicioSemAprovacao String?
-  observacoes                    String?
-  criadoEm                       DateTime             @default(now())
-  atualizadoEm                   DateTime             @updatedAt
-  itens                          ItemOrdemServico[]
-  pagamentos                     Pagamento[]
+  observacoes                     String?
+  criadoEm                        DateTime                    @default(now())
+  atualizadoEm                    DateTime                    @updatedAt
+  itens                           ItemOrdemServico[]
+  pagamentos                      Pagamento[]
   historicosStatus                HistoricoStatus[]
-  movimentacoesEstoque           MovimentacaoEstoqueInsumo[]
+  movimentacoesEstoque            MovimentacaoEstoqueInsumo[]
+  movimentacoesCaixa              MovimentacaoCaixa[]
 
   @@index([numero])
   @@index([status])
@@ -51,33 +52,33 @@ model OrdemServico {
 }
 
 model ItemOrdemServico {
-  id               String            @id @default(cuid())
-  ordemServicoId   String
-  ordemServico     OrdemServico      @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  tipoItem         String
-  descricao        String
-  marca            String?
-  cor              String?
-  tamanho          String?
-  observacoes      String?
-  valor            Decimal           @default(0)
-  criadoEm         DateTime          @default(now())
-  atualizadoEm     DateTime          @updatedAt
-  servicos         ServicoItemOrdem[]
-  insumos          InsumoItemOrdem[]
+  id                   String                      @id @default(cuid())
+  ordemServicoId       String
+  ordemServico         OrdemServico                @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipoItem             String
+  descricao            String
+  marca                String?
+  cor                  String?
+  tamanho              String?
+  observacoes          String?
+  valor                Decimal                     @default(0)
+  criadoEm             DateTime                    @default(now())
+  atualizadoEm         DateTime                    @updatedAt
+  servicos             ServicoItemOrdem[]
+  insumos              InsumoItemOrdem[]
   movimentacoesEstoque MovimentacaoEstoqueInsumo[]
 
   @@index([ordemServicoId])
 }
 
 model Servico {
-  id           String            @id @default(cuid())
+  id           String             @id @default(cuid())
   nome         String
   descricao    String?
-  precoBase    Decimal           @default(0)
-  ativo        Boolean           @default(true)
-  criadoEm     DateTime          @default(now())
-  atualizadoEm DateTime          @updatedAt
+  precoBase    Decimal            @default(0)
+  ativo        Boolean            @default(true)
+  criadoEm     DateTime           @default(now())
+  atualizadoEm DateTime           @updatedAt
   itens        ServicoItemOrdem[]
 
   @@index([nome])
@@ -85,43 +86,45 @@ model Servico {
 }
 
 model ServicoItemOrdem {
-  id                String            @id @default(cuid())
+  id                 String           @id @default(cuid())
   itemOrdemServicoId String
-  servicoId         String
-  itemOrdemServico  ItemOrdemServico  @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
-  servico           Servico           @relation(fields: [servicoId], references: [id], onDelete: Restrict)
-  descricao         String?
-  valor             Decimal           @default(0)
-  criadoEm          DateTime          @default(now())
+  servicoId          String
+  itemOrdemServico   ItemOrdemServico @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
+  servico            Servico          @relation(fields: [servicoId], references: [id], onDelete: Restrict)
+  descricao          String?
+  valor              Decimal          @default(0)
+  criadoEm           DateTime         @default(now())
 
   @@index([itemOrdemServicoId])
   @@index([servicoId])
 }
 
 model FormaPagamento {
-  id           String      @id @default(cuid())
-  nome         String
-  tipo         String?
-  ativo        Boolean     @default(true)
-  criadoEm     DateTime    @default(now())
-  atualizadoEm DateTime    @updatedAt
-  pagamentos   Pagamento[]
+  id                 String              @id @default(cuid())
+  nome               String
+  tipo               String?
+  ativo              Boolean             @default(true)
+  criadoEm           DateTime            @default(now())
+  atualizadoEm       DateTime            @updatedAt
+  pagamentos         Pagamento[]
+  movimentacoesCaixa MovimentacaoCaixa[]
 
   @@index([nome])
   @@index([ativo])
 }
 
 model Pagamento {
-  id               String         @id @default(cuid())
-  ordemServicoId   String
-  ordemServico     OrdemServico   @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  tipo             String
-  valor            Decimal        @default(0)
-  formaPagamentoId String
-  formaPagamento   FormaPagamento @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
-  dataPagamento    DateTime
-  observacoes      String?
-  criadoEm         DateTime       @default(now())
+  id                String             @id @default(cuid())
+  ordemServicoId    String
+  ordemServico      OrdemServico       @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipo              String
+  valor             Decimal            @default(0)
+  formaPagamentoId  String
+  formaPagamento    FormaPagamento     @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
+  dataPagamento     DateTime
+  observacoes       String?
+  criadoEm          DateTime           @default(now())
+  movimentacaoCaixa MovimentacaoCaixa?
 
   @@index([ordemServicoId])
   @@index([formaPagamentoId])
@@ -129,29 +132,29 @@ model Pagamento {
 }
 
 model HistoricoStatus {
-  id             String             @id @default(cuid())
-  ordemServicoId  String
-  ordemServico    OrdemServico       @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  statusAnterior  String?
-  statusNovo      String
+  id             String       @id @default(cuid())
+  ordemServicoId String
+  ordemServico   OrdemServico @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  statusAnterior String?
+  statusNovo     String
   observacao     String?
-  criadoEm       DateTime           @default(now())
+  criadoEm       DateTime     @default(now())
 
   @@index([ordemServicoId])
   @@index([statusNovo])
 }
 
 model Insumo {
-  id                String   @id @default(cuid())
+  id                String                      @id @default(cuid())
   nome              String
   descricao         String?
   unidadeMedida     String
-  quantidadeEstoque Decimal  @default(0)
-  estoqueMinimo     Decimal  @default(0)
-  custoUnitario     Decimal  @default(0)
-  ativo             Boolean  @default(true)
-  criadoEm          DateTime @default(now())
-  atualizadoEm      DateTime @updatedAt
+  quantidadeEstoque Decimal                     @default(0)
+  estoqueMinimo     Decimal                     @default(0)
+  custoUnitario     Decimal                     @default(0)
+  ativo             Boolean                     @default(true)
+  criadoEm          DateTime                    @default(now())
+  atualizadoEm      DateTime                    @updatedAt
   itensOrdem        InsumoItemOrdem[]
   movimentacoes     MovimentacaoEstoqueInsumo[]
 
@@ -160,17 +163,17 @@ model Insumo {
 }
 
 model InsumoItemOrdem {
-  id                  String           @id @default(cuid())
-  itemOrdemServicoId  String
-  insumoId            String
-  quantidade          Decimal          @default(0)
-  custoUnitarioAplicado Decimal        @default(0)
-  custoTotalAplicado  Decimal          @default(0)
-  observacoes         String?
-  criadoEm            DateTime         @default(now())
-  atualizadoEm        DateTime         @updatedAt
-  itemOrdemServico    ItemOrdemServico @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
-  insumo              Insumo           @relation(fields: [insumoId], references: [id], onDelete: Restrict)
+  id                    String           @id @default(cuid())
+  itemOrdemServicoId    String
+  insumoId              String
+  quantidade            Decimal          @default(0)
+  custoUnitarioAplicado Decimal          @default(0)
+  custoTotalAplicado    Decimal          @default(0)
+  observacoes           String?
+  criadoEm              DateTime         @default(now())
+  atualizadoEm          DateTime         @updatedAt
+  itemOrdemServico      ItemOrdemServico @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
+  insumo                Insumo           @relation(fields: [insumoId], references: [id], onDelete: Restrict)
 
   @@index([itemOrdemServicoId])
   @@index([insumoId])
@@ -199,5 +202,49 @@ model MovimentacaoEstoqueInsumo {
   @@index([tipo])
   @@index([origem])
   @@index([criadoEm])
+  @@index([ordemServicoId])
+}
+
+model Caixa {
+  id                  String    @id @default(cuid())
+  dataAbertura        DateTime  @default(now())
+  dataFechamento      DateTime?
+  saldoInicial        Decimal   @default(0)
+  saldoFinalInformado Decimal?
+  saldoFinalCalculado Decimal?
+  divergencia         Decimal?
+  status              String    @default("ABERTO") // ABERTO, FECHADO
+  observacao          String?
+  criadoEm            DateTime  @default(now())
+  atualizadoEm        DateTime  @updatedAt
+
+  movimentacoes MovimentacaoCaixa[]
+
+  @@index([status])
+  @@index([dataAbertura])
+}
+
+model MovimentacaoCaixa {
+  id               String          @id @default(cuid())
+  caixaId          String
+  caixa            Caixa           @relation(fields: [caixaId], references: [id], onDelete: Restrict)
+  tipo             String // ENTRADA, SAIDA, SANGRIA, REFORCO
+  origem           String // MANUAL, PAGAMENTO_OS
+  valor            Decimal
+  descricao        String
+  formaPagamentoId String?
+  formaPagamento   FormaPagamento? @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
+
+  pagamentoId    String?       @unique
+  pagamento      Pagamento?    @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
+  ordemServicoId String?
+  ordemServico   OrdemServico? @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+
+  criadoEm DateTime @default(now())
+
+  @@index([caixaId])
+  @@index([tipo])
+  @@index([origem])
+  @@index([pagamentoId])
   @@index([ordemServicoId])
 }

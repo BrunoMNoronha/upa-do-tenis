@@ -616,7 +616,18 @@ export function OrdemServicoDetalheClient({
                 />
               </div>
 
-              {pagamentoErro ? <p className="text-sm text-red-600">{pagamentoErro}</p> : null}
+              {pagamentoErro ? (
+                <div className="text-sm text-red-600">
+                  <p>{pagamentoErro}</p>
+                  {typeof pagamentoErro === "string" && pagamentoErro.includes("caixa") && (
+                    <div className="mt-2">
+                      <Button href="/caixa" type="button" variant="secondary">
+                        Abrir o Caixa
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : null}
               {pagamentoSucesso ? <p className="text-sm text-emerald-700">{pagamentoSucesso}</p> : null}
 
               <div>
