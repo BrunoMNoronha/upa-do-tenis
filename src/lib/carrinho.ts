@@ -5,7 +5,7 @@
  * testes unitários com Vitest puro, sem necessidade de DOM ou mocks de React.
  *
  * Regras de negócio da venda (preço, estoque, caixa) continuam no backend
- * (src/lib/vendas.ts). Aqui apenas o estado local da interface.
+ * (src/lib/vendas.ts). Aqui apenas o estado local da interface, para UX.
  */
 
 export type ItemCarrinho = {
@@ -19,46 +19,130 @@ function arredondar(valor: number): number {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
 }
 
+// ── Resultado tipado para operações com possível restrição ──────────────────
+
+export type ResultadoAdicionar =
+  | { ok: true; itens: ItemCarrinho[] }
+  | { ok: false; motivo: string; itens: ItemCarrinho[] };
+
+// ── Funções puras ───────────────────────────────────────────────────────────
+
 /**
- * Adiciona um produto ao carrinho.
- * Se já existir, incrementa a quantidade em `qtd` (padrão: 1).
+ * Tenta adicionar um produto ao carrinho.
+ *
+ * Restrições verificadas (UX — não substituem validação do backend):
+ * - Produto com preço <= 0: bloqueado.
+ * - Produto com estoque <= 0: bloqueado (se `estoqueDisponivel` fornecido e >= 0).
+ * - Quantidade no carrinho não pode ultrapassar `estoqueDisponivel`.
+ *
+ * @param estoqueDisponivel  Quantidade física em estoque. Passe `null` para ignorar o limite.
+ * @param qtd                Incremento desejado (padrão: 1).
  */
 export function adicionarItem(
   itens: ItemCarrinho[],
   produto: { id: string; nome: string; precoVenda: number },
+  estoqueDisponivel: number | null = null,
   qtd = 1,
-): ItemCarrinho[] {
-  const existente = itens.find((i) => i.produtoId === produto.id);
-
-  if (existente) {
-    return itens.map((i) =>
-      i.produtoId === produto.id ? { ...i, quantidade: i.quantidade + qtd } : i,
-    );
+): ResultadoAdicionar {
+  // Bloqueio: preço inválido
+  if (produto.precoVenda <= 0) {
+    return {
+      ok: false,
+      motivo: `"${produto.nome}" não possui preço de venda configurado.`,
+      itens,
+    };
   }
 
-  return [
-    ...itens,
-    {
-      produtoId: produto.id,
-      nome: produto.nome,
-      precoUnitario: produto.precoVenda,
-      quantidade: qtd,
-    },
-  ];
+  // Bloqueio: sem estoque
+  if (estoqueDisponivel !== null && estoqueDisponivel <= 0) {
+    return {
+      ok: false,
+      motivo: `"${produto.nome}" está sem estoque.`,
+      itens,
+    };
+  }
+
+  const existente = itens.find((i) => i.produtoId === produto.id);
+  const qtdAtual = existente?.quantidade ?? 0;
+  const novaQtd = qtdAtual + qtd;
+
+  // Bloqueio: limite de estoque
+  if (estoqueDisponivel !== null && novaQtd > estoqueDisponivel) {
+    const limite = estoqueDisponivel - qtdAtual;
+    if (limite <= 0) {
+      return {
+        ok: false,
+        motivo: `"${produto.nome}" atingiu o limite de estoque disponível (${estoqueDisponivel} un).`,
+        itens,
+      };
+    }
+    // Adiciona apenas até o limite
+    const qtdPermitida = limite;
+    if (existente) {
+      return {
+        ok: true,
+        itens: itens.map((i) =>
+          i.produtoId === produto.id ? { ...i, quantidade: estoqueDisponivel } : i,
+        ),
+      };
+    }
+    return {
+      ok: true,
+      itens: [
+        ...itens,
+        {
+          produtoId: produto.id,
+          nome: produto.nome,
+          precoUnitario: produto.precoVenda,
+          quantidade: qtdPermitida,
+        },
+      ],
+    };
+  }
+
+  if (existente) {
+    return {
+      ok: true,
+      itens: itens.map((i) =>
+        i.produtoId === produto.id ? { ...i, quantidade: novaQtd } : i,
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    itens: [
+      ...itens,
+      {
+        produtoId: produto.id,
+        nome: produto.nome,
+        precoUnitario: produto.precoVenda,
+        quantidade: qtd,
+      },
+    ],
+  };
 }
 
 /**
  * Ajusta a quantidade de um item no carrinho.
- * Quantidade mínima: 1. Se o item não existir, retorna a lista inalterada.
+ * Quantidade mínima: 1.
+ * Quantidade máxima: `estoqueMaximo` (se fornecido e > 0).
+ * Se o item não existir, retorna a lista inalterada.
  */
 export function ajustarQuantidade(
   itens: ItemCarrinho[],
   produtoId: string,
   novaQuantidade: number,
+  estoqueMaximo: number | null = null,
 ): ItemCarrinho[] {
   if (novaQuantidade < 1) return itens;
+  const qtdFinal =
+    estoqueMaximo !== null && novaQuantidade > estoqueMaximo
+      ? estoqueMaximo
+      : novaQuantidade;
+
   return itens.map((i) =>
-    i.produtoId === produtoId ? { ...i, quantidade: novaQuantidade } : i,
+    i.produtoId === produtoId ? { ...i, quantidade: qtdFinal } : i,
   );
 }
 

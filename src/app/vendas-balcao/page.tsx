@@ -28,6 +28,7 @@ export default async function VendaBalcaoPage() {
           nome: p.nome,
           descricao: p.descricao,
           precoVenda: Number(p.precoVenda),
+          quantidadeEstoque: Number(p.quantidadeEstoque),
           ativo: p.ativo,
         }))}
         formasPagamento={formasPagamento.map((fp) => ({
