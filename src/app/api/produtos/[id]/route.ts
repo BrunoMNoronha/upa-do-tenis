@@ -61,6 +61,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
+    const count = await prisma.itemVenda.count({
+      where: { produtoId: params.id },
+    });
+
+    if (count > 0) {
+      return NextResponse.json(
+        {
+          message:
+            "Este produto não pode ser excluído porque possui vendas vinculadas. Inative-o para tirá-lo de circulação.",
+        },
+        { status: 409 }
+      );
+    }
+
     await prisma.produto.delete({
       where: { id: params.id },
     });

@@ -30,6 +30,7 @@ model Cliente {
   criadoEm      DateTime       @default(now())
   atualizadoEm  DateTime       @updatedAt
   ordensServico OrdemServico[]
+  vendas        Venda[]
 
   @@index([nome])
   @@index([telefone])
@@ -113,16 +114,82 @@ model ServicoItemOrdem {
 }
 
 model Produto {
-  id           String   @id @default(cuid())
-  nome         String
-  descricao    String?
-  precoVenda   Decimal  @default(0)
-  ativo        Boolean  @default(true)
-  criadoEm     DateTime @default(now())
-  atualizadoEm DateTime @updatedAt
+  id                String                       @id @default(cuid())
+  nome              String
+  descricao         String?
+  precoVenda        Decimal                      @default(0)
+  quantidadeEstoque Decimal                      @default(0)
+  ativo             Boolean                      @default(true)
+  criadoEm          DateTime                     @default(now())
+  atualizadoEm      DateTime                     @updatedAt
+  itensVenda        ItemVenda[]
+  movimentacoes     MovimentacaoEstoqueProduto[]
 
   @@index([nome])
   @@index([ativo])
+}
+
+model Venda {
+  id                   String                       @id @default(cuid())
+  numero               String                       @unique
+  clienteId            String?
+  cliente              Cliente?                     @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  status               String                       @default("CONCLUIDA")
+  valorTotal           Decimal                      @default(0)
+  valorDesconto        Decimal                      @default(0)
+  formaPagamentoId     String
+  formaPagamento       FormaPagamento               @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
+  dataVenda            DateTime                     @default(now())
+  observacoes          String?
+  criadoEm             DateTime                     @default(now())
+  atualizadoEm         DateTime                     @updatedAt
+  itens                ItemVenda[]
+  movimentacoesEstoque MovimentacaoEstoqueProduto[]
+  movimentacoesCaixa   MovimentacaoCaixa[]
+
+  @@index([numero])
+  @@index([status])
+  @@index([clienteId])
+  @@index([dataVenda])
+}
+
+model ItemVenda {
+  id            String   @id @default(cuid())
+  vendaId       String
+  venda         Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  produtoId     String
+  produto       Produto  @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  descricao     String
+  quantidade    Decimal  @default(0)
+  precoUnitario Decimal  @default(0)
+  precoTotal    Decimal  @default(0)
+  criadoEm      DateTime @default(now())
+
+  @@index([vendaId])
+  @@index([produtoId])
+}
+
+model MovimentacaoEstoqueProduto {
+  id             String   @id @default(cuid())
+  produtoId      String
+  produto        Produto  @relation(fields: [produtoId], references: [id], onDelete: Restrict)
+  tipo           String
+  quantidade     Decimal  @default(0)
+  saldoAnterior  Decimal  @default(0)
+  saldoPosterior Decimal  @default(0)
+  origem         String
+  vendaId        String?
+  venda          Venda?   @relation(fields: [vendaId], references: [id], onDelete: SetNull)
+  itemVendaId    String?
+  observacao     String?
+  motivo         String?
+  criadoEm       DateTime @default(now())
+
+  @@index([produtoId])
+  @@index([tipo])
+  @@index([origem])
+  @@index([criadoEm])
+  @@index([vendaId])
 }
 
 model FormaPagamento {
@@ -134,6 +201,7 @@ model FormaPagamento {
   atualizadoEm       DateTime            @updatedAt
   pagamentos         Pagamento[]
   movimentacoesCaixa MovimentacaoCaixa[]
+  vendas             Venda[]
 
   @@index([nome])
   @@index([ativo])
@@ -265,6 +333,8 @@ model MovimentacaoCaixa {
   pagamento      Pagamento?    @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
   ordemServicoId String?
   ordemServico   OrdemServico? @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+  vendaId        String?
+  venda          Venda?        @relation(fields: [vendaId], references: [id], onDelete: SetNull)
 
   criadoEm DateTime @default(now())
 
@@ -273,4 +343,5 @@ model MovimentacaoCaixa {
   @@index([origem])
   @@index([pagamentoId])
   @@index([ordemServicoId])
+  @@index([vendaId])
 }
