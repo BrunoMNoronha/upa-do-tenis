@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
-import { formatCurrency, formatPhone, whatsappLink } from "@/lib/formatters";
+import { formatCurrency, formatPhone, maskCurrency, whatsappLink } from "@/lib/formatters";
 import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
@@ -476,8 +476,15 @@ export function OrdensServicoClient({
                   type="text"
                   {...register("valorEstimado")}
                   onChange={(e) => {
-                    e.target.value = formatCurrency(e.target.value);
+                    e.target.value = maskCurrency(e.target.value);
                     register("valorEstimado").onChange(e);
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      e.target.value = formatCurrency(e.target.value);
+                      register("valorEstimado").onChange(e);
+                    }
+                    register("valorEstimado").onBlur(e);
                   }}
                   placeholder="R$ 0,00"
                 />

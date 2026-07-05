@@ -7,7 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Button, Input, Label, Textarea } from "@/components/ui";
 import { servicoFormSchema, type ServicoFormValues } from "@/lib/servicos-schema";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, maskCurrency } from "@/lib/formatters";
 
 const defaultValues: ServicoFormValues = {
   nome: "",
@@ -74,8 +74,15 @@ export function ServicosForm() {
           type="text"
           {...register("precoBase")}
           onChange={(e) => {
-            e.target.value = formatCurrency(e.target.value);
+            e.target.value = maskCurrency(e.target.value);
             register("precoBase").onChange(e);
+          }}
+          onBlur={(e) => {
+            if (e.target.value) {
+              e.target.value = formatCurrency(e.target.value);
+              register("precoBase").onChange(e);
+            }
+            register("precoBase").onBlur(e);
           }}
           placeholder="R$ 0,00"
         />

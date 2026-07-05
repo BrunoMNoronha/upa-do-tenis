@@ -77,6 +77,23 @@ export function whatsappLink(value: string | null | undefined): string {
   return "";
 }
 
+/**
+ * Máscara leve de digitação para valores monetários: mantém dígitos, pontos e
+ * uma única vírgula (com até 2 casas decimais), removendo letras e símbolos.
+ * Não formata como moeda durante a digitação — a formatação completa
+ * (formatCurrency) deve ser aplicada apenas no blur, senão cada tecla nova
+ * cai depois da vírgula e é arredondada (ex.: digitar "150" virava "R$ 1,01").
+ */
+export function maskCurrency(value: string | null | undefined): string {
+  if (!value) return "";
+  const cleaned = String(value).replace(/[^\d.,]/g, "");
+  const firstComma = cleaned.indexOf(",");
+  if (firstComma === -1) return cleaned;
+  const inteiro = cleaned.slice(0, firstComma);
+  const decimal = cleaned.slice(firstComma + 1).replace(/[.,]/g, "").slice(0, 2);
+  return `${inteiro},${decimal}`;
+}
+
 export function formatCurrency(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
   

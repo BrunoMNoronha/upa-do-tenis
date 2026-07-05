@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
 import { sanitizeCurrency } from "@/lib/sanitizers";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, maskCurrency } from "@/lib/formatters";
 
 type FormaPagamento = {
   id: string;
@@ -200,7 +200,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
               id="saldoInicial"
               type="text"
               value={saldoInicial}
-              onChange={(e) => setSaldoInicial(formatCurrency(e.target.value))}
+              onChange={(e) => setSaldoInicial(maskCurrency(e.target.value))}
+              onBlur={(e) => {
+                if (e.target.value) setSaldoInicial(formatCurrency(e.target.value));
+              }}
               placeholder="R$ 0,00"
               required
             />
@@ -270,7 +273,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
                     id="valorMov"
                     type="text"
                     value={movimentacaoForm.valor}
-                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, valor: formatCurrency(e.target.value) })}
+                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, valor: maskCurrency(e.target.value) })}
+                    onBlur={(e) => {
+                      if (e.target.value) setMovimentacaoForm({ ...movimentacaoForm, valor: formatCurrency(e.target.value) });
+                    }}
                     placeholder="R$ 0,00"
                     required
                   />
@@ -399,7 +405,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
                   id="saldoInformado"
                   type="text"
                   value={fecharForm.saldoFinalInformado}
-                  onChange={(e) => setFecharForm({ ...fecharForm, saldoFinalInformado: formatCurrency(e.target.value) })}
+                  onChange={(e) => setFecharForm({ ...fecharForm, saldoFinalInformado: maskCurrency(e.target.value) })}
+                  onBlur={(e) => {
+                    if (e.target.value) setFecharForm({ ...fecharForm, saldoFinalInformado: formatCurrency(e.target.value) });
+                  }}
                   placeholder="R$ 0,00"
                   required
                 />

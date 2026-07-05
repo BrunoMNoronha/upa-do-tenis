@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ } from '../lib/formatters';
+import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency } from '../lib/formatters';
 
 describe('Formatters', () => {
   it('should format 11-digit phone', () => {
@@ -103,5 +103,39 @@ describe('maskCPFCNPJ (máscara de digitação)', () => {
 
   it('should limit to 14 digits', () => {
     expect(maskCPFCNPJ('112223330001449999')).toBe('11.222.333/0001-44');
+  });
+});
+
+describe('maskCurrency (máscara de digitação)', () => {
+  it('should keep digits as typed (no premature currency formatting)', () => {
+    expect(maskCurrency('1')).toBe('1');
+    expect(maskCurrency('15')).toBe('15');
+    expect(maskCurrency('150')).toBe('150');
+  });
+
+  it('should strip letters and symbols', () => {
+    expect(maskCurrency('15abc')).toBe('15');
+    expect(maskCurrency('R$ 150')).toBe('150');
+    expect(maskCurrency('abc')).toBe('');
+    expect(maskCurrency('')).toBe('');
+    expect(maskCurrency(null)).toBe('');
+  });
+
+  it('should allow a single comma with up to 2 decimals', () => {
+    expect(maskCurrency('15,9')).toBe('15,9');
+    expect(maskCurrency('15,90')).toBe('15,90');
+    expect(maskCurrency('15,905')).toBe('15,90');
+    expect(maskCurrency('15,9,5')).toBe('15,95');
+  });
+
+  it('should keep thousand separators typed by the user', () => {
+    expect(maskCurrency('1.500')).toBe('1.500');
+    expect(maskCurrency('1.500,50')).toBe('1.500,50');
+  });
+
+  it('should round-trip with sanitizeCurrency at submit', () => {
+    expect(formatCurrency(maskCurrency('150')).replace(/\xa0/g, ' ')).toBe('R$ 150,00');
+    expect(formatCurrency(maskCurrency('15,9')).replace(/\xa0/g, ' ')).toBe('R$ 15,90');
+    expect(formatCurrency(maskCurrency('1.500,50')).replace(/\xa0/g, ' ')).toBe('R$ 1.500,50');
   });
 });
