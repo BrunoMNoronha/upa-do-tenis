@@ -205,3 +205,93 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
 
   return normalizarValoresDecimalParaClient(resultado);
 }
+
+export async function listarVendasBalcao(filtros?: {
+  dataInicial?: string;
+  dataFinal?: string;
+  formaPagamentoId?: string;
+}) {
+  const { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } = await import("@/lib/date-range");
+  
+  const where: any = {};
+
+  if (filtros?.dataInicial || filtros?.dataFinal) {
+    where.dataVenda = {};
+    let inicioData: Date | undefined;
+    let fimData: Date | undefined;
+
+    if (filtros.dataInicial) {
+      const parsed = parseDataLocal(filtros.dataInicial);
+      if (isNaN(parsed.getTime())) {
+        throw new VendaBalcaoError("Data inicial inválida.", 400);
+      }
+      inicioData = inicioDoDia(parsed);
+      where.dataVenda.gte = inicioData;
+    }
+    
+    if (filtros.dataFinal) {
+      const parsed = parseDataLocal(filtros.dataFinal);
+      if (isNaN(parsed.getTime())) {
+        throw new VendaBalcaoError("Data final inválida.", 400);
+      }
+      fimData = inicioDoDia(parsed);
+      // Data final semi-aberta (lt inicio do dia seguinte) para incluir o próprio dia todo
+      where.dataVenda.lt = inicioDoDiaSeguinte(parsed);
+    }
+
+    if (inicioData && fimData && inicioData > fimData) {
+      throw new VendaBalcaoError(
+        "A data final não pode ser menor que a data inicial.",
+        400,
+      );
+    }
+  }
+
+  if (filtros?.formaPagamentoId) {
+    where.formaPagamentoId = filtros.formaPagamentoId;
+  }
+
+  const vendas = await prisma.venda.findMany({
+    where,
+    orderBy: { dataVenda: "desc" },
+    take: 100, // Limite seguro exigido pelo diagnóstico de PR
+    include: {
+      formaPagamento: true,
+      _count: {
+        select: { itens: true },
+      },
+    },
+  });
+
+  const normalizadas = normalizarValoresDecimalParaClient(vendas);
+
+  return normalizadas.map((v: any) => ({
+    id: v.id,
+    numero: v.numero,
+    dataVenda: v.dataVenda,
+    valorTotal: v.valorTotal,
+    formaPagamento: v.formaPagamento.nome,
+    quantidadeItens: v._count.itens,
+    observacoes: v.observacoes,
+  }));
+}
+
+export async function obterVendaPorId(id: string) {
+  const venda = await prisma.venda.findUnique({
+    where: { id },
+    include: {
+      formaPagamento: true,
+      itens: {
+        include: {
+          produto: true,
+        },
+      },
+    },
+  });
+
+  if (!venda) {
+    return null;
+  }
+
+  return normalizarValoresDecimalParaClient(venda);
+}

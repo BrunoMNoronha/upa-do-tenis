@@ -5,7 +5,7 @@ import { POST } from "./route";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
-const { registrarVendaBalcaoMock, VendaBalcaoErrorMock } = vi.hoisted(() => {
+const { registrarVendaBalcaoMock, listarVendasBalcaoMock, obterVendaPorIdMock, VendaBalcaoErrorMock } = vi.hoisted(() => {
   class VendaBalcaoErrorMock extends Error {
     status: number;
     constructor(message: string, status = 400) {
@@ -17,12 +17,16 @@ const { registrarVendaBalcaoMock, VendaBalcaoErrorMock } = vi.hoisted(() => {
 
   return {
     registrarVendaBalcaoMock: vi.fn(),
+    listarVendasBalcaoMock: vi.fn(),
+    obterVendaPorIdMock: vi.fn(),
     VendaBalcaoErrorMock,
   };
 });
 
 vi.mock("@/lib/vendas", () => ({
   registrarVendaBalcao: registrarVendaBalcaoMock,
+  listarVendasBalcao: listarVendasBalcaoMock,
+  obterVendaPorId: obterVendaPorIdMock,
   VendaBalcaoError: VendaBalcaoErrorMock,
 }));
 
@@ -108,3 +112,64 @@ describe("POST /api/vendas", () => {
     expect(response.status).toBe(500);
   });
 });
+
+import { GET as GET_VENDAS } from "./route";
+
+describe("GET /api/vendas", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lista vendas sem filtros", async () => {
+    listarVendasBalcaoMock.mockResolvedValueOnce([{ id: "1" }]);
+    const req = new NextRequest("http://localhost/api/vendas");
+    const response = await GET_VENDAS(req);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual([{ id: "1" }]);
+    expect(listarVendasBalcaoMock).toHaveBeenCalledWith({ dataInicial: undefined, dataFinal: undefined, formaPagamentoId: undefined });
+  });
+
+  it("lista vendas com filtros de período", async () => {
+    listarVendasBalcaoMock.mockResolvedValueOnce([]);
+    const req = new NextRequest("http://localhost/api/vendas?dataInicial=2026-07-01&dataFinal=2026-07-31");
+    const response = await GET_VENDAS(req);
+    expect(response.status).toBe(200);
+    expect(listarVendasBalcaoMock).toHaveBeenCalledWith({
+      dataInicial: "2026-07-01",
+      dataFinal: "2026-07-31",
+      formaPagamentoId: undefined,
+    });
+  });
+  
+  it("retorna 400 se listarVendasBalcao disparar VendaBalcaoError (data inválida)", async () => {
+    listarVendasBalcaoMock.mockRejectedValueOnce(new VendaBalcaoErrorMock("Data inválida", 400));
+    const req = new NextRequest("http://localhost/api/vendas?dataInicial=abc");
+    const response = await GET_VENDAS(req);
+    expect(response.status).toBe(400);
+  });
+});
+
+import { GET as GET_VENDA_ID } from "./[id]/route";
+
+describe("GET /api/vendas/[id]", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("retorna detalhes da venda", async () => {
+    obterVendaPorIdMock.mockResolvedValueOnce({ id: "v1", numero: "001" });
+    const req = new NextRequest("http://localhost/api/vendas/v1");
+    const response = await GET_VENDA_ID(req, { params: { id: "v1" } });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ id: "v1", numero: "001" });
+    expect(obterVendaPorIdMock).toHaveBeenCalledWith("v1");
+  });
+
+  it("retorna 404 para venda inexistente", async () => {
+    obterVendaPorIdMock.mockResolvedValueOnce(null);
+    const req = new NextRequest("http://localhost/api/vendas/v99");
+    const response = await GET_VENDA_ID(req, { params: { id: "v99" } });
+    expect(response.status).toBe(404);
+  });
+});
+

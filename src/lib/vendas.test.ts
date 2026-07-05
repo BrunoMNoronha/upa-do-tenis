@@ -197,3 +197,110 @@ describe("registrarVendaBalcao", () => {
     expect(await prisma.venda.count()).toBe(0);
   });
 });
+
+describe("listarVendasBalcao", () => {
+  let vendaId1: string;
+  let vendaId2: string;
+
+  beforeEach(async () => {
+    const v1 = await registrarVendaBalcao({
+      formaPagamentoId,
+      itens: [{ produtoId: produtoAId, quantidade: 1 }],
+    });
+    vendaId1 = v1!.id;
+
+    // Modifica a data da venda 1 para um dia anterior
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    await prisma.venda.update({
+      where: { id: vendaId1 },
+      data: { dataVenda: ontem },
+    });
+
+    const v2 = await registrarVendaBalcao({
+      formaPagamentoId,
+      itens: [{ produtoId: produtoBId, quantidade: 2 }],
+    });
+    vendaId2 = v2!.id;
+  });
+
+  it("lista todas as vendas sem filtros", async () => {
+    const { listarVendasBalcao } = await import("./vendas");
+    const vendas = await listarVendasBalcao();
+    expect(vendas).toHaveLength(2);
+  });
+
+  it("filtra por dataInicial", async () => {
+    const { formatarDataLocal } = await import("./date-range");
+    const { listarVendasBalcao } = await import("./vendas");
+    const hoje = formatarDataLocal(new Date());
+
+    const vendas = await listarVendasBalcao({ dataInicial: hoje });
+    expect(vendas).toHaveLength(1); // apenas a v2 de hoje
+    expect(vendas[0].id).toBe(vendaId2);
+  });
+
+  it("filtra por dataFinal", async () => {
+    const { formatarDataLocal } = await import("./date-range");
+    const { listarVendasBalcao } = await import("./vendas");
+    
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    const dataOntem = formatarDataLocal(ontem);
+
+    const vendas = await listarVendasBalcao({ dataFinal: dataOntem });
+    expect(vendas).toHaveLength(1); // apenas a v1 de ontem
+    expect(vendas[0].id).toBe(vendaId1);
+  });
+
+  it("filtra por intervalo válido", async () => {
+    const { formatarDataLocal } = await import("./date-range");
+    const { listarVendasBalcao } = await import("./vendas");
+    
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    const dataOntem = formatarDataLocal(ontem);
+    const hoje = formatarDataLocal(new Date());
+
+    const vendas = await listarVendasBalcao({ dataInicial: dataOntem, dataFinal: hoje });
+    expect(vendas).toHaveLength(2);
+  });
+
+  it("filtra por formaPagamentoId", async () => {
+    const { listarVendasBalcao } = await import("./vendas");
+    const vendas = await listarVendasBalcao({ formaPagamentoId });
+    expect(vendas).toHaveLength(2);
+    
+    const vendasInexistentes = await listarVendasBalcao({ formaPagamentoId: "inexistente" });
+    expect(vendasInexistentes).toHaveLength(0);
+  });
+
+  it("retorna erro com data inválida", async () => {
+    const { listarVendasBalcao } = await import("./vendas");
+    await expect(listarVendasBalcao({ dataInicial: "invalida" })).rejects.toBeInstanceOf(VendaBalcaoError);
+  });
+});
+
+describe("obterVendaPorId", () => {
+  it("retorna detalhes completos de uma venda existente", async () => {
+    const { obterVendaPorId } = await import("./vendas");
+    
+    const v = await registrarVendaBalcao({
+      formaPagamentoId,
+      itens: [{ produtoId: produtoAId, quantidade: 2 }],
+    });
+
+    const detalhe = await obterVendaPorId(v!.id);
+    expect(detalhe).toBeTruthy();
+    expect(detalhe!.numero).toBe(v!.numero);
+    expect(detalhe!.formaPagamento.id).toBe(formaPagamentoId);
+    expect(detalhe!.itens).toHaveLength(1);
+    expect(detalhe!.itens[0].produto.nome).toBe("Cadarço 120cm");
+  });
+
+  it("retorna null para venda inexistente", async () => {
+    const { obterVendaPorId } = await import("./vendas");
+    const detalhe = await obterVendaPorId("venda-inexistente");
+    expect(detalhe).toBeNull();
+  });
+});

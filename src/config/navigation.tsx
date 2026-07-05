@@ -159,6 +159,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/ordens-servico", label: "Ordens de Serviço", icon: OrdensIcon },
       { href: "/vendas-balcao", label: "Venda de Balcão", icon: VendasIcon },
+      { href: "/vendas", label: "Histórico de Vendas", icon: VendasIcon },
       { href: "/clientes", label: "Clientes", icon: ClientesIcon },
       { href: "/servicos", label: "Serviços", icon: ServicosIcon },
       { href: "/produtos", label: "Produtos", icon: ProdutosIcon },
