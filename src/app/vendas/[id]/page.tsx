@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { Badge, Button, Card, SectionTitle } from "@/components/ui";
+import { Badge, Card, SectionTitle } from "@/components/ui";
 import { obterVendaPorId } from "@/lib/vendas";
 import { formatCurrency } from "@/lib/formatters";
+import { BotaoImprimir } from "./botao-imprimir";
 
 export const metadata = {
   title: "Detalhes da Venda | UPA do Tênis",
@@ -31,10 +32,24 @@ export default async function VendaDetalhePage({
       description={`Detalhes da venda registrada em ${date}.`}
       action={{ href: "/vendas", label: "Voltar para o histórico" }}
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+      {/* Print-only receipt header */}
+      <div className="hidden print:block mb-8 text-center border-b pb-4">
+        <h1 className="text-2xl font-bold text-slate-900 uppercase">Sapataria Alves</h1>
+        <p className="text-sm text-slate-600">UPA do Tênis</p>
+        <p className="mt-4 text-lg font-semibold">Recibo de Venda de Balcão</p>
+        <p className="text-sm text-slate-500">
+          Venda {venda.numero} - {date}
+        </p>
+      </div>
+
+      <div className="mb-6 flex justify-end print:hidden">
+        <BotaoImprimir />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_300px] print:block">
         <section className="space-y-6">
-          <Card className="p-6">
-            <SectionTitle className="mb-6">Itens Vendidos</SectionTitle>
+          <Card className="p-6 print:p-0 print:shadow-none print:border-none">
+            <SectionTitle className="mb-6 print:hidden">Itens Vendidos</SectionTitle>
             
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm text-slate-700">
@@ -67,7 +82,7 @@ export default async function VendaDetalhePage({
           </Card>
 
           {venda.observacoes && (
-            <Card className="p-6">
+            <Card className="p-6 print:p-0 print:shadow-none print:border-none print:mt-6">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-2">
                 Observações
               </h3>
@@ -76,11 +91,16 @@ export default async function VendaDetalhePage({
               </p>
             </Card>
           )}
+
+          <div className="hidden print:block mt-12 text-center text-sm text-slate-500">
+            <p>Obrigado pela preferência!</p>
+            <p>Este documento é um recibo simples e não possui valor fiscal.</p>
+          </div>
         </section>
 
-        <section className="space-y-6">
-          <Card className="p-6 bg-slate-50 border-dashed">
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4">
+        <section className="space-y-6 print:mt-8">
+          <Card className="p-6 bg-slate-50 border-dashed print:p-0 print:shadow-none print:border-none print:bg-transparent">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-4 print:hidden">
               Resumo Financeiro
             </h3>
             

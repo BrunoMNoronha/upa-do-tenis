@@ -79,7 +79,7 @@ export function AppShell({ title, description, eyebrow, action, children }: AppS
       {/* Sidebar */}
       <aside
         aria-label="Menu principal"
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-[color:var(--border)] bg-[color:var(--surface)] transition-[transform,width] duration-200 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-[color:var(--border)] bg-[color:var(--surface)] transition-[transform,width] duration-200 ease-in-out lg:static lg:translate-x-0 print:hidden ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         } ${collapsedOnDesktop ? "lg:w-[4.5rem]" : "lg:w-64"}`}
       >
@@ -202,7 +202,7 @@ export function AppShell({ title, description, eyebrow, action, children }: AppS
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile Header */}
-        <header className="flex h-16 items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--surface)] px-4 lg:hidden">
+        <header className="flex h-16 items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--surface)] px-4 lg:hidden print:hidden">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
@@ -224,8 +224,8 @@ export function AppShell({ title, description, eyebrow, action, children }: AppS
 
         {/* Main Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
-            <section className="mb-8 flex flex-wrap items-start justify-between gap-4 rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-[0_18px_44px_rgba(31,41,55,0.08)] sm:p-8">
+          <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 print:p-0">
+            <section className="mb-8 flex flex-wrap items-start justify-between gap-4 rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-[0_18px_44px_rgba(31,41,55,0.08)] sm:p-8 print:hidden">
               <div>
                 {eyebrow ? <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-strong)]">{eyebrow}</p> : null}
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text)] md:text-4xl">{title}</h1>
