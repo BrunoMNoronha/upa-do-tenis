@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency } from '../lib/formatters';
+import { sanitizeCurrency } from '../lib/sanitizers';
 
 describe('Formatters', () => {
   it('should format 11-digit phone', () => {
@@ -106,36 +107,46 @@ describe('maskCPFCNPJ (máscara de digitação)', () => {
   });
 });
 
-describe('maskCurrency (máscara de digitação)', () => {
-  it('should keep digits as typed (no premature currency formatting)', () => {
-    expect(maskCurrency('1')).toBe('1');
-    expect(maskCurrency('15')).toBe('15');
-    expect(maskCurrency('150')).toBe('150');
+describe('maskCurrency (máscara monetária por centavos)', () => {
+  const mask = (v: string | null) => maskCurrency(v).replace(/\xa0/g, ' ');
+
+  it('should format progressively treating last 2 digits as cents', () => {
+    expect(mask('1')).toBe('R$ 0,01');
+    expect(mask('12')).toBe('R$ 0,12');
+    expect(mask('123')).toBe('R$ 1,23');
+    expect(mask('1234')).toBe('R$ 12,34');
+    expect(mask('12345')).toBe('R$ 123,45');
+    expect(mask('15050')).toBe('R$ 150,50');
   });
 
   it('should strip letters and symbols', () => {
-    expect(maskCurrency('15abc')).toBe('15');
-    expect(maskCurrency('R$ 150')).toBe('150');
-    expect(maskCurrency('abc')).toBe('');
-    expect(maskCurrency('')).toBe('');
-    expect(maskCurrency(null)).toBe('');
+    expect(mask('15050abc')).toBe('R$ 150,50');
+    expect(mask('R$ 150,50')).toBe('R$ 150,50');
+    expect(mask('abc')).toBe('');
   });
 
-  it('should allow a single comma with up to 2 decimals', () => {
-    expect(maskCurrency('15,9')).toBe('15,9');
-    expect(maskCurrency('15,90')).toBe('15,90');
-    expect(maskCurrency('15,905')).toBe('15,90');
-    expect(maskCurrency('15,9,5')).toBe('15,95');
+  it('should keep empty field empty', () => {
+    expect(mask('')).toBe('');
+    expect(mask(null)).toBe('');
   });
 
-  it('should keep thousand separators typed by the user', () => {
-    expect(maskCurrency('1.500')).toBe('1.500');
-    expect(maskCurrency('1.500,50')).toBe('1.500,50');
+  it('should apply thousand separators for large values', () => {
+    expect(mask('150050')).toBe('R$ 1.500,50');
+    expect(mask('12345678')).toBe('R$ 123.456,78');
+  });
+
+  it('should limit to 10 digits to avoid absurd values', () => {
+    expect(mask('999999999999999')).toBe('R$ 99.999.999,99');
+  });
+
+  it('should be idempotent (re-masking formatted output keeps the value)', () => {
+    expect(mask(maskCurrency('15050'))).toBe('R$ 150,50');
   });
 
   it('should round-trip with sanitizeCurrency at submit', () => {
-    expect(formatCurrency(maskCurrency('150')).replace(/\xa0/g, ' ')).toBe('R$ 150,00');
-    expect(formatCurrency(maskCurrency('15,9')).replace(/\xa0/g, ' ')).toBe('R$ 15,90');
-    expect(formatCurrency(maskCurrency('1.500,50')).replace(/\xa0/g, ' ')).toBe('R$ 1.500,50');
+    expect(sanitizeCurrency(maskCurrency('15050'))).toBe(150.5);
+    expect(sanitizeCurrency(maskCurrency('25000'))).toBe(250);
+    expect(sanitizeCurrency(maskCurrency('1250'))).toBe(12.5);
+    expect(formatCurrency(maskCurrency('150050')).replace(/\xa0/g, ' ')).toBe('R$ 1.500,50');
   });
 });

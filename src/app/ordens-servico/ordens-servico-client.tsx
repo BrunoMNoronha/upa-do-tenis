@@ -331,7 +331,9 @@ export function OrdensServicoClient({
     if (selectedServicoId) {
       const servico = servicos.find(s => s.id === selectedServicoId);
       if (servico && servico.precoBase) {
-        setValue("valorEstimado", Number(servico.precoBase));
+        // Preenche já formatado para manter consistência com a máscara por
+        // centavos (o schema converte a string de volta para número no submit).
+        setValue("valorEstimado", formatCurrency(Number(servico.precoBase)) as unknown as number);
       }
     }
   }, [selectedServicoId, servicos, setValue]);

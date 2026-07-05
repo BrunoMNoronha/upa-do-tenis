@@ -78,20 +78,21 @@ export function whatsappLink(value: string | null | undefined): string {
 }
 
 /**
- * Máscara leve de digitação para valores monetários: mantém dígitos, pontos e
- * uma única vírgula (com até 2 casas decimais), removendo letras e símbolos.
- * Não formata como moeda durante a digitação — a formatação completa
- * (formatCurrency) deve ser aplicada apenas no blur, senão cada tecla nova
- * cai depois da vírgula e é arredondada (ex.: digitar "150" virava "R$ 1,01").
+ * Máscara monetária de digitação por centavos (padrão operacional de balcão):
+ * considera apenas os dígitos e interpreta os 2 últimos como centavos,
+ * formatando como BRL a cada tecla — "15050" vira "R$ 150,50".
+ * Campo vazio (ou sem dígitos) permanece vazio; limite de 10 dígitos
+ * (R$ 99.999.999,99) para evitar valores absurdos por engano.
  */
 export function maskCurrency(value: string | null | undefined): string {
   if (!value) return "";
-  const cleaned = String(value).replace(/[^\d.,]/g, "");
-  const firstComma = cleaned.indexOf(",");
-  if (firstComma === -1) return cleaned;
-  const inteiro = cleaned.slice(0, firstComma);
-  const decimal = cleaned.slice(firstComma + 1).replace(/[.,]/g, "").slice(0, 2);
-  return `${inteiro},${decimal}`;
+  const digits = String(value).replace(/\D/g, "").slice(0, 10);
+  if (digits.length === 0) return "";
+  const cents = parseInt(digits, 10);
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(cents / 100);
 }
 
 export function formatCurrency(value: number | string | null | undefined): string {

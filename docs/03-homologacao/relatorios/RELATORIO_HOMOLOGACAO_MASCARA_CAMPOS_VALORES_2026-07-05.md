@@ -111,3 +111,48 @@ Observações:
 ## Recomendação
 
 Correção apta para commit. Push é decisão do responsável pelo projeto. Homologar manualmente o fluxo de caixa (item 5 das evidências) no uso real.
+
+---
+
+# ADENDO — 05/07/2026: máscara alterada para padrão por centavos
+
+## Mudança de critério
+
+Após revisão visual do responsável pelo projeto, o critério de aceite da digitação mudou:
+
+- **Critério anterior (commit `23cc890`):** o operador digitava o valor em reais e a formatação acontecia no blur — "150" → (blur) → "R$ 150,00". Nesse modelo, "15050" era interpretado como R$ 15.050,00.
+- **Critério novo (este adendo):** máscara monetária **por centavos**, formatando a cada tecla, com os 2 últimos dígitos como centavos — **"15050" → "R$ 150,50"** durante a digitação. Padrão operacional de balcão/PDV.
+
+## Implementação do adendo
+
+- `maskCurrency` reescrita em `src/lib/formatters.ts`: remove tudo que não for dígito, limita a 10 dígitos (máx. R$ 99.999.999,99), interpreta os 2 últimos como centavos e formata com `Intl.NumberFormat` pt-BR/BRL a cada tecla. Campo sem dígitos permanece vazio.
+- `onChange`/`onBlur` dos 6 campos **inalterados**: o `onBlur` com `formatCurrency` é idempotente sobre a saída da máscara ("R$ 150,50" → 150.5 → "R$ 150,50"), sem dupla formatação.
+- Ajuste complementar em `src/app/ordens-servico/ordens-servico-client.tsx`: ao selecionar um serviço, o Valor total agora é preenchido já formatado ("R$ 150,00" em vez de "150" cru) — sem isso, uma edição subsequente sob a máscara por centavos reinterpretaria "150" como R$ 1,50.
+- `sanitizeCurrency`, cálculos, APIs e `schema.prisma` **intocados**. Round-trip coberto por teste: `sanitizeCurrency(maskCurrency("15050"))` → `150.5`.
+- Testes de `maskCurrency` reescritos para o novo critério (189 testes no total).
+
+## Evidências (browser, tecla a tecla)
+
+| Módulo / campo | Digitado | Exibido durante a digitação | Salvo |
+|---|---|---|---|
+| Serviços — Preço Base | "15050abc" | "R$ 0,01" → "R$ 0,15" → "R$ 1,50" → "R$ 15,05" → **"R$ 150,50"** (letras ignoradas) | "R$ 150,50" na lista |
+| OS — Valor total | "25000" | progressivo até **"R$ 250,00"** | "Valor Total R$ 250,00" |
+| OS — autofill por serviço | seleção "Troca de Sola" | campo preenchido **"R$ 150,00"** formatado | — |
+| Insumos — Custo Unitário | "1250" | progressivo até **"R$ 12,50"** | "Custo Ref. R$ 12,50" |
+| Caixa — Saldo Inicial | "20000" | progressivo até **"R$ 200,00"** | caixa aberto com R$ 200,00 |
+| Caixa — Movimentação (saída) | "5000" | progressivo até **"R$ 50,00"** | saldo 200 → 150; "-R$ 50,00" |
+| Caixa — Fechamento | "15000" | **"R$ 150,00"** | divergência **R$ 0,00** |
+
+Console do navegador sem erros ou warnings em todos os cenários. `git diff -- prisma/schema.prisma` vazio. Lint ✔, 189 testes ✔, build ✔ (26 rotas).
+
+## Roteiro de re-homologação manual (novo critério)
+
+1. Serviços → Preço Base: digitar "15050" e conferir "R$ 150,50" já durante a digitação.
+2. Nova OS: selecionar serviço e conferir valor preenchido formatado; digitar "25000" e conferir "R$ 250,00".
+3. Insumos → Custo Unitário: digitar "1250" → "R$ 12,50".
+4. Caixa: abrir com "20000" (R$ 200,00), movimentar "5000" (R$ 50,00), fechar com saldo compatível e conferir divergência zero.
+5. Letras/símbolos não devem aparecer em nenhum campo monetário.
+
+## Veredito do adendo
+
+Aprovado. Máscara por centavos validada nos 6 campos, com fluxo de Caixa fim a fim sem divergência.
