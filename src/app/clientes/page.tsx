@@ -4,6 +4,7 @@ import { Badge, Card, SectionTitle, Input, Button } from "@/components/ui";
 import { ClientesForm } from "./clientes-form";
 
 import { listarClientes } from "@/lib/clientes";
+import { formatPhone, formatCPFCNPJ, whatsappLink } from "@/lib/formatters";
 
 export const metadata = {
   title: "Clientes | UPA do Tênis",
@@ -92,14 +93,31 @@ export default async function ClientesPage({ searchParams }: { searchParams: { b
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-semibold text-white">{cliente.nome}</h3>
-                      <p className="mt-1 text-sm text-slate-200">{cliente.telefone}</p>
+                      {(() => {
+                        if (!cliente.telefone) return null;
+                        const telefoneMascarado = formatPhone(cliente.telefone);
+                        const link = whatsappLink(cliente.telefone);
+                        if (!link) {
+                          return <p className="mt-1 text-sm text-slate-200">{telefoneMascarado}</p>;
+                        }
+                        return (
+                          <a
+                            href={link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-1 inline-block text-sm text-[color:var(--accent-soft)] hover:underline"
+                          >
+                            {telefoneMascarado}
+                          </a>
+                        );
+                      })()}
                     </div>
                     <Badge tone="neutral">{dateFormatter.format(cliente.criadoEm)}</Badge>
                   </div>
 
                   <div className="mt-4 grid gap-2 text-sm text-slate-200">
                     {cliente.email ? <p>E-mail: {cliente.email}</p> : null}
-                    {cliente.cpfCnpj ? <p>CPF/CNPJ: {cliente.cpfCnpj}</p> : null}
+                    {cliente.cpfCnpj ? <p>CPF/CNPJ: {formatCPFCNPJ(cliente.cpfCnpj)}</p> : null}
                     {cliente.observacoes ? <p>Observações: {cliente.observacoes}</p> : null}
                   </div>
                 </article>
