@@ -226,8 +226,12 @@ function calcularTotaisCaixa(caixa: any) {
 
   for (const mov of movimentacoes) {
     const valor = Number(mov.valor) || 0;
+    // Chave de agrupamento do "Total Recebido no Dia" (rótulo de exibição).
     const nomeForma = mov.formaPagamento?.nome?.toUpperCase() || "DINHEIRO";
-    const ehDinheiro = nomeForma === "DINHEIRO" || nomeForma.includes("DINHEIRO");
+    // Critério de dinheiro físico (gaveta): usa o campo confiável formaPagamento.tipo,
+    // não o nome. Movimentação sem forma de pagamento continua sendo tratada como
+    // dinheiro (comportamento preservado — ex.: sangrias/reforços e entradas avulsas).
+    const ehDinheiro = !mov.formaPagamento || mov.formaPagamento.tipo === "DINHEIRO";
 
     if (mov.tipo === "ENTRADA") {
       totaisPorFormaPagamento[nomeForma] = (totaisPorFormaPagamento[nomeForma] || 0) + valor;

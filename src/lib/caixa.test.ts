@@ -80,9 +80,9 @@ describe("Caixa Services", () => {
         saldoInicial: 100,
         status: "ABERTO",
         movimentacoes: [
-          { tipo: "ENTRADA", valor: 50, formaPagamento: { nome: "DINHEIRO" } },
-          { tipo: "SAIDA", valor: 20, formaPagamento: { nome: "DINHEIRO" } },
-          { tipo: "ENTRADA", valor: 200, formaPagamento: { nome: "PIX" } } // Nao entra no fisico
+          { tipo: "ENTRADA", valor: 50, formaPagamento: { nome: "DINHEIRO", tipo: "DINHEIRO" } },
+          { tipo: "SAIDA", valor: 20, formaPagamento: { nome: "DINHEIRO", tipo: "DINHEIRO" } },
+          { tipo: "ENTRADA", valor: 200, formaPagamento: { nome: "PIX", tipo: "PIX" } } // Nao entra no fisico
         ]
       } as any);
 
@@ -94,6 +94,85 @@ describe("Caixa Services", () => {
     });
   });
 
+  describe("calcularTotaisCaixa - blindagem por formaPagamento.tipo", () => {
+    it("considera físico uma forma com tipo DINHEIRO mesmo que o nome não seja 'Dinheiro'", async () => {
+      vi.mocked(prisma.caixa.findFirst).mockResolvedValue({
+        id: "caixa-1",
+        saldoInicial: 100,
+        status: "ABERTO",
+        movimentacoes: [
+          // Nome divergente ("Espécie"), mas tipo confiável DINHEIRO → entra no físico.
+          { tipo: "ENTRADA", valor: 60, formaPagamento: { nome: "Espécie", tipo: "DINHEIRO" } },
+        ],
+      } as any);
+
+      const result = await obterCaixaAberto();
+
+      expect(result?.totais.entradasFisicas).toBe(60);
+      expect(result?.totais.saldoFisicoCalculado).toBe(160); // 100 + 60
+    });
+
+    it("não considera físico uma forma cujo nome contém 'Dinheiro' mas o tipo não é DINHEIRO", async () => {
+      vi.mocked(prisma.caixa.findFirst).mockResolvedValue({
+        id: "caixa-1",
+        saldoInicial: 100,
+        status: "ABERTO",
+        movimentacoes: [
+          // Nome contém "Dinheiro" (armadilha do critério antigo), mas tipo é PIX.
+          { tipo: "ENTRADA", valor: 70, formaPagamento: { nome: "Dinheiro Eletrônico", tipo: "PIX" } },
+        ],
+      } as any);
+
+      const result = await obterCaixaAberto();
+
+      expect(result?.totais.entradasFisicas).toBe(0);
+      expect(result?.totais.saldoFisicoCalculado).toBe(100); // apenas saldo inicial
+    });
+
+    it("calcula corretamente um caixa com origens misturadas (PAGAMENTO_OS, VENDA_BALCAO, MANUAL)", async () => {
+      vi.mocked(prisma.caixa.findFirst).mockResolvedValue({
+        id: "caixa-1",
+        saldoInicial: 100,
+        status: "ABERTO",
+        movimentacoes: [
+          // 1. Pagamento de OS em dinheiro (nome divergente + tipo DINHEIRO) → físico.
+          { tipo: "ENTRADA", valor: 50, origem: "PAGAMENTO_OS", formaPagamento: { nome: "Dinheiro Espécie", tipo: "DINHEIRO" } },
+          // 2. Venda de balcão em PIX → fora do físico, entra no total por forma.
+          { tipo: "ENTRADA", valor: 200, origem: "VENDA_BALCAO", formaPagamento: { nome: "PIX", tipo: "PIX" } },
+          // 3. Pagamento de OS em cartão → fora do físico.
+          { tipo: "ENTRADA", valor: 80, origem: "PAGAMENTO_OS", formaPagamento: { nome: "Cartão de Crédito", tipo: "CARTAO_CREDITO" } },
+          // 4. Saída manual em dinheiro → reduz físico.
+          { tipo: "SAIDA", valor: 20, origem: "MANUAL", formaPagamento: { nome: "Dinheiro", tipo: "DINHEIRO" } },
+          // 5. Sangria (sem forma) → reduz físico, fora dos totais por forma.
+          { tipo: "SANGRIA", valor: 30, origem: "MANUAL", formaPagamento: null },
+          // 6. Reforço (sem forma) → soma no físico, fora dos totais por forma.
+          { tipo: "REFORCO", valor: 10, origem: "MANUAL", formaPagamento: null },
+          // 7. Entrada manual sem forma → dinheiro implícito (comportamento preservado).
+          { tipo: "ENTRADA", valor: 40, origem: "MANUAL", formaPagamento: null },
+        ],
+      } as any);
+
+      const result = await obterCaixaAberto();
+      const t = result!.totais;
+
+      // Físico: 100 + (50 + 40) - 20 - 30 + 10 = 150
+      expect(t.entradasFisicas).toBe(90);
+      expect(t.saidasFisicas).toBe(20);
+      expect(t.sangrias).toBe(30);
+      expect(t.reforcos).toBe(10);
+      expect(t.saldoFisicoCalculado).toBe(150);
+
+      // PIX e Cartão permanecem fora do físico, mas presentes nos totais por forma.
+      expect(t.totaisPorFormaPagamento["PIX"]).toBe(200);
+      expect(t.totaisPorFormaPagamento["CARTÃO DE CRÉDITO"]).toBe(80);
+      expect(t.totaisPorFormaPagamento["DINHEIRO ESPÉCIE"]).toBe(50);
+      // Entrada implícita (40, sem forma) agrupa sob DINHEIRO; saída (-20) também.
+      expect(t.totaisPorFormaPagamento["DINHEIRO"]).toBe(20);
+      // Sangria/reforço não entram nos totais por forma.
+      expect(t.totalGeralRecebido).toBe(350); // 50 + 200 + 80 + 20
+    });
+  });
+
   describe("fecharCaixa", () => {
     it("deve fechar o caixa e calcular a divergência", async () => {
       vi.mocked(prisma.caixa.findUnique).mockResolvedValue({
@@ -101,7 +180,7 @@ describe("Caixa Services", () => {
         status: "ABERTO",
         saldoInicial: 100,
         movimentacoes: [
-          { tipo: "ENTRADA", valor: 50, formaPagamento: { nome: "DINHEIRO" } }
+          { tipo: "ENTRADA", valor: 50, formaPagamento: { nome: "DINHEIRO", tipo: "DINHEIRO" } }
         ]
       } as any);
 
