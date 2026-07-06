@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { formaPagamentoFormSchema } from "@/lib/formas-pagamento-schema";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const body = await req.json();
     const result = formaPagamentoFormSchema.safeParse(body);
 

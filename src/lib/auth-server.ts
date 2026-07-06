@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSAO_COOKIE_NOME, verificarTokenSessao } from "@/lib/auth-session";
 import { buscarUsuarioSessao, type UsuarioAutenticado } from "@/lib/auth-service";
@@ -37,4 +37,19 @@ export async function obterUsuarioSessaoDaRequest(
   req: NextRequest
 ): Promise<UsuarioAutenticado | null> {
   return resolverSessao(req.cookies.get(SESSAO_COOKIE_NOME)?.value);
+}
+
+/**
+ * Enforcement de sessão para route handlers de API.
+ * Retorna a resposta 401 padronizada quando não há sessão válida de usuário
+ * ativo, ou null quando a requisição está autenticada e pode prosseguir.
+ */
+export async function exigirSessaoApi(req: NextRequest): Promise<NextResponse | null> {
+  const sessao = await obterUsuarioSessaoDaRequest(req);
+
+  if (!sessao) {
+    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+  }
+
+  return null;
 }

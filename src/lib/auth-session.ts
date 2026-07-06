@@ -1,31 +1,16 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-export const SESSAO_COOKIE_NOME = "upa_sessao";
-export const SESSAO_DURACAO_SEGUNDOS = 8 * 60 * 60;
+import { obterSegredoSessao, SESSAO_DURACAO_SEGUNDOS } from "@/lib/auth-constants";
+
+export { SESSAO_COOKIE_NOME, SESSAO_DURACAO_SEGUNDOS } from "@/lib/auth-constants";
 
 type SessaoPayload = {
   sub: string;
   exp: number;
 };
 
-function obterSegredo(): string {
-  const segredo = process.env.AUTH_SESSION_SECRET;
-
-  if (segredo && segredo.length >= 16) {
-    return segredo;
-  }
-
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "AUTH_SESSION_SECRET não configurado. Defina uma chave com pelo menos 16 caracteres."
-    );
-  }
-
-  return "upa-do-tenis-segredo-dev";
-}
-
 function assinar(payloadCodificado: string): string {
-  return createHmac("sha256", obterSegredo()).update(payloadCodificado).digest("base64url");
+  return createHmac("sha256", obterSegredoSessao()).update(payloadCodificado).digest("base64url");
 }
 
 export function criarTokenSessao(usuarioId: string, agoraMs = Date.now()): string {

@@ -30,6 +30,12 @@ vi.mock("@/lib/vendas", () => ({
   VendaBalcaoError: VendaBalcaoErrorMock,
 }));
 
+// Estes testes cobrem as regras de negócio da API; simulam requisição já
+// autenticada. O enforcement de sessão é coberto em api-auth-enforcement.test.ts.
+vi.mock("@/lib/auth-server", () => ({
+  exigirSessaoApi: vi.fn().mockResolvedValue(null),
+}));
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const payloadValido = {

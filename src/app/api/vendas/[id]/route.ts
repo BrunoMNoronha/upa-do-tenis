@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { obterVendaPorId } from "@/lib/vendas";
 
 export async function GET(
@@ -6,6 +7,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const venda = await obterVendaPorId(params.id);
 
     if (!venda) {

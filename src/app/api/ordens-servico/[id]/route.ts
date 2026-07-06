@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 
 import { ordemServicoIdParamsSchema } from "@/lib/ordens-servico-schema";
@@ -8,10 +9,13 @@ import {
 } from "@/lib/ordens-servico";
 
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = ordemServicoIdParamsSchema.safeParse(params);
 
     if (!parsedParams.success) {
@@ -45,6 +49,9 @@ export async function DELETE(
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = ordemServicoIdParamsSchema.safeParse(params);
     if (!parsedParams.success) {
       return NextResponse.json({ message: "Parâmetros inválidos." }, { status: 400 });

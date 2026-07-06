@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { exigirSessaoApi } from "@/lib/auth-server";
 import {
   registrarPagamentoOrdemServicoSchema,
 } from "@/lib/ordens-servico-pagamentos-schema";
@@ -23,10 +24,13 @@ function resolverErro(error: unknown) {
 }
 
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = ordemServicoIdParamsSchema.safeParse(params);
 
     if (!parsedParams.success) {
@@ -52,6 +56,9 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = ordemServicoIdParamsSchema.safeParse(params);
 
     if (!parsedParams.success) {

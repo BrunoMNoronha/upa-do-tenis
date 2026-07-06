@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
 
 export async function POST(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const body = await req.json();
     const result = ordemServicoFormSchema.safeParse(body);
 

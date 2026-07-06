@@ -17,7 +17,7 @@ Registradas na Revisão Final do MVP pós-Fatia 13.4 (2026-07-06). Fonte: `docs/
 - **Severidade:** Alta.
 - **Prioridade:** Alta antes de produção.
 - **Natureza:** Pré-existente — não é regressão introduzida pela Fatia 13.4.
-- **Status:** Aberta (não tratada nesta etapa, por decisão de escopo).
+- **Status:** **Resolvida em 2026-07-06 pela Fatia Segurança 01** — `src/middleware.ts` (redirect de páginas para `/login` e 401 em APIs sem sessão) + `exigirSessaoApi` em todos os handlers privados, com testes automatizados. Ver `docs/00-base-conhecimento/AUTENTICACAO.md` e `docs/03-homologacao/relatorios/RELATORIO_TECNICO_FATIA_SEGURANCA_01_AUTH_SERVER_SIDE_2026-07-06.md`. Aguarda homologação manual.
 - **Descrição:** Não há `middleware.ts`. A verificação de sessão (`exigirSessao` / `obterUsuarioSessaoDaRequest`) está aplicada apenas em `src/app/usuarios/page.tsx`, `src/app/api/usuarios/route.ts` e `src/app/api/usuarios/[id]/route.ts`. As demais páginas renderizam sem sessão e o `AppShell` não faz guarda de autenticação (apenas trata logout).
 - **Evidência:** Sem cookie de sessão, retornaram HTTP 200: `/api/dashboard`, `/api/caixa/atual`, `/api/clientes`, `/api/relatorios/financeiro-os`, `/api/vendas`.
 - **Recomendação:** Tratar em **fatia dedicada de segurança** (ex.: `middleware.ts` cobrindo rotas privadas + verificação de sessão nas APIs sensíveis, com testes de autorização). **Não acoplar à Fatia 13.5.**

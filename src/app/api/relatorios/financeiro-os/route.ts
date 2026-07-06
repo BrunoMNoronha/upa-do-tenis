@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { exigirSessaoApi } from '@/lib/auth-server';
 import { gerarRelatorioFinanceiroOS, RelatorioFiltros } from '@/lib/relatorio-financeiro-os-service';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(request);
+    if (naoAutenticado) return naoAutenticado;
+
     const searchParams = request.nextUrl.searchParams;
     const inicioStr = searchParams.get('inicio');
     const fimStr = searchParams.get('fim');

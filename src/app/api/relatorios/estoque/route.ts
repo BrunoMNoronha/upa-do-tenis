@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import {
   getEstatisticasGlobaisEstoque,
   getListaInsumosCriticos,
@@ -13,6 +14,9 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(request);
+    if (naoAutenticado) return naoAutenticado;
+
     const { searchParams } = new URL(request.url);
 
     const dataInicioStr = searchParams.get("dataInicio");

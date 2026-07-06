@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { registrarVendaBalcaoSchema } from "@/lib/vendas-schema";
 import { registrarVendaBalcao, VendaBalcaoError, listarVendasBalcao } from "@/lib/vendas";
 
 export async function GET(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const { searchParams } = new URL(req.url);
     const dataInicial = searchParams.get("dataInicial") || undefined;
     const dataFinal = searchParams.get("dataFinal") || undefined;
@@ -35,6 +39,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const body = await req.json();
     const result = registrarVendaBalcaoSchema.safeParse(body);
 

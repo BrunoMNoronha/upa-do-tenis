@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { registrarMovimentacaoCaixa, CaixaError } from "@/lib/caixa";
 import { movimentacaoCaixaSchema } from "@/lib/caixa-schema";
 
@@ -7,6 +8,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const body = await req.json();
     const parsed = movimentacaoCaixaSchema.safeParse(body);
 

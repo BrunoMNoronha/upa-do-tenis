@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  listarMovimentacoesInsumo, 
-  registrarMovimentacaoManual, 
-  InsumoMovimentacaoError 
+import { exigirSessaoApi } from "@/lib/auth-server";
+import {
+  listarMovimentacoesInsumo,
+  registrarMovimentacaoManual,
+  InsumoMovimentacaoError
 } from "@/lib/insumos-movimentacoes";
 import { registrarMovimentacaoManualSchema } from "@/lib/insumos-movimentacoes-schema";
 import { z } from "zod";
@@ -24,10 +25,13 @@ function resolverErro(error: unknown) {
 }
 
 export async function GET(
-  _: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = idParamsSchema.safeParse(params);
     if (!parsedParams.success) {
       return NextResponse.json(
@@ -48,6 +52,9 @@ export async function POST(
   { params }: { params: { id: string } },
 ) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const parsedParams = idParamsSchema.safeParse(params);
     if (!parsedParams.success) {
       return NextResponse.json(

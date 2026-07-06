@@ -18,6 +18,12 @@ vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
 
+// Estes testes cobrem as regras de exclusão; simulam requisição já
+// autenticada. O enforcement de sessão é coberto em api-auth-enforcement.test.ts.
+vi.mock("@/lib/auth-server", () => ({
+  exigirSessaoApi: vi.fn().mockResolvedValue(null),
+}));
+
 function criarRequest(id: string) {
   return new NextRequest(`http://localhost/api/produtos/${id}`, { method: "DELETE" });
 }

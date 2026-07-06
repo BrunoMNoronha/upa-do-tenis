@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { exigirSessaoApi } from "@/lib/auth-server";
 import { listarCaixas, abrirCaixa, CaixaError } from "@/lib/caixa";
 import { abrirCaixaSchema } from "@/lib/caixa-schema";
 
 export async function GET(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const searchParams = req.nextUrl.searchParams;
     const take = searchParams.get("take") ? parseInt(searchParams.get("take")!, 10) : undefined;
     const skip = searchParams.get("skip") ? parseInt(searchParams.get("skip")!, 10) : undefined;
@@ -23,6 +27,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const body = await req.json();
     const parsed = abrirCaixaSchema.safeParse(body);
 
