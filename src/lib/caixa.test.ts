@@ -95,6 +95,26 @@ describe("Caixa Services", () => {
   });
 
   describe("calcularTotaisCaixa - blindagem por formaPagamento.tipo", () => {
+    it("reproduz o achado da Fatia 13.3: após saneamento do tipo, a forma 'Dinheiro' volta a contar no saldo físico", async () => {
+      // Cenário real encontrado em ambiente de dev: forma cadastrada com nome
+      // exato "Dinheiro" e tipo vazio (corrigido pela Fatia 13.2.1 via
+      // sanearTipoFormaPagamentoDinheiro). Este teste prova que, com o dado
+      // corrigido (tipo = "DINHEIRO"), o cálculo do caixa volta a funcionar.
+      vi.mocked(prisma.caixa.findFirst).mockResolvedValue({
+        id: "caixa-1",
+        saldoInicial: 0,
+        status: "ABERTO",
+        movimentacoes: [
+          { tipo: "ENTRADA", valor: 200, formaPagamento: { nome: "Dinheiro", tipo: "DINHEIRO" } },
+        ],
+      } as any);
+
+      const result = await obterCaixaAberto();
+
+      expect(result?.totais.entradasFisicas).toBe(200);
+      expect(result?.totais.saldoFisicoCalculado).toBe(200);
+    });
+
     it("considera físico uma forma com tipo DINHEIRO mesmo que o nome não seja 'Dinheiro'", async () => {
       vi.mocked(prisma.caixa.findFirst).mockResolvedValue({
         id: "caixa-1",

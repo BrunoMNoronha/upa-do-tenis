@@ -66,12 +66,15 @@ export function FormasPagamentoForm() {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="tipo">Tipo Interno (Opcional)</Label>
+        <Label htmlFor="tipo">Tipo Interno</Label>
         <Input
           id="tipo"
           {...register("tipo")}
-          placeholder="Ex: CARTAO_CREDITO"
+          placeholder="Ex: DINHEIRO, PIX, CARTAO_CREDITO, CARTAO_DEBITO"
         />
+        <p className="text-xs text-slate-500">
+          Use exatamente &quot;DINHEIRO&quot; para formas que representam dinheiro físico — o caixa usa este campo para calcular o saldo da gaveta.
+        </p>
         {errors.tipo ? <p className="text-sm text-red-600">{errors.tipo.message}</p> : null}
       </div>
 
