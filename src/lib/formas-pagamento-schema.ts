@@ -1,15 +1,14 @@
 import { z } from "zod";
+import { TIPOS_FORMA_PAGAMENTO } from "./formas-pagamento-tipos";
 
 export const formaPagamentoFormSchema = z.object({
   nome: z.string().min(2, "O nome deve ter pelo menos 2 caracteres."),
-  // Obrigatório e normalizado para maiúsculas: o caixa identifica dinheiro físico
-  // comparando este campo com "DINHEIRO" (ver src/lib/caixa.ts). Um tipo vazio ou
-  // com grafia divergente faz o valor não ser contabilizado no saldo físico.
-  tipo: z
-    .string()
-    .trim()
-    .min(1, "Informe o tipo (ex: DINHEIRO, PIX, CARTAO_CREDITO, CARTAO_DEBITO). É usado para identificar dinheiro físico no caixa.")
-    .transform((valor) => valor.toUpperCase()),
+  // Enum controlado: o caixa identifica dinheiro físico comparando este campo
+  // com "DINHEIRO" (ver src/lib/caixa.ts). Restringir a valores fixos elimina
+  // o cadastro de tipo vazio ou com grafia divergente pela tela de cadastro.
+  tipo: z.enum(TIPOS_FORMA_PAGAMENTO, {
+    errorMap: () => ({ message: "Selecione um tipo válido." }),
+  }),
 });
 
 export type FormaPagamentoFormValues = z.infer<typeof formaPagamentoFormSchema>;

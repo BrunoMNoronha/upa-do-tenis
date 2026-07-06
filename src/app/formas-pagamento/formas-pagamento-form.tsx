@@ -7,10 +7,10 @@ import { useForm } from "react-hook-form";
 
 import { Button, Input, Label } from "@/components/ui";
 import { formaPagamentoFormSchema, type FormaPagamentoFormValues } from "@/lib/formas-pagamento-schema";
+import { TIPOS_FORMA_PAGAMENTO, TIPO_FORMA_PAGAMENTO_LABELS } from "@/lib/formas-pagamento-tipos";
 
-const defaultValues: FormaPagamentoFormValues = {
+const defaultValues: Partial<FormaPagamentoFormValues> = {
   nome: "",
-  tipo: "",
 };
 
 export function FormasPagamentoForm() {
@@ -67,13 +67,23 @@ export function FormasPagamentoForm() {
 
       <div className="grid gap-2">
         <Label htmlFor="tipo">Tipo Interno</Label>
-        <Input
+        <select
           id="tipo"
           {...register("tipo")}
-          placeholder="Ex: DINHEIRO, PIX, CARTAO_CREDITO, CARTAO_DEBITO"
-        />
+          defaultValue=""
+          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+        >
+          <option value="" disabled>
+            Selecione o tipo...
+          </option>
+          {TIPOS_FORMA_PAGAMENTO.map((tipo) => (
+            <option key={tipo} value={tipo}>
+              {TIPO_FORMA_PAGAMENTO_LABELS[tipo]}
+            </option>
+          ))}
+        </select>
         <p className="text-xs text-slate-500">
-          Use exatamente &quot;DINHEIRO&quot; para formas que representam dinheiro físico — o caixa usa este campo para calcular o saldo da gaveta.
+          Use &quot;Dinheiro&quot; para formas que representam dinheiro físico — o caixa usa este campo para calcular o saldo da gaveta.
         </p>
         {errors.tipo ? <p className="text-sm text-red-600">{errors.tipo.message}</p> : null}
       </div>
