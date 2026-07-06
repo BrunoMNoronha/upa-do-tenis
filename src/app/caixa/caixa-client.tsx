@@ -188,6 +188,12 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
   if (estado === "carregando") return <LoadingState text="Carregando caixa..." />;
   if (estado === "erro") return <ErrorState title="Erro" description={erro || ""} action={<Button onClick={() => void carregarCaixa()}>Tentar novamente</Button>} />;
 
+  // Prévia de conferência, calculada apenas para exibição antes da confirmação.
+  // A divergência oficial continua sendo calculada e persistida pelo backend em fecharCaixa().
+  const divergenciaPrevista = caixa && fecharForm.saldoFinalInformado
+    ? sanitizeCurrency(fecharForm.saldoFinalInformado) - caixa.totais.saldoFisicoCalculado
+    : null;
+
   if (!caixa) {
     return (
       <Card className="max-w-md mx-auto p-6">
@@ -374,19 +380,29 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
               <span className="text-emerald-700">{currencyFormatter.format(caixa.totais.saldoFisicoCalculado)}</span>
             </div>
           </div>
+          <p className="mt-3 text-xs text-slate-500">
+            Divergência calculada apenas sobre dinheiro físico.
+          </p>
         </Card>
 
         <Card className="p-6 bg-slate-50 border-l-4 border-l-[color:var(--accent)]">
           <SectionTitle className="mb-4 text-[color:var(--accent)]">Total Recebido no Dia</SectionTitle>
           <div className="space-y-2 mb-4">
-            {Object.entries(caixa.totais.totaisPorFormaPagamento).map(([forma, total]) => (
-              <LinhaResumo key={forma} label={forma} valor={total as number} />
-            ))}
+            {Object.keys(caixa.totais.totaisPorFormaPagamento).length === 0 ? (
+              <p className="text-sm text-slate-500">Nenhum recebimento registrado ainda.</p>
+            ) : (
+              Object.entries(caixa.totais.totaisPorFormaPagamento).map(([forma, total]) => (
+                <LinhaResumo key={forma} label={forma} valor={total as number} />
+              ))
+            )}
           </div>
           <div className="pt-2 border-t font-bold flex justify-between">
-            <span>Total Geral</span>
+            <span>Total Geral Recebido</span>
             <span>{currencyFormatter.format(caixa.totais.totalGeralRecebido)}</span>
           </div>
+          <p className="mt-3 text-xs text-slate-500">
+            PIX, cartão e outras formas são exibidos aqui apenas para conferência operacional. Total geral recebido não representa dinheiro em gaveta.
+          </p>
         </Card>
 
         <Card className="p-6 border-rose-200 bg-rose-50/50">
@@ -413,6 +429,37 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
                   required
                 />
               </div>
+
+              <div className="rounded-lg border border-rose-200 bg-white p-3 space-y-1">
+                <p className="text-xs font-semibold text-rose-800 uppercase tracking-wide mb-1">Resumo antes de fechar</p>
+                <LinhaResumo label="Dinheiro Físico Esperado" valor={caixa.totais.saldoFisicoCalculado} />
+                {fecharForm.saldoFinalInformado && (
+                  <div className="flex items-center justify-between gap-4 py-2 text-sm">
+                    <span className="text-slate-600">Divergência Prevista</span>
+                    <strong className={
+                      divergenciaPrevista! < 0 ? "text-rose-600" : divergenciaPrevista! > 0 ? "text-emerald-600" : "text-[color:var(--text)]"
+                    }>
+                      {currencyFormatter.format(divergenciaPrevista!)}
+                    </strong>
+                  </div>
+                )}
+                {Object.keys(caixa.totais.totaisPorFormaPagamento).length > 0 && (
+                  <div className="pt-2 mt-2 border-t space-y-1">
+                    <p className="text-xs text-slate-500 mb-1">Totais por forma (conferência operacional):</p>
+                    {Object.entries(caixa.totais.totaisPorFormaPagamento).map(([forma, total]) => (
+                      <LinhaResumo key={forma} label={forma} valor={total as number} />
+                    ))}
+                  </div>
+                )}
+                <div className="pt-2 border-t flex justify-between font-semibold text-sm">
+                  <span>Total Geral Recebido</span>
+                  <span>{currencyFormatter.format(caixa.totais.totalGeralRecebido)}</span>
+                </div>
+                <p className="text-xs text-slate-500 pt-1">
+                  Divergência calculada apenas sobre dinheiro físico. PIX/cartão são exibidos para conferência operacional.
+                </p>
+              </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="obsFechamento">Observação (Opcional)</Label>
                 <Textarea

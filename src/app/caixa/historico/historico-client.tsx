@@ -76,7 +76,7 @@ export function CaixaHistoricoClient() {
               <th className="px-4 py-3 font-semibold">Data Fechamento</th>
               <th className="px-4 py-3 font-semibold">Status</th>
               <th className="px-4 py-3 font-semibold">Saldo Inicial</th>
-              <th className="px-4 py-3 font-semibold">Divergência</th>
+              <th className="px-4 py-3 font-semibold">Divergência (Dinheiro)</th>
               <th className="px-4 py-3 font-semibold text-right">Ação</th>
             </tr>
           </thead>
@@ -111,6 +111,9 @@ export function CaixaHistoricoClient() {
           </tbody>
         </table>
       </div>
+      <p className="mt-3 text-xs text-slate-500">
+        Divergência calculada apenas sobre dinheiro físico. Totais por forma de pagamento estão disponíveis em Ver Detalhes.
+      </p>
     </Card>
     </div>
   );
