@@ -1,0 +1,49 @@
+# Dependências e build (serão instalados/gerados no container)
+node_modules
+.next
+
+# Git
+.git
+.gitignore
+
+# Ambientes locais (sensíveis)
+.env
+.env.*
+!.env.docker.example
+
+# Banco de dados local
+*.db
+*.db-journal
+prisma/dev.db
+
+# Docker (evitar recursão)
+docker-compose*.yml
+Dockerfile
+.dockerignore
+docker/
+
+# Documentação e metadados
+docs/
+*.md
+!README.md
+AGENTS.md
+CLAUDE.md
+CHANGELOG.md
+CONTRIBUTING.md
+
+# IDE e OS
+.vscode
+.idea
+.DS_Store
+*.tsbuildinfo
+
+# Testes (não necessários no build de produção)
+vitest.config.ts
+src/**/*.test.ts
+src/**/*.test.tsx
+
+# Scripts auxiliares (não necessários no container)
+scripts/
+
+# Claude/Agents
+.claude/

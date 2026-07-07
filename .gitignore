@@ -5,9 +5,11 @@ node_modules
 .env.test
 .env.production
 .env.local
+.env.docker
 *.db
 *.db-journal
 prisma/dev.db
 npm-debug.log*
 .DS_Store
 *.tsbuildinfo
+backups/

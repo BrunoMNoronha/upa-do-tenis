@@ -66,6 +66,21 @@ npm run test
 npm run build
 ```
 
+## Produção Local (Docker)
+
+O sistema pode rodar em produção local piloto via Docker. Consulte a documentação completa:
+
+- **[Documentação Docker Local](docs/04-producao/FATIA_PRODUCAO_03_DOCKER_LOCAL.md)** — como subir, parar, backup, restauração.
+- **[Roteiro de Homologação](docs/04-producao/HOMOLOGACAO_FATIA_PRODUCAO_03.md)** — checklist de validação.
+
+Comandos rápidos:
+
+```bash
+cp .env.docker.example .env.docker   # configurar variáveis
+docker compose -f docker-compose.local.yml --env-file .env.docker up -d
+# Acessar: http://localhost:3000
+```
+
 ## Continuidade com IA
 
 - Use ChatGPT para estratégia, auditoria, documentação e prompts.

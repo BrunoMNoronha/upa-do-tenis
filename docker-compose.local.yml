@@ -1,0 +1,50 @@
+# =============================================================================
+# UPA do Tênis — Docker Compose para Produção Local Piloto
+#
+# Uso:
+#   docker compose -f docker-compose.local.yml up -d
+#   docker compose -f docker-compose.local.yml down
+#
+# CUIDADO: "docker compose down -v" APAGA o volume do banco!
+# =============================================================================
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: upa-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-upa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upa_secret_local}
+      POSTGRES_DB: ${POSTGRES_DB:-upa_do_tenis}
+    volumes:
+      - upa_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-upa_user} -d ${POSTGRES_DB:-upa_do_tenis}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: upa-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-upa_user}:${POSTGRES_PASSWORD:-upa_secret_local}@db:5432/${POSTGRES_DB:-upa_do_tenis}?schema=public"
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+
+volumes:
+  upa_postgres_data:
+    name: upa_postgres_data
