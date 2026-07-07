@@ -68,9 +68,13 @@ npm run build
 
 ## Produção Local (Docker)
 
-O sistema pode rodar em produção local piloto via Docker. Consulte a documentação completa:
+O sistema pode rodar em produção local piloto via Docker. Para quem opera o computador da loja no dia a dia, siga o:
 
-- **[Documentação Docker Local](docs/04-producao/FATIA_PRODUCAO_03_DOCKER_LOCAL.md)** — como subir, parar, backup, restauração.
+- **[Guia do Operador](GUIA_OPERADOR_DOCKER_LOCAL.md)** — passo a passo simples: subir, parar, backup, restauração, erros comuns.
+
+Para detalhes técnicos completos:
+
+- **[Documentação Docker Local](docs/04-producao/FATIA_PRODUCAO_03_DOCKER_LOCAL.md)** — arquitetura e comandos completos.
 - **[Roteiro de Homologação](docs/04-producao/HOMOLOGACAO_FATIA_PRODUCAO_03.md)** — checklist de validação.
 
 Comandos rápidos:

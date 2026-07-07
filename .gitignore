@@ -13,3 +13,5 @@ npm-debug.log*
 .DS_Store
 *.tsbuildinfo
 backups/
+backup_upa_*.sql
+*.zip
