@@ -4,6 +4,8 @@ import { ServicosForm } from "./servicos-form";
 
 import { listarServicos } from "@/lib/servicos";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Serviços | UPA do Tênis",
   description: "Cadastro e consulta de serviços da sapataria.",

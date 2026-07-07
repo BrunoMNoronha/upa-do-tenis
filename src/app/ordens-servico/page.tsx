@@ -4,6 +4,8 @@ import { OrdensServicoClient } from "./ordens-servico-client";
 import { LoadingState } from "@/components/ui";
 
 import { listarOrdensServico } from "@/lib/ordens-servico";
+
+export const dynamic = "force-dynamic";
 import { listarClientes } from "@/lib/clientes";
 import { listarServicos } from "@/lib/servicos";
 

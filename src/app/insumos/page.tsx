@@ -5,6 +5,8 @@ import Link from "next/link";
 
 import { listarInsumos } from "@/lib/insumos";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Insumos e Produtos | UPA do Tênis",
   description: "Cadastro e consulta de insumos e produtos da sapataria.",

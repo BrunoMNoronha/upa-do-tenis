@@ -4,6 +4,8 @@ import { FormasPagamentoForm } from "./formas-pagamento-form";
 
 import { listarFormasPagamento } from "@/lib/formas-pagamento";
 
+export const dynamic = "force-dynamic";
+
 export const metadata = {
   title: "Formas de Pagamento | UPA do Tênis",
   description: "Cadastro e consulta de formas de pagamento da sapataria.",
