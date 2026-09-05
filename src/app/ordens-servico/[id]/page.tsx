@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 import { listarFormasPagamento } from "@/lib/formas-pagamento";
 import { listarInsumos } from "@/lib/insumos";
+import { listarServicos } from "@/lib/servicos";
 
 import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
 
@@ -22,6 +23,11 @@ export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDe
     nome: insumo.nome,
     unidadeMedida: insumo.unidadeMedida,
   }));
+  const servicosDisponiveis = (await listarServicos()).map((servico) => ({
+    id: servico.id,
+    nome: servico.nome,
+    precoBase: Number(servico.precoBase),
+  }));
 
   return (
     <AppShell
@@ -34,6 +40,7 @@ export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDe
         ordemServicoId={params.id}
         formasPagamento={formasPagamento}
         insumosDisponiveis={insumosDisponiveis}
+        servicosDisponiveis={servicosDisponiveis}
       />
     </AppShell>
   );

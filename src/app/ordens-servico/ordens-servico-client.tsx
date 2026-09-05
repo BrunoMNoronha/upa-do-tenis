@@ -9,7 +9,7 @@ import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/com
 import { Combobox } from "@/components/combobox";
 import { formatCurrency, formatPhone, maskCPFCNPJ, maskCurrency, maskPhone, whatsappLink } from "@/lib/formatters";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
-import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
+import { ordemServicoFormSchema, type OrdemServicoFormValues, type OrdemServicoServicoValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
   filtrarOrdensServicoListagem,
@@ -70,6 +70,7 @@ const defaultValues: OrdemServicoFormValues = {
   numeroSufixo: "",
   itemRecebido: "",
   servicoId: "",
+  servicos: [],
   prazoPrevisto: "",
   valorEstimado: 0,
   observacoes: "",
@@ -112,7 +113,7 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
 
   const statusLabel = statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
   const itemPrincipal = ordem.itens?.[0];
-  const servicoPrincipal = itemPrincipal?.servicos?.[0]?.servico;
+  const servicosDaOrdem = itemPrincipal?.servicos?.map((item) => item.servico?.nome).filter(Boolean).join(", ");
   const statusFinanceiroLabel = ordem.statusFinanceiro === "PARCIAL"
     ? "Parcial"
     : ordem.statusFinanceiro === "PENDENTE"
@@ -211,7 +212,7 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Serviço</p>
-          <p className="mt-1 text-white">{servicoPrincipal?.nome || "Geral"}</p>
+          <p className="mt-1 text-white">{servicosDaOrdem || "Geral"}</p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Prazo</p>
@@ -296,6 +297,7 @@ export function OrdensServicoClient({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clienteError, setClienteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [servicosSelecionados, setServicosSelecionados] = useState<OrdemServicoServicoValues[]>([]);
   
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
     (searchParams.get("statusOp") as StatusFilter) || "TODAS"
@@ -348,8 +350,6 @@ export function OrdensServicoClient({
     mode: "onChange",
   });
 
-  const selectedServicoId = watch("servicoId");
-
   const cancelarNovoCliente = () => {
     setMostrarNovoCliente(false);
     setClienteError(null);
@@ -377,16 +377,44 @@ export function OrdensServicoClient({
     cancelarNovoCliente();
   });
 
-  useEffect(() => {
-    if (selectedServicoId) {
-      const servico = servicos.find(s => s.id === selectedServicoId);
-      if (servico && servico.precoBase) {
-        // Preenche já formatado para manter consistência com a máscara por
-        // centavos (o schema converte a string de volta para número no submit).
-        setValue("valorEstimado", formatCurrency(Number(servico.precoBase)) as unknown as number);
-      }
+  const adicionarServico = (servicoId: string) => {
+    if (!servicoId || servicosSelecionados.some((item) => item.servicoId === servicoId)) {
+      return;
     }
-  }, [selectedServicoId, servicos, setValue]);
+
+    const servico = servicos.find((item) => item.id === servicoId);
+    if (!servico) {
+      return;
+    }
+
+    const novoServico = {
+      servicoId,
+      valor: Number(servico.precoBase || 0),
+    };
+    const atualizados = [...servicosSelecionados, novoServico];
+    setServicosSelecionados(atualizados);
+    setValue("servicos", atualizados);
+    setValue("valorEstimado", atualizados.reduce((total, item) => total + Number(item.valor || 0), 0) as unknown as number);
+  };
+
+  const atualizarValorServico = (servicoId: string, valor: string) => {
+    const valorNumerico = Number(valor.replace(",", "."));
+    const atualizados = servicosSelecionados.map((item) =>
+      item.servicoId === servicoId
+        ? { ...item, valor: Number.isFinite(valorNumerico) ? valorNumerico : 0 }
+        : item,
+    );
+    setServicosSelecionados(atualizados);
+    setValue("servicos", atualizados);
+    setValue("valorEstimado", atualizados.reduce((total, item) => total + Number(item.valor || 0), 0) as unknown as number);
+  };
+
+  const removerServico = (servicoId: string) => {
+    const atualizados = servicosSelecionados.filter((item) => item.servicoId !== servicoId);
+    setServicosSelecionados(atualizados);
+    setValue("servicos", atualizados);
+    setValue("valorEstimado", atualizados.reduce((total, item) => total + Number(item.valor || 0), 0) as unknown as number);
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
@@ -404,6 +432,7 @@ export function OrdensServicoClient({
     }
 
     reset(defaultValues);
+    setServicosSelecionados([]);
 
     startTransition(() => {
       router.refresh();
@@ -573,16 +602,41 @@ export function OrdensServicoClient({
               {errors.itemRecebido ? <p className="text-sm text-red-600">{errors.itemRecebido.message}</p> : null}
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="servicoId">Serviço Solicitado (Opcional)</Label>
+            <div className="grid gap-3">
+              <Label htmlFor="servicoId">Serviços solicitados (opcional)</Label>
               <Combobox
                 id="servicoId"
                 options={servicos.map(s => ({ value: s.id, label: s.nome }))}
-                value={watch("servicoId") || ""}
-                onChange={(val) => setValue("servicoId", val, { shouldValidate: true })}
-                placeholder="Nenhum / Cadastrar depois"
+                value=""
+                onChange={adicionarServico}
+                placeholder="Adicionar serviço..."
                 emptyText="Serviço não encontrado"
               />
+              {servicosSelecionados.length > 0 ? (
+                <div className="space-y-2">
+                  {servicosSelecionados.map((item) => {
+                    const servico = servicos.find((option) => option.id === item.servicoId);
+                    return (
+                      <div key={item.servicoId} className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
+                        <p className="text-sm font-medium text-slate-700">{servico?.nome || "Serviço"}</p>
+                        <Input
+                          aria-label={`Valor de ${servico?.nome || "serviço"}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.valor}
+                          onChange={(event) => atualizarValorServico(item.servicoId, event.target.value)}
+                        />
+                        <Button type="button" variant="ghost" onClick={() => removerServico(item.servicoId)}>
+                          Remover
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">Nenhum serviço selecionado. O item poderá ser detalhado depois.</p>
+              )}
             </div>
 
             <div className="grid gap-2 md:grid-cols-2">
@@ -597,7 +651,7 @@ export function OrdensServicoClient({
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="valorEstimado">Valor total (R$)</Label>
+                <Label htmlFor="valorEstimado">Valor total dos serviços (R$)</Label>
                 <Input
                   id="valorEstimado"
                   type="text"
@@ -614,6 +668,7 @@ export function OrdensServicoClient({
                     register("valorEstimado").onBlur(e);
                   }}
                   placeholder="R$ 0,00"
+                  readOnly={servicosSelecionados.length > 0}
                 />
               </div>
             </div>

@@ -20,6 +20,43 @@ export async function POST(req: NextRequest) {
     }
 
     const data = result.data;
+    const servicosInformados = data.servicos.length > 0
+      ? data.servicos
+      : data.servicoId
+        ? [{ servicoId: data.servicoId, valor: data.valorEstimado }]
+        : [];
+
+    const servicoIds = servicosInformados.map((servico) => servico.servicoId);
+    if (new Set(servicoIds).size !== servicoIds.length) {
+      return NextResponse.json(
+        { message: "Não é possível repetir o mesmo serviço na OS." },
+        { status: 400 },
+      );
+    }
+
+    const servicos = servicoIds.length > 0
+      ? await prisma.servico.findMany({
+          where: { id: { in: servicoIds } },
+          select: { id: true, ativo: true },
+        })
+      : [];
+
+    if (servicos.length !== servicoIds.length) {
+      return NextResponse.json(
+        { message: "Um ou mais serviços informados não foram encontrados." },
+        { status: 400 },
+      );
+    }
+
+    if (servicos.some((servico) => !servico.ativo)) {
+      return NextResponse.json(
+        { message: "Serviços inativos não podem ser adicionados a uma nova OS." },
+        { status: 400 },
+      );
+    }
+
+    const valorTotalServicos = servicosInformados.reduce((total, servico) => total + servico.valor, 0);
+    const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : data.valorEstimado;
 
     // Generate a unique number OS-DDMMAAAA-XXXX
     const now = new Date();
@@ -41,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const resumoFinanceiro = calcularResumoFinanceiroOS({
       statusOperacional: "ABERTA",
-      valorTotal: data.valorEstimado,
+      valorTotal,
       valorDesconto: 0,
       valorSinal: 0,
       valorPago: 0,
@@ -66,13 +103,10 @@ export async function POST(req: NextRequest) {
           create: {
             tipoItem: "CALCADO", // Default for now
             descricao: data.itemRecebido,
-            valor: data.valorEstimado,
-            servicos: data.servicoId ? {
-              create: {
-                servicoId: data.servicoId,
-                valor: data.valorEstimado,
-              }
-            } : undefined
+            valor: valorTotal,
+            servicos: servicosInformados.length > 0
+              ? { create: servicosInformados }
+              : undefined,
           }
         }
       },

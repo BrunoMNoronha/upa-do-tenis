@@ -40,12 +40,43 @@ describe("ordens-servico-financeiro", () => {
             {
               servicos: [
                 { valor: new Prisma.Decimal("40") },
-                { valor: 0, servico: { precoBase: new Prisma.Decimal("15") } },
+                { valor: undefined, servico: { precoBase: new Prisma.Decimal("15") } },
               ],
             },
           ],
         })
       ).toBe(55);
+    });
+
+    it("soma os valores individuais de múltiplos serviços", () => {
+      expect(
+        calcularValorTotalOS({
+          valorTotal: 0,
+          itens: [
+            {
+              valor: 999,
+              servicos: [
+                { valor: 40 },
+                { valor: 35.5 },
+              ],
+            },
+          ],
+        }),
+      ).toBe(75.5);
+    });
+
+    it("preserva valor zero informado explicitamente", () => {
+      expect(
+        calcularValorTotalOS({
+          valorTotal: 0,
+          itens: [
+            {
+              valor: 999,
+              servicos: [{ valor: 0, servico: { precoBase: 15 } }],
+            },
+          ],
+        }),
+      ).toBe(0);
     });
 
     it("usa soma dos itens quando nao ha servicos", () => {
