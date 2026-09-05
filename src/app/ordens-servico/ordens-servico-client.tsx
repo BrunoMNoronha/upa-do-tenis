@@ -7,7 +7,8 @@ import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
-import { formatCurrency, formatPhone, maskCurrency, whatsappLink } from "@/lib/formatters";
+import { formatCurrency, formatPhone, maskCPFCNPJ, maskCurrency, maskPhone, whatsappLink } from "@/lib/formatters";
+import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
 import { ordemServicoFormSchema, type OrdemServicoFormValues } from "@/lib/ordens-servico-schema";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
@@ -71,6 +72,14 @@ const defaultValues: OrdemServicoFormValues = {
   servicoId: "",
   prazoPrevisto: "",
   valorEstimado: 0,
+  observacoes: "",
+};
+
+const defaultClienteValues: ClienteFormValues = {
+  nome: "",
+  telefone: "",
+  email: "",
+  cpfCnpj: "",
   observacoes: "",
 };
 
@@ -282,7 +291,10 @@ export function OrdensServicoClient({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [clientesDisponiveis, setClientesDisponiveis] = useState<Cliente[]>(clientes);
+  const [mostrarNovoCliente, setMostrarNovoCliente] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [clienteError, setClienteError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   
   const [statusFilter, setStatusFilter] = useState<StatusFilter>(
@@ -325,7 +337,45 @@ export function OrdensServicoClient({
     mode: "onChange",
   });
 
+  const {
+    register: registerCliente,
+    handleSubmit: handleSubmitCliente,
+    reset: resetCliente,
+    formState: { errors: clienteErrors, isSubmitting: clienteSubmitting },
+  } = useForm<ClienteFormValues>({
+    resolver: zodResolver(clienteFormSchema),
+    defaultValues: defaultClienteValues,
+    mode: "onChange",
+  });
+
   const selectedServicoId = watch("servicoId");
+
+  const cancelarNovoCliente = () => {
+    setMostrarNovoCliente(false);
+    setClienteError(null);
+    resetCliente(defaultClienteValues);
+  };
+
+  const onSubmitCliente = handleSubmitCliente(async (values) => {
+    setClienteError(null);
+
+    const response = await fetch("/api/clientes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json()) as { message?: string };
+      setClienteError(payload.message ?? "Não foi possível cadastrar o cliente.");
+      return;
+    }
+
+    const payload = (await response.json()) as { cliente: Cliente };
+    setClientesDisponiveis((atuais) => [...atuais, payload.cliente]);
+    setValue("clienteId", payload.cliente.id, { shouldValidate: true });
+    cancelarNovoCliente();
+  });
 
   useEffect(() => {
     if (selectedServicoId) {
@@ -410,14 +460,89 @@ export function OrdensServicoClient({
               <Label htmlFor="clienteId">Cliente</Label>
               <Combobox
                 id="clienteId"
-                options={clientes.map(c => ({ value: c.id, label: c.nome, subLabel: c.telefone }))}
+                options={clientesDisponiveis.map(c => ({ value: c.id, label: c.nome, subLabel: c.telefone }))}
                 value={watch("clienteId")}
                 onChange={(val) => setValue("clienteId", val, { shouldValidate: true })}
                 placeholder="Selecione um cliente..."
                 emptyText="Cliente não encontrado"
               />
+              <div className="flex justify-start">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="px-0 py-1 text-sm text-[color:var(--accent-strong)]"
+                  onClick={() => {
+                    setClienteError(null);
+                    setMostrarNovoCliente((atual) => !atual);
+                  }}
+                >
+                  {mostrarNovoCliente ? "Fechar cadastro rápido" : "+ Cadastrar novo cliente"}
+                </Button>
+              </div>
               {errors.clienteId ? <p className="text-sm text-red-600">{errors.clienteId.message}</p> : null}
             </div>
+
+            {mostrarNovoCliente ? (
+              <div className="grid gap-4 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--surface-muted)] p-4">
+                <div>
+                  <p className="text-sm font-semibold text-[color:var(--text)]">Cadastro rápido de cliente</p>
+                  <p className="mt-1 text-xs text-slate-600">O cliente será selecionado automaticamente após o cadastro.</p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteNome">Nome</Label>
+                    <Input id="novoClienteNome" {...registerCliente("nome")} placeholder="Nome do cliente" />
+                    {clienteErrors.nome ? <p className="text-sm text-red-600">{clienteErrors.nome.message}</p> : null}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteTelefone">Telefone</Label>
+                    <Input
+                      id="novoClienteTelefone"
+                      {...registerCliente("telefone")}
+                      onChange={(e) => {
+                        e.target.value = maskPhone(e.target.value);
+                        registerCliente("telefone").onChange(e);
+                      }}
+                      placeholder="(11) 99999-9999"
+                    />
+                    {clienteErrors.telefone ? <p className="text-sm text-red-600">{clienteErrors.telefone.message}</p> : null}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteEmail">E-mail (opcional)</Label>
+                    <Input id="novoClienteEmail" {...registerCliente("email")} placeholder="cliente@exemplo.com" />
+                    {clienteErrors.email ? <p className="text-sm text-red-600">{clienteErrors.email.message}</p> : null}
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteCpfCnpj">CPF ou CNPJ (opcional)</Label>
+                    <Input
+                      id="novoClienteCpfCnpj"
+                      {...registerCliente("cpfCnpj")}
+                      onChange={(e) => {
+                        e.target.value = maskCPFCNPJ(e.target.value);
+                        registerCliente("cpfCnpj").onChange(e);
+                      }}
+                      placeholder="Opcional"
+                    />
+                    {clienteErrors.cpfCnpj ? <p className="text-sm text-red-600">{clienteErrors.cpfCnpj.message}</p> : null}
+                  </div>
+                </div>
+
+                {clienteError ? <p className="text-sm text-red-600">{clienteError}</p> : null}
+
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" disabled={clienteSubmitting} onClick={onSubmitCliente}>
+                    {clienteSubmitting ? "Salvando cliente..." : "Salvar cliente"}
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={cancelarNovoCliente}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid gap-2">
               <Label htmlFor="numeroSufixo">Número da OS (4 dígitos finais)</Label>
