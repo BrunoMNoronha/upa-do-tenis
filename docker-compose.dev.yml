@@ -1,0 +1,38 @@
+# =============================================================================
+# UPA do Tênis — PostgreSQL para desenvolvimento e testes
+#
+# Uso:
+#   docker compose -f docker-compose.dev.yml --env-file .env.docker.dev up -d
+#   docker compose -f docker-compose.dev.yml --env-file .env.docker.dev down
+#
+# Esta stack é independente da produção local:
+# - container: upa-postgres-dev
+# - volume: upa_postgres_dev_data
+# - porta do host: 5434
+# - bancos: upa_do_tenis_dev e upa_do_tenis_test
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: upa-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-upa_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-upa_dev_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-upa_do_tenis_dev}
+    volumes:
+      - upa_postgres_dev_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-dev.sql:/docker-entrypoint-initdb.d/10-init-dev.sql:ro
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-upa_dev} -d ${POSTGRES_DB:-upa_do_tenis_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+volumes:
+  upa_postgres_dev_data:
+    name: upa_postgres_dev_data
