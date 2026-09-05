@@ -40,6 +40,39 @@ Nenhum desses arquivos (exceto os `.example`) deve ser commitado — todos estã
 DATABASE_URL="postgresql://user:password@localhost:5432/upa_do_tenis_dev?schema=public"
 ```
 
+### PostgreSQL local via Docker
+
+Para subir uma instância de desenvolvimento separada da produção local:
+
+```powershell
+Copy-Item .env.docker.dev.example .env.docker.dev
+docker compose -f docker-compose.dev.yml --env-file .env.docker.dev up -d
+```
+
+Essa stack usa o container `upa-postgres-dev`, o volume
+`upa_postgres_dev_data`, a porta `5434` e cria os bancos
+`upa_do_tenis_dev` e `upa_do_tenis_test`. Ela não reutiliza o container ou o
+volume da produção local.
+
+Crie os arquivos locais de ambiente a partir dos exemplos:
+
+```powershell
+Copy-Item .env.development.example .env.development
+Copy-Item .env.test.example .env.test
+```
+
+Depois de subir o banco, sincronize o schema nos dois bancos antes de usar a
+aplicação ou executar os testes:
+
+```powershell
+$env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_dev?schema=public"
+npx prisma db push
+$env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_test?schema=public"
+npx prisma db push
+```
+
+O banco de testes deve ser usado exclusivamente pela suíte automatizada.
+
 ### Comandos de migration
 
 ```bash

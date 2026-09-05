@@ -60,6 +60,7 @@ describe("adicionarItem", () => {
 
     expect(res.ok).toBe(false);
     expect(res.itens).toHaveLength(0);
+    if (res.ok) throw new Error("Esperava falha ao adicionar produto sem preço.");
     expect(res.motivo).toBeTruthy();
   });
 
@@ -77,6 +78,7 @@ describe("adicionarItem", () => {
 
     expect(res.ok).toBe(false);
     expect(res.itens).toHaveLength(0);
+    if (res.ok) throw new Error("Esperava falha ao adicionar produto sem estoque.");
     expect(res.motivo).toMatch(/sem estoque/i);
   });
 
@@ -100,6 +102,7 @@ describe("adicionarItem", () => {
     const res = adicionarItem(base.itens, produtoA, 2);
 
     expect(res.ok).toBe(false);
+    if (res.ok) throw new Error("Esperava falha ao atingir o limite de estoque.");
     expect(res.motivo).toBeTruthy();
   });
 
