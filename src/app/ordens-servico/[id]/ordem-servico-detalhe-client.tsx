@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { Combobox } from "@/components/combobox";
 
 type Cliente = {
   id: string;
@@ -49,6 +50,12 @@ type InsumoDisponivel = {
   id: string;
   nome: string;
   unidadeMedida: string;
+};
+
+type ServicoDisponivel = {
+  id: string;
+  nome: string;
+  precoBase: number;
 };
 
 type FormaPagamento = {
@@ -168,10 +175,12 @@ export function OrdemServicoDetalheClient({
   ordemServicoId,
   formasPagamento,
   insumosDisponiveis,
+  servicosDisponiveis,
 }: {
   ordemServicoId: string;
   formasPagamento: FormaPagamento[];
   insumosDisponiveis: InsumoDisponivel[];
+  servicosDisponiveis: ServicoDisponivel[];
 }) {
   const [estado, setEstado] = useState<EstadoTela>("carregando");
   const [erro, setErro] = useState<string | null>(null);
@@ -184,6 +193,10 @@ export function OrdemServicoDetalheClient({
   const [insumoErro, setInsumoErro] = useState<string | null>(null);
   const [insumoSucesso, setInsumoSucesso] = useState<string | null>(null);
   const [enviandoInsumo, setEnviandoInsumo] = useState(false);
+  const [itemServicoEditando, setItemServicoEditando] = useState<string | null>(null);
+  const [servicosEditando, setServicosEditando] = useState<ServicoItem[]>([]);
+  const [servicosErro, setServicosErro] = useState<string | null>(null);
+  const [salvandoServicos, setSalvandoServicos] = useState(false);
 
   const carregarDetalhe = useCallback(async (silencioso = false) => {
     if (!silencioso) {
@@ -348,6 +361,55 @@ export function OrdemServicoDetalheClient({
     }
   };
 
+  const iniciarEdicaoServicos = (item: ItemOS) => {
+    setItemServicoEditando(item.id);
+    setServicosEditando(item.servicos);
+    setServicosErro(null);
+  };
+
+  const adicionarServicoEdicao = (servicoId: string) => {
+    if (!servicoId || servicosEditando.some((item) => item.servico?.id === servicoId)) {
+      return;
+    }
+    const servico = servicosDisponiveis.find((item) => item.id === servicoId);
+    if (!servico) return;
+    setServicosEditando((atuais) => [
+      ...atuais,
+      { id: `novo-${servicoId}`, valor: servico.precoBase, servico },
+    ]);
+  };
+
+  const salvarServicos = async () => {
+    if (!itemServicoEditando) return;
+    setSalvandoServicos(true);
+    setServicosErro(null);
+    try {
+      const response = await fetch(`/api/ordens-servico/${ordemServicoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemOrdemServicoId: itemServicoEditando,
+          servicos: servicosEditando.map((item) => ({
+            servicoId: item.servico?.id,
+            valor: Number(item.valor || 0),
+          })),
+        }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setServicosErro(payload?.message || "Não foi possível atualizar os serviços.");
+        return;
+      }
+      await carregarDetalhe(true);
+      setItemServicoEditando(null);
+      setServicosEditando([]);
+    } catch {
+      setServicosErro("Falha de comunicação ao atualizar os serviços.");
+    } finally {
+      setSalvandoServicos(false);
+    }
+  };
+
   const resumo = useMemo(() => ordem?.resumoFinanceiro, [ordem]);
 
   if (estado === "carregando") {
@@ -459,7 +521,54 @@ export function OrdemServicoDetalheClient({
                   {item.observacoes ? <p className="mt-1 text-sm text-slate-600">{item.observacoes}</p> : null}
 
                   <div className="mt-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Serviços vinculados</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Serviços vinculados</p>
+                      <Button type="button" variant="ghost" onClick={() => iniciarEdicaoServicos(item)}>
+                        Editar serviços
+                      </Button>
+                    </div>
+                    {itemServicoEditando === item.id ? (
+                      <div className="mt-3 space-y-3 rounded-xl border border-[color:var(--accent-soft)] bg-slate-50 p-3">
+                        <Combobox
+                          options={servicosDisponiveis
+                            .filter((servico) => !servicosEditando.some((itemEditado) => itemEditado.servico?.id === servico.id))
+                            .map((servico) => ({ value: servico.id, label: servico.nome }))}
+                          value=""
+                          onChange={adicionarServicoEdicao}
+                          placeholder="Adicionar serviço..."
+                        />
+                        {servicosEditando.map((servicoItem, index) => (
+                          <div key={servicoItem.id} className="grid gap-2 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
+                            <p className="text-sm font-medium text-slate-700">{servicoItem.servico?.nome || "Serviço"}</p>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={servicoItem.valor}
+                              aria-label={`Valor de ${servicoItem.servico?.nome || "serviço"}`}
+                              onChange={(event) => {
+                                const valor = Number(event.target.value);
+                                setServicosEditando((atuais) => atuais.map((atual, atualIndex) =>
+                                  atualIndex === index ? { ...atual, valor: Number.isFinite(valor) ? valor : 0 } : atual,
+                                ));
+                              }}
+                            />
+                            <Button type="button" variant="ghost" onClick={() => setServicosEditando((atuais) => atuais.filter((_, atualIndex) => atualIndex !== index))}>
+                              Remover
+                            </Button>
+                          </div>
+                        ))}
+                        {servicosErro ? <p className="text-sm text-red-600">{servicosErro}</p> : null}
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" disabled={salvandoServicos} onClick={() => void salvarServicos()}>
+                            {salvandoServicos ? "Salvando..." : "Salvar serviços"}
+                          </Button>
+                          <Button type="button" variant="secondary" onClick={() => setItemServicoEditando(null)}>
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null}
                     {item.servicos.length === 0 ? (
                       <p className="mt-2 text-sm text-slate-600">Sem serviços vinculados.</p>
                     ) : (

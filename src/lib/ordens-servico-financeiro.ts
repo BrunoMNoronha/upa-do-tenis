@@ -73,10 +73,11 @@ function somarValorServicos(item: ItemOrdemServicoFinanceiroInput): number {
   }
 
   const totalServicos = item.servicos.reduce((acc, servicoItem) => {
-    const valorServicoItem = normalizarDecimalParaNumero(servicoItem?.valor, 0);
+    const valorInformado = servicoItem?.valor;
+    const valorServicoItem = normalizarDecimalParaNumero(valorInformado, 0);
     const precoBaseServico = normalizarDecimalParaNumero(servicoItem?.servico?.precoBase, 0);
 
-    return acc + (valorServicoItem > 0 ? valorServicoItem : precoBaseServico);
+    return acc + (valorInformado === null || valorInformado === undefined ? precoBaseServico : valorServicoItem);
   }, 0);
 
   return arredondarMoeda(totalServicos);
@@ -115,7 +116,8 @@ export function calcularValorTotalOS(ordem: OrdemServicoFinanceiroInput): number
 
   // Compatibilidade com OS antigas sem valorTotal consistente.
   const totalServicos = somarServicosDosItens(ordem.itens);
-  if (totalServicos > 0) {
+  const possuiServicosDetalhados = ordem.itens?.some((item) => (item?.servicos?.length ?? 0) > 0) ?? false;
+  if (possuiServicosDetalhados) {
     return totalServicos;
   }
 
