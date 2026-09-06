@@ -1,0 +1,87 @@
+# Aplicação controlada de migrations do Prisma em ambiente cloud (Neon).
+#
+# Disparo MANUAL apenas (workflow_dispatch). Não roda em push nem em
+# pull_request — portanto é inalcançável a partir de forks.
+#
+# A proteção real está no GitHub Environment selecionado:
+#   - o secret DATABASE_URL_DIRECT só existe dentro do Environment;
+#   - o Environment `production` deve ter "Required reviewers" configurado,
+#     de modo que a execução fique pendente de aprovação humana.
+#
+# Usa a URL DIRECT/UNPOOLED do Neon: o pooler em modo transaction quebra os
+# advisory locks do Prisma Migrate. O schema.prisma não é alterado — o valor é
+# injetado como DATABASE_URL apenas nestes passos.
+#
+# Regras duras: nunca `prisma migrate dev`, `prisma db push`,
+# `prisma migrate reset` ou `pnpm run seed` contra Production.
+name: Migrations (Neon)
+
+on:
+  workflow_dispatch:
+    inputs:
+      ambiente:
+        description: Ambiente alvo das migrations
+        required: true
+        type: choice
+        options:
+          - preview
+          - production
+      confirmacao:
+        description: Digite APLICAR para confirmar
+        required: true
+        type: string
+
+concurrency:
+  group: migracoes-${{ inputs.ambiente }}
+  cancel-in-progress: false
+
+jobs:
+  migrar:
+    name: migrate deploy — ${{ inputs.ambiente }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.ambiente }}
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
+
+    steps:
+      - name: Conferir confirmação explícita
+        if: inputs.confirmacao != 'APLICAR'
+        run: |
+          echo "Confirmação inválida. Digite exatamente APLICAR para executar." >&2
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Conferir se o secret do ambiente está presente
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL_DIRECT não configurado no Environment '${{ inputs.ambiente }}'." >&2
+            exit 1
+          fi
+
+      # A linha `Datasource "db": ... at "<host>"` impressa aqui é a EVIDÊNCIA
+      # do banco alvo e deve ser copiada para o relatório de homologação.
+      # `migrate status` sai com código != 0 quando há migrations pendentes,
+      # que é exatamente o estado esperado ANTES do deploy. Por isso o `|| true`
+      # aqui — o passo é de evidência, não de gate. O status final abaixo é o gate.
+      - name: Status antes
+        run: pnpm exec prisma migrate status || true
+
+      - name: Aplicar migrations
+        run: pnpm exec prisma migrate deploy
+
+      - name: Status depois
+        run: pnpm exec prisma migrate status

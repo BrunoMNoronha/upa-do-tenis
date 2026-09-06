@@ -5,6 +5,7 @@
   "packageManager": "pnpm@11.25.0",
   "engines": { "node": ">=22.13" },
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

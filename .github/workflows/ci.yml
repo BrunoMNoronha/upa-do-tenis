@@ -1,0 +1,79 @@
+# Validação automática do repositório.
+#
+# Este workflow NÃO tem acesso a nenhum secret de ambiente cloud: ele roda
+# exclusivamente contra um PostgreSQL efêmero de serviço, criado e destruído
+# junto com o job. Os testes do projeto são destrutivos (fazem deleteMany em
+# vendas, caixa, estoque e insumos) e por isso jamais podem alcançar Production
+# ou Preview.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validacao:
+    name: Lint, typecheck, testes e build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: upa_ci
+          POSTGRES_PASSWORD: upa_ci_ephemeral
+          POSTGRES_DB: upa_do_tenis_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U upa_ci -d upa_do_tenis_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      # Banco efêmero do próprio job. Não é secret e não pode ser substituído
+      # por nenhuma URL de ambiente real.
+      DATABASE_URL: postgresql://upa_ci:upa_ci_ephemeral@localhost:5432/upa_do_tenis_ci?schema=public
+      AUTH_SESSION_SECRET: ci-only-nao-usar-fora-da-ci-0123456789
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # O postinstall do projeto executa `prisma generate`.
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Validar schema do Prisma
+        run: pnpm exec prisma validate
+
+      # Necessário porque parte da suíte exige schema real no banco.
+      - name: Aplicar migrations no banco efêmero
+        run: pnpm exec prisma migrate deploy
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Testes
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build

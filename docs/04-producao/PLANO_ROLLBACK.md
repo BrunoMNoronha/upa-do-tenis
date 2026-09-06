@@ -54,3 +54,44 @@ Todo rollback deve ser registrado em `docs/03-homologacao/relatorios/`, com:
 - ação de rollback executada (código e/ou banco);
 - commit/estado final após o rollback;
 - causa raiz (quando identificada) e ação de prevenção futura.
+
+---
+
+## Rollback no ambiente Vercel + Neon
+
+Complementa as seções acima para o ambiente cloud descrito em [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_NEON.md). Os critérios objetivos de acionamento e a decisão de go/no-go **não mudam**.
+
+### Rollback só de aplicação (segundos, sem rebuild)
+
+Vercel → **Deployments** → selecionar o deployment `Ready` anterior → **Instant Rollback** / **Promote to Production**.
+
+Válido **apenas** quando nenhuma migration foi aplicada desde aquele deployment, ou quando a migration aplicada é backward-compatible. É por isso que a ordem de release exige migrations backward-compatible: é ela que mantém este caminho de recuperação disponível.
+
+### Matriz de decisão
+
+| Situação | Ação | Perda de dados |
+|---|---|---|
+| Bug de aplicação, **sem** migration nova | Instant Rollback apenas | nenhuma |
+| Bug + migration **backward-compatible** | Instant Rollback apenas; schema permanece adiantado | nenhuma |
+| Bug + migration **destrutiva/incompatível** | Instant Rollback **+** restore da branch Neon para o timestamp pré-migration | **todas as escritas após o timestamp** |
+
+A terceira linha exige **go/no-go explícito do responsável**, registrado no incidente antes da execução.
+
+### Reverter schema
+
+> [!WARNING]
+> O Prisma **não tem down migration**. O caminho de reversão de schema é o PITR/branch restore do Neon, não `prisma migrate resolve`.
+
+Nunca rodar `prisma migrate resolve --rolled-back` contra Production sem decisão escrita: o comando altera o histórico de migrations sem tocar no schema real, e pode mascarar a divergência em vez de corrigi-la.
+
+Procedimento de PITR: criar branch a partir do timestamp pré-incidente, validar (ver [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)), e só então repontar `DATABASE_URL` de Production na Vercel para o endpoint da branch restaurada — ou promovê-la a primária no Neon. Repontar a variável exige **redeploy** para a aplicação assumir o novo valor.
+
+### Como desabilitar o deploy com segurança
+
+Vercel → **Settings → Git** → desconectar a integração Git, ou pausar o projeto. Equivale ao "parar o container" da trilha Docker.
+
+Continua valendo a regra geral: **não** remover ou trocar `DATABASE_URL` como forma de "desligar" o sistema.
+
+### Alavanca de emergência: invalidar todas as sessões
+
+Rotacionar `AUTH_SESSION_SECRET` no escopo afetado e redeployar derruba todas as sessões ativas (cookie de 8h). Não é destrutivo para dados. Útil em suspeita de vazamento de sessão.
