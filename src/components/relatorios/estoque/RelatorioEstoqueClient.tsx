@@ -9,9 +9,6 @@ import { ResumoCards } from "./ResumoCards";
 import { InsumosCriticos } from "./InsumosCriticos";
 import { MovimentacoesRecentes } from "./MovimentacoesRecentes";
 
-import { CardsResumo } from "./CardsResumo";
-import { InsumosCriticos } from "./InsumosCriticos";
-import { MovimentacoesRecentes } from "./MovimentacoesRecentes";
 
 export function RelatorioEstoqueClient() {
   const [inicio, setInicio] = useState("");
@@ -99,7 +96,7 @@ export function RelatorioEstoqueClient() {
       {estatisticas && (
         <div className="space-y-8 animate-in fade-in duration-500">
           
-          <CardsResumo estatisticas={estatisticas} />
+          <ResumoCards estatisticas={estatisticas} />
 
           <div className="grid gap-6 lg:grid-cols-3">
             <InsumosCriticos criticos={criticos} />
