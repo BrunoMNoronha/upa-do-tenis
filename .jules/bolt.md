@@ -1,3 +1,3 @@
-## 2025-05-18 - Concurrent item processing in transactions using Promise.all
-**Learning:** Iterating over items sequentially with `await` inside a transaction creates unnecessary network and execution latency, scaling linearly (O(N)) with the number of items.
-**Action:** Wrap independent per-item async operations (e.g. `itemVenda.create` and stock deduction) within `Promise.all(linhas.map(...))` to execute database operations concurrently within the transaction context, reducing overall execution time to O(max(T)).
+## 2025-03-09 - Otimização de N+1 Query no Saneamento de Formas de Pagamento
+**Learning:** O uso de loops `for...of` realizando chamadas sequenciais `prisma.<model>.update` introduz o problema de N+1 queries, causando múltiplos roundtrips de rede e gargalos de I/O de banco de dados diretamente proporcionais ao número de registros (O(N)).
+**Action:** Sempre substituir atualizações em loop de campos homogêneos por uma única chamada `prisma.<model>.updateMany` com filtro `where: { id: { in: ids } }`, reduzindo o tempo de execução e roundtrips de O(N) para O(1).
