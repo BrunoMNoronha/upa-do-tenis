@@ -242,7 +242,8 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
                   <button
                     type="button"
                     onClick={() => alternarStatus(servico)}
-                    disabled={isPending}
+                    disabled={isPending || editando !== null}
+                    title={editando ? "Salve ou cancele a edição antes de alterar o status pela lista." : undefined}
                     className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       servico.ativo
                         ? "border-amber-400/40 text-amber-200 hover:bg-amber-950/40"
