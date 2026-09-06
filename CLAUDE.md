@@ -37,9 +37,9 @@ Sistema web para gestão operacional de sapataria, incluindo clientes, serviços
 4. Implementar menor alteração segura.
 5. Criar/ajustar testes quando necessário.
 6. Rodar validações:
-   - `npm run lint`
-   - `npm run test`
-   - `npm run build`
+   - `pnpm run lint`
+   - `pnpm run test`
+   - `pnpm run build`
 7. Entregar resumo:
    - objetivo atendido;
    - arquivos alterados;

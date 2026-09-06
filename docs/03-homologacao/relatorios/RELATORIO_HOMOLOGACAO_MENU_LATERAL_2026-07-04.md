@@ -11,7 +11,7 @@ Melhoria de usabilidade no menu lateral do sistema: os itens de navegação fora
 - **Commit anterior (base da melhoria):** `80ab98c` — "feat: adicionar bootstrap do primeiro admin"
 - **Data da homologação:** 04/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev` do `.env`)
+- **Ambiente:** `pnpm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev` do `.env`)
 - **Método:** validação combinada — `lint`/`test`/`build` + sessão de browser automatizado (preview) cobrindo estados expandido/recolhido, persistência após reload, acessibilidade (atributos ARIA) e viewport mobile
 
 ## Escopo validado
@@ -62,9 +62,9 @@ Melhoria de usabilidade no menu lateral do sistema: os itens de navegação fora
 |---|---|
 | `git status` / `git diff --stat` | Árvore limpa na base (`80ab98c`); ao final: `src/components/app-shell.tsx` modificado (+134/−49) e `src/config/navigation.tsx` novo — nada além disso |
 | `git diff -- prisma/schema.prisma` | ✔ Sem diff (schema intocado) |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 21 arquivos, 171 testes aprovados |
-| `npm run build` | ✔ Build de produção completo; 26 rotas geradas |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 21 arquivos, 171 testes aprovados |
+| `pnpm run build` | ✔ Build de produção completo; 26 rotas geradas |
 
 ## Evidências (para re-execução manual)
 
@@ -80,7 +80,7 @@ Melhoria de usabilidade no menu lateral do sistema: os itens de navegação fora
 
 - **Flash inicial pós-reload:** ao recarregar com preferência "recolhido", há um breve flash do menu expandido antes do `useEffect` aplicar a preferência salva. Tradeoff intencional para evitar erro de hidratação SSR; decisão registrada de **não** tratar agora (cookie/server state aumentaria o escopo sem necessidade).
 - **Rótulos de grupos são novidade visual:** se algum agrupamento não fizer sentido para a operação, basta reordenar em `src/config/navigation.tsx`, sem tocar no shell.
-- **Ressalva operacional (pré-existente, não relacionada à melhoria):** `npm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Nesta homologação o `.env` foi conferido antes da execução e aponta para banco local de desenvolvimento (`localhost/upa_do_tenis_dev`). Antes de rodar a suíte em qualquer máquina, confirmar que o `.env` nunca aponta para produção ou base com dados úteis.
+- **Ressalva operacional (pré-existente, não relacionada à melhoria):** `pnpm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Nesta homologação o `.env` foi conferido antes da execução e aponta para banco local de desenvolvimento (`localhost/upa_do_tenis_dev`). Antes de rodar a suíte em qualquer máquina, confirmar que o `.env` nunca aponta para produção ou base com dados úteis.
 
 ## Pendências (registradas para fase futura)
 

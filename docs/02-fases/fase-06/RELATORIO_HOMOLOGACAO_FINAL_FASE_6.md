@@ -7,7 +7,7 @@ Validar ponta a ponta as funcionalidades do módulo financeiro e da Ordem de Ser
 
 ## 1. Comandos Executados e Resultados
 
-### 1.1 `npx prisma validate`
+### 1.1 `pnpm exec prisma validate`
 **Resultado:** Sucesso.
 ```text
 Environment variables loaded from .env
@@ -15,7 +15,7 @@ Prisma schema loaded from prisma\schema.prisma
 The schema at prisma\schema.prisma is valid 🚀
 ```
 
-### 1.2 `npx prisma migrate status`
+### 1.2 `pnpm exec prisma migrate status`
 **Resultado:** Sucesso. Database is up to date!
 ```text
 Environment variables loaded from .env
@@ -25,7 +25,7 @@ Datasource "db": SQLite database "dev.db" at "file:./dev.db"
 Database schema is up to date!
 ```
 
-### 1.3 `npx prisma generate`
+### 1.3 `pnpm exec prisma generate`
 **Resultado:** Sucesso. Prisma Client atualizado.
 ```text
 Environment variables loaded from .env
@@ -33,7 +33,7 @@ Prisma schema loaded from prisma\schema.prisma
 ✔ Generated Prisma Client (v5.22.0) to .\node_modules\@prisma\client in 197ms
 ```
 
-### 1.4 `npm run test`
+### 1.4 `pnpm run test`
 **Resultado:** Sucesso. Todos os testes unitários/integração passaram.
 ```text
 > vitest run
@@ -47,7 +47,7 @@ Prisma schema loaded from prisma\schema.prisma
       Tests  38 passed (38)
 ```
 
-### 1.5 `npm run build`
+### 1.5 `pnpm run build`
 **Resultado:** Sucesso. Nenhuma quebra de tipagem ou conflitos no Next.js App Router.
 ```text
 > next build

@@ -2,6 +2,8 @@
   "name": "upa-do-tenis",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "engines": { "node": ">=22.13" },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,7 +12,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "seed": "tsx prisma/seed.ts",
-    "bootstrap:admin": "tsx scripts/bootstrap-admin.ts",
+    "bootstrap:admin": "tsx --env-file=.env scripts/bootstrap-admin.ts",
     "saneamento:forma-dinheiro": "tsx scripts/saneamento-forma-pagamento-dinheiro.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

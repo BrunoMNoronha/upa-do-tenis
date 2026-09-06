@@ -36,7 +36,7 @@ Reutiliza integralmente o que já foi homologado:
 ### Interativo (recomendado)
 
 ```bash
-npm run bootstrap:admin
+pnpm run bootstrap:admin
 ```
 
 O script pergunta nome, e-mail e senha (a senha é digitada sem eco no terminal).
@@ -44,7 +44,7 @@ O script pergunta nome, e-mail e senha (a senha é digitada sem eco no terminal)
 ### Não interativo (deploy/automação)
 
 ```bash
-BOOTSTRAP_ADMIN_NOME="Nome" BOOTSTRAP_ADMIN_EMAIL="admin@dominio.com" BOOTSTRAP_ADMIN_SENHA="senha-forte" npm run bootstrap:admin
+BOOTSTRAP_ADMIN_NOME="Nome" BOOTSTRAP_ADMIN_EMAIL="admin@dominio.com" BOOTSTRAP_ADMIN_SENHA="senha-forte" pnpm run bootstrap:admin
 ```
 
 > Atenção: no modo não interativo a senha fica na variável de ambiente da chamada.
@@ -74,7 +74,7 @@ Pré-requisito: banco de testes vazio (ou apenas sem registros na tabela `Usuari
 **Não execute em banco com dados reais sem verificar antes.**
 
 1. **Criação do primeiro admin**
-   - Rodar `npm run bootstrap:admin` em banco sem usuários.
+   - Rodar `pnpm run bootstrap:admin` em banco sem usuários.
    - Informar nome, e-mail e senha válidos.
    - Esperado: mensagem "Administrador criado com sucesso" com nome e e-mail (sem senha/hash).
 2. **Login**
@@ -84,10 +84,10 @@ Pré-requisito: banco de testes vazio (ou apenas sem registros na tabela `Usuari
    - Em janela anônima (sem sessão), acessar `/usuarios`.
    - Esperado: redirecionamento para login (rota continua protegida).
 4. **Bloqueio de segunda execução**
-   - Rodar `npm run bootstrap:admin` novamente.
+   - Rodar `pnpm run bootstrap:admin` novamente.
    - Esperado: "Bootstrap bloqueado: o banco já possui 1 usuário(s)" e exit code 1; nenhum usuário novo criado.
 5. **Validação de dados**
    - Em banco vazio (ou confiando nos testes automatizados), rodar com e-mail inválido ou senha de 5 caracteres.
    - Esperado: erros de validação listados, nada criado.
 6. **Hash no banco**
-   - Conferir via `npm run prisma:studio` que `senhaHash` começa com `scrypt:` e não contém a senha em texto puro.
+   - Conferir via `pnpm run prisma:studio` que `senhaHash` começa com `scrypt:` e não contém a senha em texto puro.

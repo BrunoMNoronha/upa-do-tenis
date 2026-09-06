@@ -135,7 +135,7 @@ relatórios e dashboard.
 Como não há tela nesta fatia, a homologação é via testes automatizados e,
 opcionalmente, script/Prisma Studio:
 
-1. `npm run test` — conferir os 17 novos testes verdes.
+1. `pnpm run test` — conferir os 17 novos testes verdes.
 2. (Opcional, manual) Em Prisma Studio no banco dev: criar forma de pagamento,
    abrir caixa, criar produto com `quantidadeEstoque` > 0, chamar o serviço via
    script e conferir: `Venda`, `ItemVenda`, `quantidadeEstoque` decrementado,

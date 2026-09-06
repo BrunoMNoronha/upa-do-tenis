@@ -35,9 +35,9 @@ Branch atual: **`main`**, sincronizada com `origin/main`, sem commits à frente 
 
 | Validação | Comando | Resultado |
 |---|---|---|
-| Lint | `npm run lint` | ✅ **Aprovado** — _"No ESLint warnings or errors"_ |
-| Testes | `npm run test` | ✅ **Aprovado** — 29 arquivos, **278 testes**, 0 falhas (~19s) |
-| Build | `npm run build` | ✅ **Aprovado** — compilação concluída, todas as rotas geradas (estáticas e dinâmicas) |
+| Lint | `pnpm run lint` | ✅ **Aprovado** — _"No ESLint warnings or errors"_ |
+| Testes | `pnpm run test` | ✅ **Aprovado** — 29 arquivos, **278 testes**, 0 falhas (~19s) |
+| Build | `pnpm run build` | ✅ **Aprovado** — compilação concluída, todas as rotas geradas (estáticas e dinâmicas) |
 
 > Observação: os testes rodam contra o banco de teste isolado (`.env.test` → `upa_do_tenis_test`), conforme convenção do projeto. Nenhum dado de produção/dev foi afetado pela suíte.
 
@@ -45,7 +45,7 @@ Branch atual: **`main`**, sincronizada com `origin/main`, sem commits à frente 
 
 ## 3. Cenários validados manualmente
 
-Ambiente: `npm run dev` (Next.js 14), banco `upa_do_tenis_dev`. Validação via inspeção de árvore de acessibilidade, texto renderizado, console e chamadas de rede. **Não foram executadas mutações financeiras** (pagamentos, abertura/fechamento de caixa, vendas) para preservar a integridade dos dados, conforme restrições da tarefa — validou-se a renderização, os cálculos consolidados e os estados de UI.
+Ambiente: `pnpm run dev` (Next.js 14), banco `upa_do_tenis_dev`. Validação via inspeção de árvore de acessibilidade, texto renderizado, console e chamadas de rede. **Não foram executadas mutações financeiras** (pagamentos, abertura/fechamento de caixa, vendas) para preservar a integridade dos dados, conforme restrições da tarefa — validou-se a renderização, os cálculos consolidados e os estados de UI.
 
 | # | Fluxo | Situação | Observações |
 |---|---|---|---|

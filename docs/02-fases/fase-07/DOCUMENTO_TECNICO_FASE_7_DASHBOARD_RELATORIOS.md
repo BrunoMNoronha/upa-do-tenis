@@ -803,8 +803,8 @@ A Fase 7 será considerada pronta quando o sistema permitir:
 10. visualizar insumos mais utilizados;
 11. consultar relatório financeiro simples;
 12. manter compatibilidade com OS antigas;
-13. passar em `npm run test`;
-14. passar em `npm run build`;
+13. passar em `pnpm run test`;
+14. passar em `pnpm run build`;
 15. não alterar regras financeiras da Fase 6.
 
 ---
@@ -962,7 +962,7 @@ Regras:
 - não misturar custo de insumos com valor cobrado;
 - manter compatibilidade com OS antigas;
 - criar testes para métricas críticas;
-- rodar npm run test e npm run build.
+- rodar pnpm run test e pnpm run build.
 
 Resultado esperado:
 Gerar um plano técnico da Fase 7 dividido por marcos, contendo:

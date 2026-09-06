@@ -32,7 +32,7 @@ Checklist mínimo após qualquer restore:
    SELECT count(*) FROM information_schema.tables WHERE table_schema='public';
    ```
 2. Contagem de registros de pelo menos uma tabela crítica (ex.: `Usuario`, `OrdemServico`, `MovimentacaoCaixa`) bate com o dump de origem.
-3. `npx prisma migrate status` contra o banco restaurado não acusa migration pendente nem divergência de schema.
+3. `pnpm exec prisma migrate status` contra o banco restaurado não acusa migration pendente nem divergência de schema.
 4. Login funcional contra o banco restaurado (smoke test manual).
 
 ## Teste realizado (ambiente local, 2026-07-06)

@@ -23,18 +23,18 @@ Usar este checklist a cada deploy em produção. Não avançar para o próximo i
 
 - [ ] Banco de produção é fisicamente separado do banco de desenvolvimento/teste.
 - [ ] Backup manual realizado imediatamente antes do deploy (ver `PLANO_BACKUP_RESTORE.md`).
-- [ ] `npx prisma migrate status` executado contra o banco de produção e revisado.
+- [ ] `pnpm exec prisma migrate status` executado contra o banco de produção e revisado.
 
 ## 5. Rodar migrations
 
-- [ ] `npx prisma migrate deploy` executado contra o banco de produção (nunca `migrate dev` ou `migrate reset` em produção).
-- [ ] `npx prisma generate` executado (ou incluído no build).
+- [ ] `pnpm exec prisma migrate deploy` executado contra o banco de produção (nunca `migrate dev` ou `migrate reset` em produção).
+- [ ] `pnpm exec prisma generate` executado (ou incluído no build).
 - [ ] Nenhuma migration destrutiva (`DROP TABLE`/`DROP COLUMN` sem plano) aplicada sem autorização explícita.
 
 ## 6. Subir aplicação
 
-- [ ] Build de produção executado sem erro (`npm run build`).
-- [ ] Aplicação iniciada (`npm run start` ou processo equivalente do provedor).
+- [ ] Build de produção executado sem erro (`pnpm run build`).
+- [ ] Aplicação iniciada (`pnpm run start` ou processo equivalente do provedor).
 
 ## 7. Validar logs
 

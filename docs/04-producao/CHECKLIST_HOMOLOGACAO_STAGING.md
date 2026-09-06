@@ -6,8 +6,8 @@ Executar após cada deploy em staging, antes de considerar o ambiente pronto par
 
 - [ ] Deploy de staging concluído sem erro de build/start.
 - [ ] `AUTH_SESSION_SECRET` e `DATABASE_URL` de staging confirmados como próprios (não reaproveitados de outro ambiente).
-- [ ] `npx prisma migrate status` sem pendências.
-- [ ] `npm run bootstrap:admin` executado (ou usuário admin já existente confirmado).
+- [ ] `pnpm exec prisma migrate status` sem pendências.
+- [ ] `pnpm run bootstrap:admin` executado (ou usuário admin já existente confirmado).
 
 ## 1. Login e sessão
 

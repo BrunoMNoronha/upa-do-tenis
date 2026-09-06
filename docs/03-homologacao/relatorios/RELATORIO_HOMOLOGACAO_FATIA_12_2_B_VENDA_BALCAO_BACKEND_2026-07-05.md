@@ -187,11 +187,11 @@ verdes.
 |---|---|
 | `git status` / `git diff --stat` | Base limpa (`75dda7f`); ao final: 2 modificados, 8 novos |
 | `git diff -- prisma/schema.prisma` | ✔ Somente escopo autorizado (revisado linha a linha) |
-| `npx prisma migrate dev --name create_venda_balcao` | ✔ Migration criada e aplicada no dev |
-| `npx prisma migrate deploy` (DATABASE_URL do `.env.test`) | ✔ Banco de teste sincronizado |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 25 arquivos, **214 testes** aprovados (197 anteriores + 17 novos) |
-| `npm run build` | ✔ Compiled successfully, 28 rotas |
+| `pnpm exec prisma migrate dev --name create_venda_balcao` | ✔ Migration criada e aplicada no dev |
+| `pnpm exec prisma migrate deploy` (DATABASE_URL do `.env.test`) | ✔ Banco de teste sincronizado |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 25 arquivos, **214 testes** aprovados (197 anteriores + 17 novos) |
+| `pnpm run build` | ✔ Compiled successfully, 28 rotas |
 
 ## 12. Confirmação de não-alteração em áreas críticas
 
@@ -231,7 +231,7 @@ pública nem tela criada.
 
 Como não há tela nesta fatia, a re-homologação é por testes e inspeção opcional:
 
-1. `npm run test` — conferir os 17 novos testes verdes (25 arquivos, 214 total).
+1. `pnpm run test` — conferir os 17 novos testes verdes (25 arquivos, 214 total).
 2. (Opcional) Prisma Studio no banco dev: criar forma de pagamento, abrir caixa,
    criar produto com `quantidadeEstoque` > 0, chamar `registrarVendaBalcao` por
    script e conferir: `Venda` criada, `ItemVenda` com preço do backend,

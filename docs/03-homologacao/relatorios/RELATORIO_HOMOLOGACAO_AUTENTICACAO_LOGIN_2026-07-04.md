@@ -11,7 +11,7 @@ A fase Autenticação/Login implementa login por e-mail e senha para os usuário
 - **Commit anterior (base da fase):** `561e1b2` — "feat: adicionar cadastro basico de usuarios do sistema"
 - **Data da homologação:** 04/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local, Next.js 14.2.35, banco PostgreSQL local (banco do `.env`)
+- **Ambiente:** `pnpm run dev` local, Next.js 14.2.35, banco PostgreSQL local (banco do `.env`)
 - **Método:** Execução guiada via browser automatizado (preview) e chamadas HTTP diretas às APIs; usuário de teste identificável (`teste-auth-claude@exemplo.local`) criado por script direto no Prisma e **removido do banco ao final da homologação**
 
 ## Escopo validado
@@ -55,7 +55,7 @@ A fase Autenticação/Login implementa login por e-mail e senha para os usuário
 | 11 | Hash de senha não exposto ao frontend | Respostas do login e da listagem | Nenhum campo `senhaHash` em payloads | ✅ Login retorna apenas `id`, `nome`, `email`; listagem usa `select` explícito |
 | 12 | Console do browser | Toda a sessão | Sem erros | ✅ Apenas logs de Fast Refresh/DevTools |
 
-### Cobertura automatizada (executada em `npm run test`)
+### Cobertura automatizada (executada em `pnpm run test`)
 
 - `src/lib/auth-session.test.ts` — token válido, expirado, payload adulterado, assinatura adulterada, malformado.
 - `src/lib/auth-service.test.ts` — login válido, senha incorreta, usuário inexistente (mesma resposta de senha incorreta), usuário inativo, não revelação de inatividade com senha errada, revogação de sessão de usuário inativado.
@@ -66,9 +66,9 @@ A fase Autenticação/Login implementa login por e-mail e senha para os usuário
 | Comando | Resultado |
 |---|---|
 | `git status` / `git diff --stat` / `git diff --name-status` | 7 arquivos modificados + 9 novos; 52 inserções, 3 remoções; sem arquivos temporários |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 20 arquivos, 163 testes aprovados |
-| `npm run build` | ✔ Build de produção completo; rotas `/login`, `/api/auth/login` e `/api/auth/logout` presentes |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 20 arquivos, 163 testes aprovados |
+| `pnpm run build` | ✔ Build de produção completo; rotas `/login`, `/api/auth/login` e `/api/auth/logout` presentes |
 
 ## Evidências esperadas (para re-execução manual)
 
@@ -95,7 +95,7 @@ Nenhuma mudança em `prisma/schema.prisma` ou migrações. A fase usa exclusivam
 
 ### 4. Incidente de ambiente durante a validação final (sem relação com o código)
 
-Na segunda execução de `npm run test` (fechamento da fase), 13 testes pré-existentes de estoque falharam com `Can't reach database server at localhost:5432`: o Docker Desktop (que hospeda o container `upa-postgres`) havia sido encerrado entre as sessões. Após reiniciar o Docker Desktop (o container subiu sozinho via `restart: always`), a suíte completa passou novamente (163/163). Nenhum teste de autenticação depende do banco (todos usam Prisma mockado).
+Na segunda execução de `pnpm run test` (fechamento da fase), 13 testes pré-existentes de estoque falharam com `Can't reach database server at localhost:5432`: o Docker Desktop (que hospeda o container `upa-postgres`) havia sido encerrado entre as sessões. Após reiniciar o Docker Desktop (o container subiu sozinho via `restart: always`), a suíte completa passou novamente (163/163). Nenhum teste de autenticação depende do banco (todos usam Prisma mockado).
 
 ## Riscos remanescentes
 
@@ -103,7 +103,7 @@ Na segunda execução de `npm run test` (fechamento da fase), 13 testes pré-exi
 - **`AUTH_SESSION_SECRET` obrigatório em produção:** deploy sem a variável impede login. Deve constar no checklist de deploy.
 - **Demais módulos sem proteção:** caixa, OS, dashboard, relatórios etc. continuam acessíveis sem login (intencional nesta fase).
 - **Sem rate limiting no login:** força bruta é mitigada apenas pelo custo do scrypt; aceitável para sistema interno, revisar antes de exposição externa.
-- A suíte de testes (`npm run test`) continua apagando dados de insumos do banco do `.env` — condição pré-existente do projeto, já documentada.
+- A suíte de testes (`pnpm run test`) continua apagando dados de insumos do banco do `.env` — condição pré-existente do projeto, já documentada.
 
 ## Pendências (registradas para próxima fase)
 

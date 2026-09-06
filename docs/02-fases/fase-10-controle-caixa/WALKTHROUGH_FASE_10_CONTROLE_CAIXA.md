@@ -58,10 +58,10 @@ Testes no `src/lib/caixa.test.ts` cobrem os comportamentos chaves, rodados com `
 **Resultado:** Passed (6 de 6).
 
 ## 11. Resultado do Lint
-Não houve quebras de lint (passou sem erros na validação `npm run lint`).
+Não houve quebras de lint (passou sem erros na validação `pnpm run lint`).
 
 ## 12. Resultado do Build
-O build de produção (`npm run build`) ocorreu normalmente, incluindo a compilação do Next.js sem causar "Dynamic server usage" erros (a rota `/api/caixa/atual` foi fixada com `export const dynamic = "force-dynamic"`).
+O build de produção (`pnpm run build`) ocorreu normalmente, incluindo a compilação do Next.js sem causar "Dynamic server usage" erros (a rota `/api/caixa/atual` foi fixada com `export const dynamic = "force-dynamic"`).
 
 ## 13. Riscos ou Observações Técnicas
 Nenhuma alteração foi feita nos cálculos base da Ordem de Serviço (`ordens-servico-financeiro.ts`). Logo, os dashboards globais continuam precisos. A principal mudança sentida pelo usuário será a proibição de receber pagamento em OS antes da rotina de abertura diária da loja.

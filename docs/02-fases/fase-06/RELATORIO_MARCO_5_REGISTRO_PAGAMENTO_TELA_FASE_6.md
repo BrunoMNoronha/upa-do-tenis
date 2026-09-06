@@ -74,20 +74,20 @@ Backend (definitivo, mantido):
 - bloqueio de pagamento acima do saldo;
 - atualizacao transacional de pagamento + OS.
 
-## Resultado de npm run test
+## Resultado de pnpm run test
 
 Comando executado:
-- npm run test
+- pnpm run test
 
 Resultado:
 - Test Files: 3 passed (3)
 - Tests: 28 passed (28)
 - Status: SUCESSO
 
-## Resultado de npm run build
+## Resultado de pnpm run build
 
 Comando executado:
-- npm run build
+- pnpm run build
 
 Resultado:
 - Build concluido com sucesso.

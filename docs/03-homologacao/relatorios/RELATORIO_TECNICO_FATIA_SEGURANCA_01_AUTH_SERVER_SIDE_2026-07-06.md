@@ -65,9 +65,9 @@ Modificados:
 | Comando | Resultado |
 |---|---|
 | `git status -sb` / `git diff --stat` | branch `main` limpa antes da fatia |
-| `npm run lint` | ✔ sem erros ou warnings |
-| `npm run test` | ✔ 323 testes aprovados (32 arquivos) |
-| `npm run build` | ✔ build de produção limpo; middleware compilado para Edge (27,1 kB) |
+| `pnpm run lint` | ✔ sem erros ou warnings |
+| `pnpm run test` | ✔ 323 testes aprovados (32 arquivos) |
+| `pnpm run build` | ✔ build de produção limpo; middleware compilado para Edge (27,1 kB) |
 
 Observação: a primeira execução do build falhou por erro de tipagem (`Uint8Array` genérico do TS 5.7 em `auth-edge.ts`); corrigido com anotação `Uint8Array<ArrayBuffer>` e o build passou.
 

@@ -28,9 +28,9 @@ Este documento dita as rotinas de validação a serem executadas a cada grande r
 - [ ] (A Validar) Filtrar Ordens de Serviço pelo Status (ex: "ABERTA").
 
 ### 3.2 Tabelas de Apoio
-- [ ] Verificar se "Formas de Pagamento" e "Serviços Básicos" injetados via Seed (`npm run seed`) aparecem no frontend (se houver interface disponível para listagem atual).
+- [ ] Verificar se "Formas de Pagamento" e "Serviços Básicos" injetados via Seed (`pnpm run seed`) aparecem no frontend (se houver interface disponível para listagem atual).
 
 ## 4. Testes de Regressão e Build
-- [ ] O comando `npm run build` deve completar sem erro de estáticos.
-- [ ] O comando `npm run lint` não deve reportar warnings.
-- [ ] O comando `npm run typecheck` deve rodar em silêncio (exit code 0).
+- [ ] O comando `pnpm run build` deve completar sem erro de estáticos.
+- [ ] O comando `pnpm run lint` não deve reportar warnings.
+- [ ] O comando `pnpm run typecheck` deve rodar em silêncio (exit code 0).

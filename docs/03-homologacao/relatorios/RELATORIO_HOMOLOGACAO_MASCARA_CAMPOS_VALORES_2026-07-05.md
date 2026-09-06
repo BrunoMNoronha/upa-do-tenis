@@ -11,7 +11,7 @@ Correção do bug de digitação nos campos monetários do sistema. Todos os 6 c
 - **Commit anterior (base da correção):** `3923850` — "fix(clientes): sanitizar mascaras de telefone e CPF/CNPJ e adicionar WhatsApp na lista"
 - **Data da homologação:** 05/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`.env`)
+- **Ambiente:** `pnpm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`.env`)
 - **Método:** validação combinada — `lint`/`test`/`build` + sessão de browser automatizado (preview) com digitação tecla a tecla e blur nos formulários de Serviços e OS
 
 ## Causa raiz
@@ -70,9 +70,9 @@ Os campos monetários usavam `onChange={(e) => e.target.value = formatCurrency(e
 |---|---|
 | `git status` / `git diff --stat` | Base limpa (`3923850`); ao final: 6 arquivos alterados, nada além disso |
 | `git diff -- prisma/schema.prisma` | ✔ Sem diff (schema intocado) |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 21 arquivos, 187 testes aprovados (182 anteriores + 5 novos) |
-| `npm run build` | ✔ Build de produção completo; 26 rotas geradas |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 21 arquivos, 187 testes aprovados (182 anteriores + 5 novos) |
+| `pnpm run build` | ✔ Build de produção completo; 26 rotas geradas |
 
 ## Evidências (para re-execução manual)
 
@@ -87,7 +87,7 @@ Os campos monetários usavam `onChange={(e) => e.target.value = formatCurrency(e
 
 - **Caixa, insumos e OS são áreas críticas**: embora a alteração seja restrita à máscara de digitação (nenhum cálculo ou sanitizador tocado), recomenda-se a homologação manual do item 5 acima antes de considerar o fluxo de caixa validado em uso real.
 - **Formato com ponto decimal** ("15.90") continua aceito e interpretado como decimal por `sanitizeCurrency` (comportamento pré-existente e testado).
-- **Ressalva operacional (pré-existente):** `npm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Confirmar sempre que o `.env` aponta para banco local de desenvolvimento.
+- **Ressalva operacional (pré-existente):** `pnpm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Confirmar sempre que o `.env` aponta para banco local de desenvolvimento.
 
 ## Pendências (registradas para fase futura)
 

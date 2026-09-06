@@ -80,7 +80,7 @@ Confirmado via `git status -sb`: exatamente estes 9 arquivos, nenhum arquivo a m
 |---|---|---|
 | 1 | Forma "Dinheiro" no banco tem `tipo = "DINHEIRO"`? | ✅ Confirmado via consulta direta ao banco (script de leitura, removido após uso): `{"nome":"Dinheiro","tipo":"DINHEIRO", ...}` |
 | 2 | `tipo` vazio é rejeitado no schema? | ✅ Coberto por `formas-pagamento-schema.test.ts` (rejeita string vazia, string só com espaços, campo ausente) — 6/6 testes passando |
-| 3 | Saneamento corrige "Dinheiro" com `tipo` vazio? | ✅ Coberto por `formas-pagamento.test.ts` (corrige vazio, corrige nulo, idempotente, não altera nomes ambíguos) — 4/4 testes passando. **Revalidado ao vivo**: reexecução de `npm run saneamento:forma-dinheiro` contra o banco (agora disponível) retornou "Nenhuma correção necessária — tipo já preenchido corretamente" — confirma idempotência com dado real já corrigido em sessão anterior. |
+| 3 | Saneamento corrige "Dinheiro" com `tipo` vazio? | ✅ Coberto por `formas-pagamento.test.ts` (corrige vazio, corrige nulo, idempotente, não altera nomes ambíguos) — 4/4 testes passando. **Revalidado ao vivo**: reexecução de `pnpm run saneamento:forma-dinheiro` contra o banco (agora disponível) retornou "Nenhuma correção necessária — tipo já preenchido corretamente" — confirma idempotência com dado real já corrigido em sessão anterior. |
 | 4 | Entrada em dinheiro volta a entrar no saldo físico? | ✅ Coberto por `caixa.test.ts` (novo teste reproduzindo o achado: forma "Dinheiro" com `tipo` corrigido → `entradasFisicas` e `saldoFisicoCalculado` refletem o valor). Também validado manualmente em sessão anterior via navegador (100 + 500 − 200 = 400 ✅). |
 | 5 | PIX/cartão não entram no saldo físico? | ✅ Coberto pelos testes já existentes da Fatia 13.2 (não duplicados) — `calcularTotaisCaixa` continua excluindo `tipo !== "DINHEIRO"` do físico. |
 
@@ -92,10 +92,10 @@ Confirmado via `git status -sb`: exatamente estes 9 arquivos, nenhum arquivo a m
 |---|---|
 | `git status -sb` / `git diff --stat` | 8 arquivos modificados + 5 novos, exatamente os esperados para 13.2.1 + 13.3 (sem sobreposição) |
 | Verificação/subida do Postgres (Docker) | ✅ Container `upa-postgres` disponível, `pg_isready` → `accepting connections` |
-| `npm run lint` | ✅ No ESLint warnings or errors |
-| `npm run test` | ✅ **29 arquivos / 275 testes** — 100% aprovados (nenhuma falha de infraestrutura desta vez) |
-| `npm run build` | ✅ Build de produção concluído sem erros — todas as páginas estáticas (`/caixa`, `/formas-pagamento`, `/insumos`, `/ordens-servico`, `/servicos`) geradas com sucesso |
-| `npm run saneamento:forma-dinheiro` (revalidação) | ✅ "Nenhuma correção necessária" — idempotência confirmada com banco ao vivo |
+| `pnpm run lint` | ✅ No ESLint warnings or errors |
+| `pnpm run test` | ✅ **29 arquivos / 275 testes** — 100% aprovados (nenhuma falha de infraestrutura desta vez) |
+| `pnpm run build` | ✅ Build de produção concluído sem erros — todas as páginas estáticas (`/caixa`, `/formas-pagamento`, `/insumos`, `/ordens-servico`, `/servicos`) geradas com sucesso |
+| `pnpm run saneamento:forma-dinheiro` (revalidação) | ✅ "Nenhuma correção necessária" — idempotência confirmada com banco ao vivo |
 | Consulta read-only a `FormaPagamento` | ✅ Único registro cadastrado ("Dinheiro") com `tipo: "DINHEIRO"` |
 
 ---

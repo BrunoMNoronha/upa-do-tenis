@@ -73,10 +73,10 @@ Nenhuma forma de pagamento com tipo fora do conjunto canônico.
 |---|---|
 | `git status -sb` / `git diff --stat` | Apenas os 4 arquivos esperados da 13.4 |
 | Verificação read-only de `FormaPagamento.tipo` | ✅ 1 registro, nenhum fora do enum canônico |
-| `npm run lint` | ✅ No ESLint warnings or errors |
-| `npm run test` | ✅ **29 arquivos / 278 testes** aprovados |
-| `npm run build` | ✅ Build de produção concluído sem erros |
-| Homologação manual em preview (`npm run dev`) | ✅ Ver seção 7 |
+| `pnpm run lint` | ✅ No ESLint warnings or errors |
+| `pnpm run test` | ✅ **29 arquivos / 278 testes** aprovados |
+| `pnpm run build` | ✅ Build de produção concluído sem erros |
+| Homologação manual em preview (`pnpm run dev`) | ✅ Ver seção 7 |
 | `curl -X POST /api/formas-pagamento` com `tipo: "Cash"` | ✅ HTTP 400 — `{"tipo":["Selecione um tipo válido."]}` |
 
 ---

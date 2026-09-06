@@ -36,7 +36,7 @@ Usar apenas se o rollback de código não for suficiente (ex.: migration corromp
 2. Confirmar qual backup será restaurado (mais recente **anterior** ao incidente).
 3. Restaurar em banco temporário primeiro e validar (ver `PLANO_BACKUP_RESTORE.md`).
 4. Só então restaurar sobre o banco de produção, com uma segunda pessoa confirmando o comando antes da execução, se possível.
-5. Rodar `npx prisma migrate status` após restaurar para confirmar coerência entre schema e migrations aplicadas.
+5. Rodar `pnpm exec prisma migrate status` após restaurar para confirmar coerência entre schema e migrations aplicadas.
 6. Reiniciar a aplicação e validar login + fluxo mínimo antes de liberar o uso novamente.
 
 ## Como desabilitar o deploy com segurança

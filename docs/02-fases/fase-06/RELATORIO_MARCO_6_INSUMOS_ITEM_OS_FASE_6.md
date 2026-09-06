@@ -123,22 +123,22 @@ Cenarios cobertos:
 
 ## Resultado dos Comandos Executados
 
-1. npx prisma validate
+1. pnpm exec prisma validate
 - schema valido.
 
-2. npx prisma migrate status
+2. pnpm exec prisma migrate status
 - 3 migrations encontradas;
 - banco sincronizado (schema up to date).
 
-3. npx prisma generate
+3. pnpm exec prisma generate
 - Prisma Client gerado com sucesso.
 
-4. npm run test
+4. pnpm run test
 - Test Files: 4 passed (4)
 - Tests: 34 passed (34)
 - Status: SUCESSO
 
-5. npm run build
+5. pnpm run build
 - build concluido com sucesso;
 - rota /api/ordens-servico/[id]/insumos presente no output;
 - tela /ordens-servico/[id] compilada com sucesso.

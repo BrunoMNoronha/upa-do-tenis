@@ -42,11 +42,11 @@ Os testes localizados em `src/lib/ordens-servico-listagem.test.ts` cobrem exaust
 *   Manutenção da compatibilidade com OS sem histórico de pagamentos (a propriedade `valorPago` default).
 *   Suporte a OS legadas que possuem registro estático do `valorPago` mas sem o relacionamento instanciado.
 
-*(Nota: a suíte `npm run test` foi executada em processo paralelo confirmando 34/34 testes passando)*.
+*(Nota: a suíte `pnpm run test` foi executada em processo paralelo confirmando 34/34 testes passando)*.
 
 ## 5. Resultados dos Comandos Executados
 
-Os comandos solicitados (`npx prisma validate`, `npx prisma migrate status`, `npm run test` e `npm run build`) foram executados sem erros.
+Os comandos solicitados (`pnpm exec prisma validate`, `pnpm exec prisma migrate status`, `pnpm run test` e `pnpm run build`) foram executados sem erros.
 (Ver log da pipeline de tasks ou terminal paralelo - a estrutura obteve êxito).
 
 ## 6. Riscos Restantes e Próximos Passos

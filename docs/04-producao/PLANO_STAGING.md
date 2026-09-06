@@ -20,14 +20,14 @@ Nenhuma variável `NEXT_PUBLIC_*` deve conter segredo (mesma regra de produção
 
 ## Estratégia de migrations em staging
 
-1. Antes de cada deploy em staging: `npx prisma migrate status` contra o banco de staging para conferir o que está pendente.
-2. Aplicar com `npx prisma migrate deploy` (nunca `migrate dev` — staging deve validar exatamente o comando que rodará em produção).
-3. `npx prisma generate` como parte do build.
+1. Antes de cada deploy em staging: `pnpm exec prisma migrate status` contra o banco de staging para conferir o que está pendente.
+2. Aplicar com `pnpm exec prisma migrate deploy` (nunca `migrate dev` — staging deve validar exatamente o comando que rodará em produção).
+3. `pnpm exec prisma generate` como parte do build.
 4. Staging é o ambiente correto para detectar problemas de migration **antes** de produção — qualquer falha aqui bloqueia o avanço para produção até ser corrigida.
 
 ## Estratégia de bootstrap-admin em staging
 
-- Reutilizar `npm run bootstrap:admin` (já existente, seguro — só age se `prisma.usuario.count() === 0`).
+- Reutilizar `pnpm run bootstrap:admin` (já existente, seguro — só age se `prisma.usuario.count() === 0`).
 - Credenciais do admin de staging via variáveis de ambiente próprias (`BOOTSTRAP_ADMIN_NOME`, `BOOTSTRAP_ADMIN_EMAIL`, `BOOTSTRAP_ADMIN_SENHA`) definidas apenas no ambiente de staging, com senha diferente da usada em qualquer outro ambiente.
 - Nunca usar a mesma senha de staging em produção.
 
@@ -40,7 +40,7 @@ Staging é justamente o lugar para **testar** o `PLANO_ROLLBACK.md` sem risco:
 
 ## Dados de staging
 
-- Popular com `npm run seed` (já protegido contra sobrescrita) para ter um conjunto mínimo de clientes, serviços e OS fictícios para os smoke tests.
+- Popular com `pnpm run seed` (já protegido contra sobrescrita) para ter um conjunto mínimo de clientes, serviços e OS fictícios para os smoke tests.
 - Nunca copiar dados reais de clientes para staging sem anonimização — como ainda não há produção real, esta fatia não enfrenta esse problema, mas fica registrado para quando produção existir.
 
 ## Pendências para provisionar staging

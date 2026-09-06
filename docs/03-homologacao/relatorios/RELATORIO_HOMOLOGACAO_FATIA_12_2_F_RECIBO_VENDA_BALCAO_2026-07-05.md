@@ -25,9 +25,9 @@ Conclusão: O layout interno da página (`/vendas/[id]`), onde reside a estrutur
 
 ## 3. Validações Automáticas
 
-- **Testes automatizados (`npm run test`):** ✅ 261 testes passando sem regressão.
-- **Lint (`npm run lint`):** ✅ Nenhuma infração detectada.
-- **Build (`npm run build`):** ✅ Construção estática otimizada concluída.
+- **Testes automatizados (`pnpm run test`):** ✅ 261 testes passando sem regressão.
+- **Lint (`pnpm run lint`):** ✅ Nenhuma infração detectada.
+- **Build (`pnpm run build`):** ✅ Construção estática otimizada concluída.
 
 ## 4. Roteiro de Homologação Manual Atendido
 

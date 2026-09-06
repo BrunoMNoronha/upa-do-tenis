@@ -15,7 +15,7 @@
 ## 3) Comandos executados
 - `git status`
 - `git log --oneline -n 12`
-- `npm run dev`
+- `pnpm run dev`
 
 ## 4) Conferência inicial
 - Estado do repositório: há alteração pendente não commitada em `src/components/ui.tsx`.

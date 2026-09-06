@@ -25,14 +25,18 @@ Responder e documentar em português do Brasil.
 - Não criar dependências novas sem justificar.
 - Não avançar fase sem homologação.
 
+## Gerenciador de pacotes
+
+Use exclusivamente `pnpm`. Para ferramentas locais, use `pnpm exec`; para pacotes temporários, `pnpm dlx`. Preserve `pnpm-lock.yaml`.
+
 ## Comandos padrão
 
 ```bash
 git status
 git diff --stat
-npm run lint
-npm run test
-npm run build
+pnpm run lint
+pnpm run test
+pnpm run build
 ```
 
 ## Entrega esperada por tarefa

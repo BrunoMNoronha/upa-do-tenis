@@ -16,3 +16,6 @@ npm-debug.log*
 backups/
 backup_upa_*.sql
 *.zip
+# Gerenciador oficial: pnpm
+/package-lock.json
+pnpm-debug.log*

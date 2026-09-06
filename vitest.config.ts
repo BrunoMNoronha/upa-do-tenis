@@ -1,11 +1,17 @@
 import { defineConfig } from "vitest/config";
-import { loadEnv } from "vite";
+import { existsSync } from "node:fs";
 import path from "node:path";
+import { loadEnvFile } from "node:process";
 
-const env = loadEnv("test", process.cwd(), "");
-process.env.DATABASE_URL = env.DATABASE_URL;
+const testEnvPath = path.resolve(process.cwd(), ".env.test");
+
+if (existsSync(testEnvPath)) {
+  loadEnvFile(testEnvPath);
+}
 
 export default defineConfig({
+  // Transforma TSX somente nos testes; o Next mantém jsx: preserve.
+  oxc: { jsx: { runtime: "automatic" } },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

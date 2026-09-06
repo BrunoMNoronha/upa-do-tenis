@@ -10,7 +10,7 @@
 | **Ambiente** | Docker local (`localhost:3000`) |
 | **Versão** | `git log --oneline -1` → `dc71a4a feat(auth): protect private pages and critical APIs` |
 
-> **Nota de método:** nesta sessão não havia navegador real acessível ao agente (Chrome/extensão indisponível; o `preview` interno ficou preso a um processo `npm run dev` isolado, não ao container Docker). Por decisão do responsável, a homologação foi conduzida por **requisições HTTP diretas (curl)** contra `http://localhost:3000`, usando os mesmos endpoints que a UI consome (login por cookie de sessão, APIs de clientes/serviços/OS). Isso valida o comportamento real do servidor, autenticação, persistência e regras de negócio — mas **não** substitui o click-through visual (renderização de telas, mensagens de erro na UI, estados de botão). Itens que exigem interação visual e não foram exercidos ficam marcados como **Pendente**.
+> **Nota de método:** nesta sessão não havia navegador real acessível ao agente (Chrome/extensão indisponível; o `preview` interno ficou preso a um processo `pnpm run dev` isolado, não ao container Docker). Por decisão do responsável, a homologação foi conduzida por **requisições HTTP diretas (curl)** contra `http://localhost:3000`, usando os mesmos endpoints que a UI consome (login por cookie de sessão, APIs de clientes/serviços/OS). Isso valida o comportamento real do servidor, autenticação, persistência e regras de negócio — mas **não** substitui o click-through visual (renderização de telas, mensagens de erro na UI, estados de botão). Itens que exigem interação visual e não foram exercidos ficam marcados como **Pendente**.
 
 ---
 
@@ -29,7 +29,7 @@
 ### 0. Bootstrap do administrador
 
 - [x] Confirmado que a imagem de runtime (`runner` stage do `Dockerfile`) não inclui `scripts/`, `tsx` nem o `node_modules` completo — o bootstrap não pode rodar dentro do container sem alterar o Dockerfile (fora de escopo desta fatia).
-- [x] Executado `npm run bootstrap:admin` localmente, com `DATABASE_URL` apontando para o Postgres do Docker via porta exposta (`localhost:5433`, mapeada em `docker-compose.local.yml`).
+- [x] Executado `pnpm run bootstrap:admin` localmente, com `DATABASE_URL` apontando para o Postgres do Docker via porta exposta (`localhost:5433`, mapeada em `docker-compose.local.yml`).
 - [x] Usuário administrador criado com sucesso (nome e e-mail de teste; senha não versionada neste documento).
 
 **Resultado:** ☑ OK ☐ Falhou  
@@ -87,7 +87,7 @@
 ### 5. Registrar pagamento parcial
 
 **Resultado:** ☐ Pendente  
-**Observações:** Não exercido nesta sessão (escopo priorizou login, navegação autenticada, criação de cliente/serviço/OS e persistência, conforme decisão do responsável). Regras financeiras já cobertas pelos 323 testes automatizados (`npm run test`).
+**Observações:** Não exercido nesta sessão (escopo priorizou login, navegação autenticada, criação de cliente/serviço/OS e persistência, conforme decisão do responsável). Regras financeiras já cobertas pelos 323 testes automatizados (`pnpm run test`).
 
 ---
 
@@ -256,9 +256,9 @@ No pending migrations to apply.
 
 | Validação | Resultado |
 |---|---|
-| `npm run lint` | ☑ OK — sem warnings/erros |
-| `npm run test` | ☑ OK — 32 arquivos, 323 testes passando |
-| `npm run build` | ☑ OK — build de produção concluído sem erros |
+| `pnpm run lint` | ☑ OK — sem warnings/erros |
+| `pnpm run test` | ☑ OK — 32 arquivos, 323 testes passando |
+| `pnpm run build` | ☑ OK — build de produção concluído sem erros |
 
 ---
 

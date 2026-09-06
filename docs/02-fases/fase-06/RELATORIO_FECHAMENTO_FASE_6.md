@@ -24,10 +24,10 @@ O escopo modificado engloba modelagem (Prisma), lógica de negócio (libs) e API
 
 ## Comandos Validados
 As verificações de estabilidade e integridade foram executadas e aprovadas com sucesso:
-- `npx prisma validate`: OK
-- `npx prisma migrate status`: OK
-- `npm run test`: OK (38 testes passados)
-- `npm run build`: OK
+- `pnpm exec prisma validate`: OK
+- `pnpm exec prisma migrate status`: OK
+- `pnpm run test`: OK (38 testes passados)
+- `pnpm run build`: OK
 
 ## Decisão de Homologação
 ✅ **Aprovado.** O código encontra-se com alta maturidade, coberto por testes e livre de *bugs bloqueantes*.

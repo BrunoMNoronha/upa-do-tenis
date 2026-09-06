@@ -15,7 +15,7 @@ Utilizamos [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/
 
 ## Padrões de Código
 - **Idioma**: O código fonte (variáveis, funções) deve ser escrito em Português para alinhar com o Domínio (ex: `ordemServico`, `clienteId`), exceto por termos padrão de frameworks (ex: `useEffect`, `page`).
-- **Validação**: Nenhuma alteração pode quebrar `npm run lint` ou `npm run typecheck`.
+- **Validação**: Nenhuma alteração pode quebrar `pnpm run lint` ou `pnpm run typecheck`.
 - **Formatação**: Utilize o Prettier integrado e evite overrides manuais no ESLint sem justificativa na revisão de código.
 
 ## Fluxo de Trabalho (Branches)

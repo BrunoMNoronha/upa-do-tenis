@@ -6,19 +6,20 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Instalar dependências
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS deps
+FROM node:24-alpine AS deps
 
 RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci --ignore-scripts
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+RUN pnpm install --frozen-lockfile --ignore-scripts --node-linker=hoisted
 
 # ---------------------------------------------------------------------------
 # Stage 2: Build da aplicação
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 RUN apk add --no-cache libc6-compat openssl
 
@@ -31,7 +32,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Gerar Prisma Client
-RUN npx prisma generate
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+RUN pnpm exec prisma generate
 
 # Variável necessária para build (não é usada em runtime)
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -44,12 +46,12 @@ ARG DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy?schema=public"
 ENV DATABASE_URL=${DATABASE_URL}
 
 # Build Next.js em modo standalone
-RUN npm run build
+RUN pnpm run build
 
 # ---------------------------------------------------------------------------
 # Stage 3: Runner — imagem mínima de produção
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 RUN apk add --no-cache libc6-compat openssl
 

@@ -7,7 +7,7 @@
 - **Commit atual (HEAD):** `b3e347f` — *working tree com alterações pendentes (correção ainda não commitada)*
 - **Data da re-homologação:** 04/07/2026 (~14h, `America/Sao_Paulo`, UTC−3)
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Stack:** `npm run dev` local, Next.js 14.2.x, Node v24.14.1, Prisma + SQLite
+- **Stack:** `pnpm run dev` local, Next.js 14.2.x, Node v24.14.1, Prisma + SQLite
 - **Método:** Execução manual guiada via browser automatizado (preview), sem alteração de código-fonte durante a execução
 - **Fuso confirmado no browser:** `America/Sao_Paulo`, offset +180 min (UTC−3) — relevante para os bugs de data
 
@@ -44,11 +44,11 @@ Re-homologação focada **exclusivamente** nos dois bugs corrigidos após a homo
 | Comando | Resultado |
 |---|---|
 | `git status` | Alterações pendentes (não commitadas) nos arquivos acima |
-| `npm run lint` | ✅ **No ESLint warnings or errors** |
-| `npm run test` | ✅ **104 testes / 15 arquivos — todos passaram** (8,3 s) |
-| `npm run build` | ✅ **Build concluído com sucesso** (todas as rotas compiladas) |
+| `pnpm run lint` | ✅ **No ESLint warnings or errors** |
+| `pnpm run test` | ✅ **104 testes / 15 arquivos — todos passaram** (8,3 s) |
+| `pnpm run build` | ✅ **Build concluído com sucesso** (todas as rotas compiladas) |
 
-> **Nota de ambiente:** conforme já documentado, `npm run test` usa o banco do `.env` e **zera as tabelas de insumos/movimentações**. Por isso a suíte foi executada **antes** da validação manual, e o insumo de teste foi criado em seguida (dados de OS/clientes reais são preservados pelos testes).
+> **Nota de ambiente:** conforme já documentado, `pnpm run test` usa o banco do `.env` e **zera as tabelas de insumos/movimentações**. Por isso a suíte foi executada **antes** da validação manual, e o insumo de teste foi criado em seguida (dados de OS/clientes reais são preservados pelos testes).
 
 ---
 
@@ -116,7 +116,7 @@ Todos os critérios de aprovação do dashboard foram atendidos: os registros de
 ## Riscos remanescentes
 
 1. **Latente:** o filtro "Hoje"/data final do dashboard engloba o dia seguinte. Sem impacto visível hoje, mas produzirá contagens incorretas caso existam dados no dia posterior ao `fim` selecionado (ex.: filtrar um dia passado incluirá o dia seguinte). Recomenda-se estender o padrão do fix (formatação por componentes locais) aos componentes `date-range-picker.tsx` e `DashboardFiltros.tsx`. **Fora do escopo desta re-homologação; não corrigido.**
-2. **Dado de teste remanescente:** insumo **"HOMOLOG FASE12 - REMOVER"** (saldo 50) com 3 movimentações foi deixado no banco de dev. O DELETE da API bloqueia insumo com movimentações; será zerado no próximo `npm run test`. Recomenda-se remoção via script Prisma se necessário antes de novos testes manuais.
+2. **Dado de teste remanescente:** insumo **"HOMOLOG FASE12 - REMOVER"** (saldo 50) com 3 movimentações foi deixado no banco de dev. O DELETE da API bloqueia insumo com movimentações; será zerado no próximo `pnpm run test`. Recomenda-se remoção via script Prisma se necessário antes de novos testes manuais.
 
 ---
 
