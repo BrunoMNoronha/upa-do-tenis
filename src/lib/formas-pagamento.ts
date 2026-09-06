@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 
+/**
+ * Listagem operacional: só formas ativas, para as telas de pagamento, venda
+ * e caixa.
+ */
 export async function listarFormasPagamento() {
   return prisma.formaPagamento.findMany({
     where: { ativo: true },
@@ -7,6 +11,34 @@ export async function listarFormasPagamento() {
       nome: "asc",
     },
   });
+}
+
+/**
+ * Listagem de gestão: inclui as inativas e informa se a forma já possui
+ * movimento financeiro (pagamento, venda ou movimentação de caixa). O flag
+ * `possuiMovimento` trava a edição do `tipo` na tela, porque alterá-lo
+ * reescreveria retroativamente o fechamento de caixa (ver src/lib/caixa.ts).
+ */
+export async function listarFormasPagamentoParaGestao() {
+  const formas = await prisma.formaPagamento.findMany({
+    orderBy: {
+      nome: "asc",
+    },
+    include: {
+      _count: {
+        select: {
+          pagamentos: true,
+          vendas: true,
+          movimentacoesCaixa: true,
+        },
+      },
+    },
+  });
+
+  return formas.map(({ _count, ...forma }) => ({
+    ...forma,
+    possuiMovimento: _count.pagamentos + _count.vendas + _count.movimentacoesCaixa > 0,
+  }));
 }
 
 /**

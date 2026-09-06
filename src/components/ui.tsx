@@ -36,27 +36,30 @@ function variantClasses(variant: ButtonVariant) {
   }
 }
 
-export function Button({ href, variant = "primary", className, children, ...props }: ButtonProps) {
-  const baseClasses = composeClasses(
-    "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-60",
-    variantClasses(variant),
-    className,
-  );
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ href, variant = "primary", className, children, ...props }, ref) => {
+    const baseClasses = composeClasses(
+      "inline-flex items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)] disabled:cursor-not-allowed disabled:opacity-60",
+      variantClasses(variant),
+      className,
+    );
 
-  if (href) {
+    if (href) {
+      return (
+        <Link className={baseClasses} href={href}>
+          {children}
+        </Link>
+      );
+    }
+
     return (
-      <Link className={baseClasses} href={href}>
+      <button ref={ref} className={baseClasses} {...props}>
         {children}
-      </Link>
+      </button>
     );
   }
-
-  return (
-    <button className={baseClasses} {...props}>
-      {children}
-    </button>
-  );
-}
+);
+Button.displayName = "Button";
 
 export function Card({ className, children }: CardProps) {
   return <section className={composeClasses("rounded-[1.75rem] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-[0_20px_40px_rgba(31,41,55,0.07)]", className)}>{children}</section>;

@@ -8,26 +8,26 @@ import { useForm } from "react-hook-form";
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
-import { produtoFormSchema, type ProdutoFormValues } from "@/lib/produtos-schema";
+import { servicoFormSchema, type ServicoFormValues } from "@/lib/servicos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
 
-type ProdutoListado = {
+export type ServicoListado = {
   id: string;
   nome: string;
   descricao: string | null;
-  precoVenda: number;
+  precoBase: number;
   ativo: boolean;
   criadoEm: string;
 };
 
-type ProdutosClientProps = {
-  produtos: ProdutoListado[];
+type ServicosClientProps = {
+  servicos: ServicoListado[];
 };
 
-const defaultValues: ProdutoFormValues = {
+const defaultValues: ServicoFormValues = {
   nome: "",
   descricao: "",
-  precoVenda: 0,
+  precoBase: 0,
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -39,9 +39,9 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-export function ProdutosClient({ produtos }: ProdutosClientProps) {
+export function ServicosClient({ servicos }: ServicosClientProps) {
   const router = useRouter();
-  const [editando, setEditando] = useState<ProdutoListado | null>(null);
+  const [editando, setEditando] = useState<ServicoListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
@@ -53,26 +53,26 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
     pedirExclusao,
     cancelarExclusao,
     confirmarExclusao,
-  } = useCadastroAcoes<ProdutoListado>({ endpoint: "/api/produtos", rotulo: "o produto" });
+  } = useCadastroAcoes<ServicoListado>({ endpoint: "/api/servicos", rotulo: "o serviço" });
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<ProdutoFormValues>({
-    resolver: zodResolver(produtoFormSchema),
+  } = useForm<ServicoFormValues>({
+    resolver: zodResolver(servicoFormSchema),
     defaultValues,
     mode: "onChange",
   });
 
-  const iniciarEdicao = (produto: ProdutoListado) => {
-    setEditando(produto);
+  const iniciarEdicao = (servico: ServicoListado) => {
+    setEditando(servico);
     setSubmitError(null);
     reset({
-      nome: produto.nome,
-      descricao: produto.descricao ?? "",
-      precoVenda: formatCurrency(produto.precoVenda) as unknown as number,
+      nome: servico.nome,
+      descricao: servico.descricao ?? "",
+      precoBase: formatCurrency(servico.precoBase) as unknown as number,
     });
   };
 
@@ -85,7 +85,7 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
 
-    const url = editando ? `/api/produtos/${editando.id}` : "/api/produtos";
+    const url = editando ? `/api/servicos/${editando.id}` : "/api/servicos";
 
     const response = await fetch(url, {
       method: editando ? "PATCH" : "POST",
@@ -97,7 +97,7 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
 
     if (!response.ok) {
       const payload = (await response.json()) as { message?: string };
-      setSubmitError(payload.message ?? "Não foi possível salvar o produto.");
+      setSubmitError(payload.message ?? "Não foi possível salvar o serviço.");
       return;
     }
 
@@ -114,44 +114,40 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
       <Card className="p-6">
         <div className="mb-6">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-            {editando ? "Editar Produto" : "Novo Cadastro"}
+            {editando ? "Editar Serviço" : "Novo Cadastro"}
           </p>
           <SectionTitle className="mt-2 text-2xl">
-            {editando ? `Editando ${editando.nome}` : "Dados do produto"}
+            {editando ? `Editando ${editando.nome}` : "Dados do serviço"}
           </SectionTitle>
         </div>
 
         <form className="grid gap-4" onSubmit={onSubmit}>
           <div className="grid gap-2">
-            <Label htmlFor="nome">Nome do Produto</Label>
-            <Input
-              id="nome"
-              {...register("nome")}
-              placeholder="Ex: Cadarço 120cm"
-            />
+            <Label htmlFor="nome">Nome do Serviço</Label>
+            <Input id="nome" {...register("nome")} placeholder="Ex: Troca de Sola" />
             {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="precoVenda">Preço de Venda (R$)</Label>
+            <Label htmlFor="precoBase">Preço Base (R$)</Label>
             <Input
-              id="precoVenda"
+              id="precoBase"
               type="text"
-              {...register("precoVenda")}
+              {...register("precoBase")}
               onChange={(e) => {
                 e.target.value = maskCurrency(e.target.value);
-                register("precoVenda").onChange(e);
+                register("precoBase").onChange(e);
               }}
               onBlur={(e) => {
                 if (e.target.value) {
                   e.target.value = formatCurrency(e.target.value);
-                  register("precoVenda").onChange(e);
+                  register("precoBase").onChange(e);
                 }
-                register("precoVenda").onBlur(e);
+                register("precoBase").onBlur(e);
               }}
               placeholder="R$ 0,00"
             />
-            {errors.precoVenda ? <p className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
+            {errors.precoBase ? <p className="text-sm text-red-600">{errors.precoBase.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
@@ -160,7 +156,7 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
               id="descricao"
               {...register("descricao")}
               rows={3}
-              placeholder="Detalhes adicionais sobre o produto"
+              placeholder="Detalhes adicionais sobre o serviço"
             />
           </div>
 
@@ -168,11 +164,7 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={isSubmitting || isPending}>
-              {isSubmitting || isPending
-                ? "Salvando..."
-                : editando
-                  ? "Salvar alterações"
-                  : "Cadastrar Produto"}
+              {isSubmitting || isPending ? "Salvando..." : editando ? "Salvar alterações" : "Cadastrar Serviço"}
             </Button>
             {editando ? (
               <Button type="button" variant="secondary" onClick={cancelarEdicao}>
@@ -187,9 +179,9 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista</p>
-            <h2 className="mt-2 text-2xl font-semibold">Produtos Cadastrados</h2>
+            <h2 className="mt-2 text-2xl font-semibold">Serviços Cadastrados</h2>
           </div>
-          <Badge tone="accent">Total: {produtos.length}</Badge>
+          <Badge tone="accent">Total: {servicos.length}</Badge>
         </div>
 
         {listaError ? (
@@ -198,33 +190,33 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
           </p>
         ) : null}
 
-        {produtos.length === 0 ? (
+        {servicos.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
+            Nenhum serviço cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
           </div>
         ) : (
           <div className="space-y-4">
-            {produtos.map((produto) => (
+            {servicos.map((servico) => (
               <article
-                key={produto.id}
+                key={servico.id}
                 className={`rounded-3xl border p-5 ${
-                  produto.ativo ? "border-white/10 bg-white/5" : "border-rose-500/50 bg-rose-950/20"
+                  servico.ativo ? "border-white/10 bg-white/5" : "border-rose-500/50 bg-rose-950/20"
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{produto.nome}</h3>
-                    {produto.descricao ? (
-                      <p className="mt-1 text-sm text-slate-300">{produto.descricao}</p>
+                    <h3 className="text-lg font-semibold text-white">{servico.nome}</h3>
+                    {servico.descricao ? (
+                      <p className="mt-1 text-sm text-slate-300">{servico.descricao}</p>
                     ) : null}
                     <p className="mt-2 text-xs uppercase tracking-[0.1em] text-slate-400">
-                      Criado em {dateFormatter.format(new Date(produto.criadoEm))}
+                      Criado em {dateFormatter.format(new Date(servico.criadoEm))}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    <Badge tone="neutral">{currencyFormatter.format(produto.precoVenda)}</Badge>
-                    <Badge tone={produto.ativo ? "success" : "danger"}>
-                      {produto.ativo ? "Ativo" : "Inativo"}
+                    <Badge tone="neutral">{currencyFormatter.format(servico.precoBase)}</Badge>
+                    <Badge tone={servico.ativo ? "success" : "danger"}>
+                      {servico.ativo ? "Ativo" : "Inativo"}
                     </Badge>
                   </div>
                 </div>
@@ -232,26 +224,26 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     type="button"
-                    onClick={() => iniciarEdicao(produto)}
+                    onClick={() => iniciarEdicao(servico)}
                     className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
                   >
                     Editar
                   </button>
                   <button
                     type="button"
-                    onClick={() => alternarStatus(produto)}
+                    onClick={() => alternarStatus(servico)}
                     disabled={isPending}
                     className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                      produto.ativo
+                      servico.ativo
                         ? "border-amber-400/40 text-amber-200 hover:bg-amber-950/40"
                         : "border-emerald-400/40 text-emerald-200 hover:bg-emerald-950/40"
                     }`}
                   >
-                    {produto.ativo ? "Inativar" : "Reativar"}
+                    {servico.ativo ? "Inativar" : "Reativar"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => pedirExclusao(produto)}
+                    onClick={() => pedirExclusao(servico)}
                     disabled={isPending}
                     className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -266,13 +258,13 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}
-        titulo="Excluir produto"
-        descricao={`Excluir o produto "${itemParaExcluir?.nome ?? ""}"? Esta ação não pode ser desfeita.`}
+        titulo="Excluir serviço"
+        descricao={`Excluir o serviço "${itemParaExcluir?.nome ?? ""}"? Esta ação não pode ser desfeita.`}
         textoConfirmar="Excluir"
         tone="danger"
         onConfirmar={() =>
-          confirmarExclusao((produto) => {
-            if (editando?.id === produto.id) {
+          confirmarExclusao((servico) => {
+            if (editando?.id === servico.id) {
               cancelarEdicao();
             }
           })

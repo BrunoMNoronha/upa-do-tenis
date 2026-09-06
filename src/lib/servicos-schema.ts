@@ -12,4 +12,9 @@ export const servicoFormSchema = z.object({
   precoBase: safeNumber("O preço base não pode ser negativo."),
 });
 
+export const servicoAtualizarSchema = servicoFormSchema.partial().extend({
+  ativo: z.boolean().optional(),
+});
+
 export type ServicoFormValues = z.infer<typeof servicoFormSchema>;
+export type ServicoAtualizarValues = z.infer<typeof servicoAtualizarSchema>;

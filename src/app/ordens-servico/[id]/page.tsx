@@ -18,11 +18,15 @@ export const metadata = {
 
 export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDetalhePageProps) {
   const formasPagamento = await listarFormasPagamento();
-  const insumosDisponiveis = (await listarInsumos()).map((insumo) => ({
-    id: insumo.id,
-    nome: insumo.nome,
-    unidadeMedida: insumo.unidadeMedida,
-  }));
+  // listarInsumos() traz também os inativos (a tela de cadastro precisa deles
+  // para reativar); aqui, no consumo, só os ativos podem ser oferecidos.
+  const insumosDisponiveis = (await listarInsumos())
+    .filter((insumo) => insumo.ativo)
+    .map((insumo) => ({
+      id: insumo.id,
+      nome: insumo.nome,
+      unidadeMedida: insumo.unidadeMedida,
+    }));
   const servicosDisponiveis = (await listarServicos()).map((servico) => ({
     id: servico.id,
     nome: servico.nome,

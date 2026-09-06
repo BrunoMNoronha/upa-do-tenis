@@ -15,4 +15,17 @@ export const insumoFormSchema = z.object({
   custoUnitario: safeNumber("O custo não pode ser negativo."),
 });
 
+/**
+ * `quantidadeEstoque` fica de fora da atualização de propósito: o saldo só pode
+ * mudar pela rota de movimentações (/api/insumos/[id]/movimentacoes), que
+ * registra o extrato. Editar o cadastro nunca altera estoque.
+ */
+export const insumoAtualizarSchema = insumoFormSchema
+  .omit({ quantidadeEstoque: true })
+  .partial()
+  .extend({
+    ativo: z.boolean().optional(),
+  });
+
 export type InsumoFormValues = z.infer<typeof insumoFormSchema>;
+export type InsumoAtualizarValues = z.infer<typeof insumoAtualizarSchema>;
