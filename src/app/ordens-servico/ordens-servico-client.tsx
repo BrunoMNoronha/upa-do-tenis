@@ -1133,6 +1133,8 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
   );
 }
 
+const NOVA_ORDEM_PARAM = "nova";
+
 export function OrdensServicoClient({
   initialOrders,
   clientes,
@@ -1143,23 +1145,30 @@ export function OrdensServicoClient({
   servicos: Servico[];
 }) {
   const ordens = initialOrders as OrdemServicoReal[];
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const searchParams = useSearchParams();
+
+  // O drawer é controlado pela URL (?nova=1). O Link "Nova ordem" navega via
+  // App Router, que atualiza useSearchParams; um hash (#nova-ordem) não
+  // dispara "hashchange" nessa navegação, por isso o hash não é mais usado.
+  const drawerOpen = searchParams.get(NOVA_ORDEM_PARAM) === "1";
 
   const closeDrawer = useCallback(() => {
-    setDrawerOpen(false);
-    if (window.location.hash === "#nova-ordem") {
-      window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    }
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has(NOVA_ORDEM_PARAM)) return;
+    url.searchParams.delete(NOVA_ORDEM_PARAM);
+    // replaceState é integrado ao App Router (Next 14.1+): useSearchParams
+    // reflete a mudança sem nova requisição ao servidor.
+    window.history.replaceState(null, "", url.pathname + url.search);
   }, []);
 
   useEffect(() => {
-    const syncDrawerWithHash = () => {
-      setDrawerOpen(window.location.hash === "#nova-ordem");
-    };
-
-    syncDrawerWithHash();
-    window.addEventListener("hashchange", syncDrawerWithHash);
-    return () => window.removeEventListener("hashchange", syncDrawerWithHash);
+    // Compatibilidade com links antigos (#nova-ordem) salvos pelo usuário.
+    if (window.location.hash === "#nova-ordem") {
+      const url = new URL(window.location.href);
+      url.hash = "";
+      url.searchParams.set(NOVA_ORDEM_PARAM, "1");
+      window.history.replaceState(null, "", url.pathname + url.search);
+    }
   }, []);
 
   useEffect(() => {

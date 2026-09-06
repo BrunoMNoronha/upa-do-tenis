@@ -25,7 +25,7 @@ export default async function OrdensServicoPage() {
       eyebrow="Operação e atendimento"
       title="Ordens de Serviço"
       description="Acompanhe a fila de ordens, consulte os campos principais e cadastre novas OS integradas ao banco de dados."
-      action={{ href: "/ordens-servico#nova-ordem", label: "Nova ordem" }}
+      action={{ href: "/ordens-servico?nova=1", label: "Nova ordem" }}
     >
       <Suspense fallback={<LoadingState text="Carregando ordens de serviço..." />}>
         <OrdensServicoClient 
