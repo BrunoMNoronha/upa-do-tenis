@@ -147,8 +147,12 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     select: { id: true, nome: true },
   });
 
+  // Otimização de performance: usa Map para busca O(1) em vez de array.find() O(N*M).
+  // Reduz complexidade de O(N*M) para O(N+M).
+  const servicosMap = new Map(servicos.map(s => [s.id, s]));
+
   const topServicos = topServicosAgg.map(agg => {
-    const servico = servicos.find(s => s.id === agg.servicoId);
+    const servico = servicosMap.get(agg.servicoId);
     return {
       id: agg.servicoId,
       nome: servico?.nome || 'Serviço Desconhecido',
@@ -184,8 +188,12 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     select: { id: true, nome: true, unidadeMedida: true },
   });
 
+  // Otimização de performance: usa Map para busca O(1) em vez de array.find() O(N*M).
+  // Reduz complexidade de O(N*M) para O(N+M).
+  const insumosMap = new Map(insumos.map(i => [i.id, i]));
+
   const topInsumos = topInsumosAgg.map(agg => {
-    const insumo = insumos.find(i => i.id === agg.insumoId);
+    const insumo = insumosMap.get(agg.insumoId);
     return {
       id: agg.insumoId,
       nome: insumo ? `${insumo.nome} (${insumo.unidadeMedida})` : 'Insumo Desconhecido',
