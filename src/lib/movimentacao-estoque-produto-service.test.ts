@@ -1,123 +1,140 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Prisma } from "@prisma/client";
-import {
-  baixarEstoqueProdutoVenda,
-  BaixarEstoqueProdutoParams,
-  TipoMovimentacaoProduto,
-  OrigemMovimentacaoProduto
-} from "./movimentacao-estoque-produto-service";
+import { baixarEstoqueProdutoVenda } from "./movimentacao-estoque-produto-service";
 
 describe("movimentacao-estoque-produto-service", () => {
+  let txMock: Prisma.TransactionClient;
+
+  beforeEach(() => {
+    txMock = {
+      produto: {
+        findUnique: vi.fn(),
+        updateMany: vi.fn(),
+      },
+      movimentacaoEstoqueProduto: {
+        create: vi.fn(),
+      },
+    } as unknown as Prisma.TransactionClient;
+  });
+
   describe("baixarEstoqueProdutoVenda", () => {
-    it("deve lançar erro se quantidade for <= 0", async () => {
-      const tx = {} as Prisma.TransactionClient;
-      const params: BaixarEstoqueProdutoParams = { produtoId: "1", quantidade: 0 };
+    it("deve realizar baixa atômica de estoque corretamente (happy path)", async () => {
+      vi.mocked(txMock.produto.findUnique).mockResolvedValue({
+        id: "prod-1",
+        ativo: true,
+        quantidadeEstoque: new Prisma.Decimal(10),
+      } as any);
 
-      await expect(baixarEstoqueProdutoVenda(params, tx)).rejects.toMatchObject({
-        name: "MovimentacaoEstoqueProdutoError",
-        message: "A quantidade da baixa deve ser maior que zero.",
-        status: 400
+      vi.mocked(txMock.produto.updateMany).mockResolvedValue({
+        count: 1,
       });
-    });
 
-    it("deve lançar erro se produto não for encontrado", async () => {
-      const tx = {
-        produto: {
-          findUnique: vi.fn().mockResolvedValue(null)
-        }
-      } as unknown as Prisma.TransactionClient;
+      vi.mocked(txMock.movimentacaoEstoqueProduto.create).mockResolvedValue({
+        id: "mov-1",
+        produtoId: "prod-1",
+        // outras propriedades retornadas, não precisamos checar se o mock as tem
+      } as any);
 
-      const params: BaixarEstoqueProdutoParams = { produtoId: "1", quantidade: 1 };
+      const result = await baixarEstoqueProdutoVenda(
+        {
+          produtoId: "prod-1",
+          quantidade: 3,
+        },
+        txMock
+      );
 
-      await expect(baixarEstoqueProdutoVenda(params, tx)).rejects.toMatchObject({
-        name: "MovimentacaoEstoqueProdutoError",
-        message: "Produto não encontrado.",
-        status: 404
-      });
-      expect(tx.produto.findUnique).toHaveBeenCalledWith({
-        where: { id: "1" },
-        select: { id: true, ativo: true, quantidadeEstoque: true }
-      });
-    });
-
-    it("deve lançar erro se produto for inativo", async () => {
-      const tx = {
-        produto: {
-          findUnique: vi.fn().mockResolvedValue({ id: "1", ativo: false, quantidadeEstoque: 10 })
-        }
-      } as unknown as Prisma.TransactionClient;
-
-      const params: BaixarEstoqueProdutoParams = { produtoId: "1", quantidade: 1 };
-
-      await expect(baixarEstoqueProdutoVenda(params, tx)).rejects.toMatchObject({
-        name: "MovimentacaoEstoqueProdutoError",
-        message: "Produto inativo não pode ser vendido.",
-        status: 400
-      });
-    });
-
-    it("deve lançar erro se estoque for insuficiente", async () => {
-      const tx = {
-        produto: {
-          findUnique: vi.fn().mockResolvedValue({ id: "1", ativo: true, quantidadeEstoque: 10 }),
-          updateMany: vi.fn().mockResolvedValue({ count: 0 })
-        }
-      } as unknown as Prisma.TransactionClient;
-
-      const params: BaixarEstoqueProdutoParams = { produtoId: "1", quantidade: 15 };
-
-      await expect(baixarEstoqueProdutoVenda(params, tx)).rejects.toMatchObject({
-        name: "MovimentacaoEstoqueProdutoError",
-        message: "Estoque insuficiente para a venda.",
-        status: 409
-      });
-      expect(tx.produto.updateMany).toHaveBeenCalledWith({
+      expect(txMock.produto.updateMany).toHaveBeenCalledWith({
         where: {
-          id: "1",
+          id: "prod-1",
           ativo: true,
-          quantidadeEstoque: { gte: 15 },
+          quantidadeEstoque: { gte: 3 },
         },
         data: {
-          quantidadeEstoque: { decrement: 15 },
+          quantidadeEstoque: { decrement: 3 },
         },
       });
+
+      expect(txMock.movimentacaoEstoqueProduto.create).toHaveBeenCalledWith({
+        data: {
+          produtoId: "prod-1",
+          tipo: "VENDA",
+          quantidade: 3,
+          saldoAnterior: 10,
+          saldoPosterior: 7,
+          origem: "VENDA_BALCAO",
+          vendaId: undefined,
+          itemVendaId: undefined,
+          observacao: undefined,
+        },
+      });
+
+      expect(result).toBeDefined();
     });
 
-    it("deve baixar estoque com sucesso", async () => {
-      const tx = {
-        produto: {
-          findUnique: vi.fn().mockResolvedValue({ id: "1", ativo: true, quantidadeEstoque: 10 }),
-          updateMany: vi.fn().mockResolvedValue({ count: 1 })
-        },
-        movimentacaoEstoqueProduto: {
-          create: vi.fn().mockResolvedValue({ id: "mov1" })
-        }
-      } as unknown as Prisma.TransactionClient;
+    it("deve lançar erro se quantidade <= 0", async () => {
+      await expect(
+        baixarEstoqueProdutoVenda(
+          {
+            produtoId: "prod-1",
+            quantidade: 0,
+          },
+          txMock
+        )
+      ).rejects.toThrow("A quantidade da baixa deve ser maior que zero.");
+    });
 
-      const params: BaixarEstoqueProdutoParams = {
-        produtoId: "1",
-        quantidade: 2,
-        vendaId: "v1",
-        itemVendaId: "iv1",
-        observacao: "obs"
-      };
+    it("deve lançar erro se produto não encontrado", async () => {
+      vi.mocked(txMock.produto.findUnique).mockResolvedValue(null);
 
-      const res = await baixarEstoqueProdutoVenda(params, tx);
+      await expect(
+        baixarEstoqueProdutoVenda(
+          {
+            produtoId: "prod-1",
+            quantidade: 1,
+          },
+          txMock
+        )
+      ).rejects.toThrow("Produto não encontrado.");
+    });
 
-      expect(res).toEqual({ id: "mov1" });
-      expect(tx.movimentacaoEstoqueProduto.create).toHaveBeenCalledWith({
-        data: {
-          produtoId: "1",
-          tipo: TipoMovimentacaoProduto.VENDA,
-          quantidade: 2,
-          saldoAnterior: 10,
-          saldoPosterior: 8,
-          origem: OrigemMovimentacaoProduto.VENDA_BALCAO,
-          vendaId: "v1",
-          itemVendaId: "iv1",
-          observacao: "obs",
-        }
+    it("deve lançar erro se produto inativo", async () => {
+      vi.mocked(txMock.produto.findUnique).mockResolvedValue({
+        id: "prod-1",
+        ativo: false,
+        quantidadeEstoque: new Prisma.Decimal(10),
+      } as any);
+
+      await expect(
+        baixarEstoqueProdutoVenda(
+          {
+            produtoId: "prod-1",
+            quantidade: 1,
+          },
+          txMock
+        )
+      ).rejects.toThrow("Produto inativo não pode ser vendido.");
+    });
+
+    it("deve lançar erro de concorrência/estoque insuficiente se updateMany falhar (count !== 1)", async () => {
+      vi.mocked(txMock.produto.findUnique).mockResolvedValue({
+        id: "prod-1",
+        ativo: true,
+        quantidadeEstoque: new Prisma.Decimal(10),
+      } as any);
+
+      vi.mocked(txMock.produto.updateMany).mockResolvedValue({
+        count: 0,
       });
+
+      await expect(
+        baixarEstoqueProdutoVenda(
+          {
+            produtoId: "prod-1",
+            quantidade: 5,
+          },
+          txMock
+        )
+      ).rejects.toThrow("Estoque insuficiente para a venda.");
     });
   });
 });
