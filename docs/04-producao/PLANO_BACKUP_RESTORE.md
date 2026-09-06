@@ -1,5 +1,17 @@
 # Plano de Backup e Restore — Produção
 
+> [!IMPORTANT]
+> Para o **ambiente local em Docker da loja** (container `upa-db`), o
+> procedimento automatizado e testado está em
+> [RUNBOOK_BACKUP_RESTORE_LOCAL.md](RUNBOOK_BACKUP_RESTORE_LOCAL.md):
+> `pg_dump -Fc`, validação com `pg_restore --list`, SHA-256, envio
+> criptografado ao Google Drive via `rclone crypt`, verificação remota,
+> retenção, tarefa diária do Windows, restore não destrutivo em banco isolado
+> e procedimento manual de recuperação com rollback.
+>
+> O documento abaixo permanece como referência da estratégia geral e do
+> ambiente Neon.
+
 ## Estratégia de backup
 
 - Ferramenta: `pg_dump` (dump lógico em SQL puro, formato texto).

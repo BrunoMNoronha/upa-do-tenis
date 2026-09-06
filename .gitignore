@@ -21,3 +21,11 @@ backup_upa_*.sql
 # Gerenciador oficial: pnpm
 /package-lock.json
 pnpm-debug.log*
+# --- Backup / restore (Issue #11) ---
+# "backups/" ja esta ignorado acima: dumps, hashes, manifestos e logs de
+# backup nunca sao versionados.
+# Configuracao local do operador (nomes de container/banco e caminhos):
+scripts/backup/backup.config.psd1
+# Configuracao e credenciais do rclone (OAuth do Google Drive + chaves crypt):
+rclone.conf
+*.rclone.conf
