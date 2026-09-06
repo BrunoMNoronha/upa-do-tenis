@@ -8,6 +8,9 @@ const { prismaMock } = vi.hoisted(() => ({
     itemVenda: {
       count: vi.fn(),
     },
+    movimentacaoEstoqueProduto: {
+      count: vi.fn(),
+    },
     produto: {
       delete: vi.fn(),
     },
@@ -35,6 +38,17 @@ describe("DELETE /api/produtos/[id]", () => {
 
   it("bloqueia exclusão de produto com venda vinculada (409)", async () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(2);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
+
+    const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
+
+    expect(response.status).toBe(409);
+    expect(prismaMock.produto.delete).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia exclusão de produto com movimentação de estoque, mesmo sem venda (409)", async () => {
+    prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(1);
 
     const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
 
@@ -44,6 +58,7 @@ describe("DELETE /api/produtos/[id]", () => {
 
   it("permite exclusão de produto sem histórico de venda (204)", async () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
     prismaMock.produto.delete.mockResolvedValueOnce({ id: "prod-1" });
 
     const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
@@ -54,6 +69,7 @@ describe("DELETE /api/produtos/[id]", () => {
 
   it("retorna 404 quando o produto não existe", async () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
     prismaMock.produto.delete.mockRejectedValueOnce({ code: "P2025" });
 
     const response = await DELETE(criarRequest("inexistente"), { params: { id: "inexistente" } });

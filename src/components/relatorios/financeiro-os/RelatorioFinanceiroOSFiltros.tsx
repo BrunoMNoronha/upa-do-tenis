@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button, Input, Label } from '@/components/ui';
 
 interface FiltrosProps {
