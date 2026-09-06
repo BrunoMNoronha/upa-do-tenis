@@ -13,6 +13,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "seed": "tsx prisma/seed.ts",
+    "seed:catalogo": "tsx prisma/catalog-seed.ts",
     "bootstrap:admin": "tsx --env-file=.env scripts/bootstrap-admin.ts",
     "saneamento:forma-dinheiro": "tsx scripts/saneamento-forma-pagamento-dinheiro.ts",
     "prisma:generate": "prisma generate",
