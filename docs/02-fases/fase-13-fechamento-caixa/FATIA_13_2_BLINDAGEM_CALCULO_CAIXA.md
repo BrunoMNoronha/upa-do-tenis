@@ -97,10 +97,10 @@ O teste de integração **venda de balcão → caixa** (`src/lib/vendas.test.ts`
 | Comando | Resultado |
 |---|---|
 | `git status -sb` / `git diff --stat` | Limpo (só docs untracked) |
-| `npm run lint` | ✅ `No ESLint warnings or errors` |
-| `npx vitest run src/lib/caixa.test.ts` | ✅ 9 passed (6 originais + 3 novos) |
-| `npm run test` (suíte completa) | ✅ **27 arquivos / 264 testes** passaram |
-| `npm run build` | ✅ Build de produção concluído sem erros |
+| `pnpm run lint` | ✅ `No ESLint warnings or errors` |
+| `pnpm exec vitest run src/lib/caixa.test.ts` | ✅ 9 passed (6 originais + 3 novos) |
+| `pnpm run test` (suíte completa) | ✅ **27 arquivos / 264 testes** passaram |
+| `pnpm run build` | ✅ Build de produção concluído sem erros |
 
 ---
 

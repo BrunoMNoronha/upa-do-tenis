@@ -6,7 +6,7 @@
 - **Branch:** `main` (implementação ainda não commitada no momento da homologação)
 - **Data da homologação:** 04/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local, Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev`)
+- **Ambiente:** `pnpm run dev` local, Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev`)
 - **Método:** Execução manual guiada via browser automatizado (preview), com verificação direta do banco de dados para os critérios de segurança de senha; sem alteração de código-fonte durante a execução
 
 ## Escopo executado
@@ -44,7 +44,7 @@ Foi adicionado o model `Usuario` ao `prisma/schema.prisma` com a migração `202
 
 ### 2. Ajuste no banco do `.env.production` (pré-existente, não causado pela fase)
 
-Durante a validação, `npm run build` falhou no prerender de páginas antigas (/caixa, /insumos, /servicos etc.) com `P2021 — table does not exist`. Foi comprovado via `git stash` + build no HEAD limpo que **a falha já existia antes desta fase**: o `.env.production` aponta para o banco local `upa_do_tenis_prd`, que estava sem *nenhuma* migração aplicada (nem a `init_postgres`, anterior a esta fase). Correção aplicada: `prisma migrate deploy` nesse banco (operação aditiva sobre banco vazio). Após o ajuste, o build passou integralmente. Fica registrado que o **deploy real deve incluir `prisma migrate deploy` como etapa obrigatória** (ver `CHECKLIST_DEPLOY.md`).
+Durante a validação, `pnpm run build` falhou no prerender de páginas antigas (/caixa, /insumos, /servicos etc.) com `P2021 — table does not exist`. Foi comprovado via `git stash` + build no HEAD limpo que **a falha já existia antes desta fase**: o `.env.production` aponta para o banco local `upa_do_tenis_prd`, que estava sem *nenhuma* migração aplicada (nem a `init_postgres`, anterior a esta fase). Correção aplicada: `prisma migrate deploy` nesse banco (operação aditiva sobre banco vazio). Após o ajuste, o build passou integralmente. Fica registrado que o **deploy real deve incluir `prisma migrate deploy` como etapa obrigatória** (ver `CHECKLIST_DEPLOY.md`).
 
 ### 3. Tela sem controle de acesso (escopo da fase)
 
@@ -53,7 +53,7 @@ A rota `/usuarios` e as APIs `POST /api/usuarios` e `PATCH /api/usuarios/[id]` *
 ## Riscos remanescentes
 
 - Ausência de autenticação/controle de acesso (ressalva 3 acima).
-- A suíte de testes (`npm run test`) continua apagando dados de insumos do banco do `.env` — condição pré-existente do projeto, já documentada, que voltou a ocorrer nas validações desta fase.
+- A suíte de testes (`pnpm run test`) continua apagando dados de insumos do banco do `.env` — condição pré-existente do projeto, já documentada, que voltou a ocorrer nas validações desta fase.
 
 ## Pendências
 

@@ -8,7 +8,7 @@ Validar funcionalmente o MVP v1 da UPA do Tenis (Sapataria Alves) em ambiente lo
 
 ## Ambiente
 - Windows + VS Code
-- Next.js em modo desenvolvimento (`npm run dev`)
+- Next.js em modo desenvolvimento (`pnpm run dev`)
 - URLs verificadas: http://localhost:3000 e http://localhost:3001 (porta 3000 estava em uso ao subir uma instancia)
 - Banco: SQLite via Prisma
 

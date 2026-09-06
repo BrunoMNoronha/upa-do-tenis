@@ -86,9 +86,9 @@ Teste de integração venda de balcão → caixa (`src/lib/vendas.test.ts`) perm
 |---|---|---|
 | 1 | `git status -sb` | `## main...origin/main` + 2 modificados + 1 pasta untracked (conforme esperado) |
 | 2 | `git diff --stat` | `src/lib/caixa.test.ts \| 87 ++++...` / `src/lib/caixa.ts \| 6 +++` — 2 files changed, 88 insertions(+), 5 deletions(-) |
-| 3 | `npm run lint` | ✅ `No ESLint warnings or errors` |
-| 4 | `npm run test` | ✅ **27 arquivos / 264 testes** passaram |
-| 5 | `npm run build` | ✅ Build de produção concluído sem erros, incluindo rotas `/caixa`, `/caixa/[id]`, `/caixa/historico` |
+| 3 | `pnpm run lint` | ✅ `No ESLint warnings or errors` |
+| 4 | `pnpm run test` | ✅ **27 arquivos / 264 testes** passaram |
+| 5 | `pnpm run build` | ✅ Build de produção concluído sem erros, incluindo rotas `/caixa`, `/caixa/[id]`, `/caixa/historico` |
 
 ---
 

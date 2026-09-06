@@ -11,7 +11,7 @@ Correção de bug no módulo de Clientes: os campos Telefone e CPF/CNPJ aceitava
 - **Commit anterior (base da correção):** `e974c9b` — "feat: reorganizar menu lateral expansivel"
 - **Data da homologação:** 05/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`.env`)
+- **Ambiente:** `pnpm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`.env`)
 - **Método:** validação combinada — `lint`/`test`/`build` + sessão de browser automatizado (preview) cobrindo digitação com letras nos dois campos, exibição de erro, link WhatsApp na Lista de Clientes e não regressão da Lista de OS
 
 ## Causa raiz
@@ -71,9 +71,9 @@ Correção de bug no módulo de Clientes: os campos Telefone e CPF/CNPJ aceitava
 |---|---|
 | `git status` / `git diff --stat` | Árvore limpa na base (`e974c9b`); ao final: 4 arquivos alterados (+118/−7), nada além disso |
 | `git diff -- prisma/schema.prisma` | ✔ Sem diff (schema intocado) |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 21 arquivos, 182 testes aprovados (169 anteriores + 13 novos) |
-| `npm run build` | ✔ Build de produção completo; 26 rotas geradas |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 21 arquivos, 182 testes aprovados (169 anteriores + 13 novos) |
+| `pnpm run build` | ✔ Build de produção completo; 26 rotas geradas |
 
 ## Evidências (para re-execução manual)
 
@@ -88,7 +88,7 @@ Correção de bug no módulo de Clientes: os campos Telefone e CPF/CNPJ aceitava
 
 - **Validação de CPF/CNPJ continua apenas por tamanho** (11 ou 14 dígitos), sem dígito verificador — comportamento pré-existente, mantido de propósito para não quebrar fluxo homologado. Pode ser evoluído em fase futura.
 - **Clientes antigos com telefone inválido gravado** (se houver) aparecem sem link e sem máscara — comportamento intencional (não gerar link quebrado).
-- **Ressalva operacional (pré-existente):** `npm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Confirmar sempre que o `.env` aponta para banco local de desenvolvimento antes de rodar a suíte.
+- **Ressalva operacional (pré-existente):** `pnpm run test` apaga tabelas de insumos do banco apontado pelo `.env`. Confirmar sempre que o `.env` aponta para banco local de desenvolvimento antes de rodar a suíte.
 
 ## Pendências (registradas para fase futura)
 

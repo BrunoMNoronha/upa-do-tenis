@@ -30,7 +30,7 @@ O próximo passo recomendado não é ampliar escopo: é validar, corrigir bloque
 |---|---|---|---|---|---|
 | A01 | P0 | Homologação formal da Fase 10 - Controle de Caixa | Concluir roteiro de homologação, registrar evidências e aprovar ou reprovar a fase. | Controle de Caixa, Financeiro, OS | Fase não pode ser considerada concluída sem evidência funcional. |
 | A02 | P0 | Correção de loops de validação em formulários obrigatórios | Revisar validações que indicam campos como obrigatórios mesmo preenchidos. | Clientes, OS, Serviços, Entidades cadastrais | Risco de travar operação e impedir cadastros. |
-| A03 | P0 | Build, lint e testes obrigatórios como gate de fase | Padronizar execução e registro de npm run lint, testes críticos e npm run build antes de fechar fase. | Projeto inteiro | Sem gate técnico, aumenta risco de regressão silenciosa. |
+| A03 | P0 | Build, lint e testes obrigatórios como gate de fase | Padronizar execução e registro de pnpm run lint, testes críticos e pnpm run build antes de fechar fase. | Projeto inteiro | Sem gate técnico, aumenta risco de regressão silenciosa. |
 | A04 | P1 | Auditoria de integridade do caixa | Validar abertura, fechamento, saldo inicial, entradas, saídas, sangria, reforço e divergência. | Controle de Caixa | Área crítica: dinheiro e rastreabilidade financeira. |
 | A05 | P1 | Conciliação entre pagamentos de OS e caixa | Garantir que pagamentos registrados reflitam corretamente no caixa quando aplicável. | OS, Pagamentos, Caixa, Financeiro | Risco de saldo incorreto e relatório financeiro inconsistente. |
 | A06 | P1 | Bloqueios operacionais em caixa fechado | Definir e validar se pagamentos, sangrias e reforços podem ocorrer sem caixa aberto. | Caixa, Pagamentos | Risco de movimentação financeira sem sessão de caixa. |
@@ -61,7 +61,7 @@ O próximo passo recomendado não é ampliar escopo: é validar, corrigir bloque
 
 - Nenhuma fase deve ser fechada apenas por implementação de código.
 - Toda alteração em dinheiro, pagamentos, caixa, saldo, estoque ou insumos deve ter teste automatizado e homologação manual.
-- npm run lint, testes críticos e npm run build devem ser executados e registrados antes de recomendar commit.
+- pnpm run lint, testes críticos e pnpm run build devem ser executados e registrados antes de recomendar commit.
 - Não alterar schema do banco sem justificativa, impacto mapeado e plano de migração.
 - Não misturar melhoria visual com regra financeira, caixa ou estoque.
 - Toda fase deve gerar relatório técnico e relatório de homologação com evidências.
@@ -121,9 +121,9 @@ Critérios de aceite:
 - A fase só pode ser considerada concluída com testes, build e homologação documentados.
 
 Comandos de validação:
-- npm run lint
-- npm run build
-- npx vitest run
+- pnpm run lint
+- pnpm run build
+- pnpm exec vitest run
 - Executar manualmente os fluxos críticos no navegador
 
 Entrega esperada:

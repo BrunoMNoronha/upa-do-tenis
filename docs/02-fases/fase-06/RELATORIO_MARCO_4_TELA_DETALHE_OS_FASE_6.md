@@ -61,20 +61,20 @@ Resumo financeiro exibido (sem recalculo no client):
 - Nao foi implementado registro de pagamento pela tela neste marco.
 - Endpoints existentes de pagamentos permanecem inalterados e disponiveis para o proximo passo.
 
-## Resultado de npm run test
+## Resultado de pnpm run test
 
 Comando executado:
-- npm run test
+- pnpm run test
 
 Resultado:
 - Test Files: 3 passed (3)
 - Tests: 28 passed (28)
 - Status: SUCESSO
 
-## Resultado de npm run build
+## Resultado de pnpm run build
 
 Comando executado:
-- npm run build
+- pnpm run build
 
 Resultado:
 - Build concluido com sucesso.

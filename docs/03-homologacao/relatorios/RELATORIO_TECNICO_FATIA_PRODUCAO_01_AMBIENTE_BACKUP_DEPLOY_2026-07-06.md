@@ -24,7 +24,7 @@ Achados adicionais relevantes ao escopo:
 - `scripts/bootstrap-admin.ts` + `src/lib/bootstrap-admin.ts` já implementam criação segura do primeiro administrador: só age se `prisma.usuario.count() === 0`, credenciais via variáveis de ambiente ou prompt interativo sem eco no terminal, sem senha fixa.
 - `prisma/seed.ts` já tem guarda contra sobrescrita (`if (countClientes > 0) return`), evitando rodar sobre um banco com dados reais.
 - `prisma/homologacao.ts` é um script de simulação manual para dev/homologação guiada — não deve ser executado em produção (não faz parte do fluxo de deploy).
-- `npx prisma migrate status` contra o banco de desenvolvimento confirmou schema em dia, 4 migrations aplicadas, nenhuma pendente.
+- `pnpm exec prisma migrate status` contra o banco de desenvolvimento confirmou schema em dia, 4 migrations aplicadas, nenhuma pendente.
 
 ## Implementação realizada
 
@@ -52,8 +52,8 @@ Nenhum arquivo de código, schema ou `.env*` foi criado ou alterado. `.env.produ
 ## Banco de produção
 
 - **Estratégia:** banco PostgreSQL fisicamente separado do banco de desenvolvimento/teste, provisionado no momento do deploy real (ainda não existe uma instância de produção real — pendência explícita, ver abaixo).
-- **Migrations:** aplicar com `npx prisma migrate deploy` (nunca `migrate dev` ou `migrate reset` em produção); `npx prisma generate` no build; `npx prisma migrate status` como checagem antes e depois.
-- **Admin inicial:** reutilizar `npm run bootstrap:admin` já existente (seguro, idempotente — só age se não houver usuário). Nenhuma alteração necessária neste script.
+- **Migrations:** aplicar com `pnpm exec prisma migrate deploy` (nunca `migrate dev` ou `migrate reset` em produção); `pnpm exec prisma generate` no build; `pnpm exec prisma migrate status` como checagem antes e depois.
+- **Admin inicial:** reutilizar `pnpm run bootstrap:admin` já existente (seguro, idempotente — só age se não houver usuário). Nenhuma alteração necessária neste script.
 - **Restrições:** documentadas no checklist — nunca reaproveitar banco dev/test como produção; nunca rodar seed ou script destrutivo contra produção; backup obrigatório antes de qualquer migration em produção.
 
 ## Backup e restore
@@ -74,11 +74,11 @@ Nenhum arquivo de código, schema ou `.env*` foi criado ou alterado. `.env.produ
 | Comando | Resultado |
 |---|---|
 | `git status -sb` / `git log --oneline -5` / `git diff --stat` / `git remote -v` | branch `main` limpa, 1 commit à frente de `origin/main`, remote único (GitHub) |
-| `npx prisma migrate status` (banco dev) | schema em dia, 4 migrations, nada pendente |
+| `pnpm exec prisma migrate status` (banco dev) | schema em dia, 4 migrations, nada pendente |
 | Teste de backup/restore (Docker, ambiente isolado) | ciclo completo validado, ambiente de teste limpo ao final |
-| `npm run lint` | ✔ sem erros (executado 2x: diagnóstico inicial e pós-documentação) |
-| `npm run test` | ✔ 323 testes, 32 arquivos (executado 2x) |
-| `npm run build` | ✔ build limpo, 30 páginas, middleware Edge 27,1 kB (executado 2x) |
+| `pnpm run lint` | ✔ sem erros (executado 2x: diagnóstico inicial e pós-documentação) |
+| `pnpm run test` | ✔ 323 testes, 32 arquivos (executado 2x) |
+| `pnpm run build` | ✔ build limpo, 30 páginas, middleware Edge 27,1 kB (executado 2x) |
 
 ## Riscos remanescentes
 

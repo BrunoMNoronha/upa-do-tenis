@@ -72,9 +72,9 @@ Nenhum arquivo de código, schema, `.env*` ou configuração de CI/CD foi criado
 | `git log --oneline -5` | topo em `dc71a4a` |
 | `git remote -v` | remote único `origin` (GitHub) |
 | Busca por arquivos de CI/CD/deploy | nenhum encontrado |
-| `npm run lint` | ✔ sem erros |
-| `npm run test` | ✔ 323 testes, 32 arquivos |
-| `npm run build` | ✔ build limpo, 30 páginas, middleware Edge 27,1 kB |
+| `pnpm run lint` | ✔ sem erros |
+| `pnpm run test` | ✔ 323 testes, 32 arquivos |
+| `pnpm run build` | ✔ build limpo, 30 páginas, middleware Edge 27,1 kB |
 
 ## Validações realizadas
 

@@ -2,7 +2,7 @@
  * Bootstrap do primeiro usuário administrador.
  *
  * Uso:
- *   npm run bootstrap:admin
+ *   pnpm run bootstrap:admin
  *
  * Credenciais via variáveis de ambiente (BOOTSTRAP_ADMIN_NOME,
  * BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_SENHA) ou, na ausência delas,

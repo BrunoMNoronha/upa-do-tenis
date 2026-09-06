@@ -104,10 +104,10 @@ Adicionado bloco **"Resumo antes de fechar"**, exibido junto ao formulário, ant
 | Comando | Resultado |
 |---|---|
 | `git status -sb` / `git diff --stat` | Limpo antes de iniciar; ao final, apenas os 3 arquivos de tela listados na seção 3 |
-| `npm run lint` | ✅ No ESLint warnings or errors |
-| `npm run test` | ✅ 27 arquivos / 264 testes passaram |
-| `npm run build` | ✅ Build de produção concluído sem erros |
-| Verificação manual em preview (`npm run dev`) | ✅ Ver seção 8 |
+| `pnpm run lint` | ✅ No ESLint warnings or errors |
+| `pnpm run test` | ✅ 27 arquivos / 264 testes passaram |
+| `pnpm run build` | ✅ Build de produção concluído sem erros |
+| Verificação manual em preview (`pnpm run dev`) | ✅ Ver seção 8 |
 
 ---
 

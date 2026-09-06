@@ -2,6 +2,20 @@
 
 Sistema web para gestão operacional de sapataria.
 
+## Instalação
+
+Use Node.js 22.13 ou superior e pnpm 11.25.0 (versão fixada em `package.json`).
+
+```bash
+corepack enable
+corepack prepare pnpm@11.25.0 --activate
+pnpm install --frozen-lockfile
+pnpm run prisma:generate
+pnpm run dev
+```
+
+Os comandos da documentação foram padronizados para pnpm; resultados de homologações anteriores permanecem históricos e não representam novas execuções. No Docker, o layout de dependências usa `hoisted` para preservar os caminhos de cópia do Prisma.
+
 ## Escopo do MVP
 
 - Clientes
@@ -66,9 +80,9 @@ aplicação ou executar os testes:
 
 ```powershell
 $env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_dev?schema=public"
-npx prisma db push
+pnpm exec prisma db push
 $env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_test?schema=public"
-npx prisma db push
+pnpm exec prisma db push
 ```
 
 O banco de testes deve ser usado exclusivamente pela suíte automatizada.
@@ -76,15 +90,15 @@ O banco de testes deve ser usado exclusivamente pela suíte automatizada.
 ### Comandos de migration
 
 ```bash
-npx prisma generate
-npx prisma migrate dev --name init   # cria a primeira migration Postgres (ambiente de dev)
-npx prisma migrate deploy            # aplica migrations pendentes em produção
+pnpm exec prisma generate
+pnpm exec prisma migrate dev --name init   # cria a primeira migration Postgres (ambiente de dev)
+pnpm exec prisma migrate deploy            # aplica migrations pendentes em produção
 ```
 
 ### Comandos de teste
 
 ```bash
-npm run test
+pnpm run test
 ```
 
 > **Aviso crítico:** nunca aponte `.env.test` ou `.env.development` para o banco de produção. Os testes podem limpar/recriar tabelas — rodar contra produção pode causar perda de dados real.
@@ -94,9 +108,9 @@ npm run test
 ```bash
 git status
 git diff --stat
-npm run lint
-npm run test
-npm run build
+pnpm run lint
+pnpm run test
+pnpm run build
 ```
 
 ## Produção Local (Docker)

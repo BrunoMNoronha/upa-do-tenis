@@ -59,11 +59,11 @@
 	- pagamento com forma invalida deve falhar.
 	- OS inexistente deve falhar.
 
-## Resultado do npm run test
+## Resultado do pnpm run test
 
 Comando executado:
 
-npm run test
+pnpm run test
 
 Saida consolidada:
 
@@ -71,11 +71,11 @@ Saida consolidada:
 - Tests: 23 passed (23)
 - Status: SUCESSO
 
-## Resultado do npm run build
+## Resultado do pnpm run build
 
 Comando executado:
 
-npm run build
+pnpm run build
 
 Saida consolidada:
 

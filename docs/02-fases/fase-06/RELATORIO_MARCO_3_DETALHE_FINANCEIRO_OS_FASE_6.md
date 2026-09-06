@@ -105,20 +105,20 @@ Alterados:
 - src/lib/ordens-servico-pagamentos.test.ts
   - cobertura explicita de que o registro de pagamento ocorre dentro de transacao Prisma.
 
-## Resultado de npm run test
+## Resultado de pnpm run test
 
 Comando:
-- npm run test
+- pnpm run test
 
 Resultado:
 - Test Files: 3 passed (3)
 - Tests: 28 passed (28)
 - Status: SUCESSO
 
-## Resultado de npm run build
+## Resultado de pnpm run build
 
 Comando:
-- npm run build
+- pnpm run build
 
 Resultado:
 - Build concluido com sucesso.

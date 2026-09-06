@@ -65,7 +65,7 @@ Implementar a tela funcional de Venda de Balcão, conectando a interface de usu�
 
 ## 4. Comandos Executados e Resultados
 
-### `npm run test`
+### `pnpm run test`
 ```
 Test Files  27 passed (27)
      Tests  237 passed (237)
@@ -76,13 +76,13 @@ Test Files  27 passed (27)
 
 > **Nota:** O `stderr` gerado no teste de status 500 (`Erro ao registrar venda de balcão: Error: Falha de banco`) é o `console.error` da própria rota sendo exercitado intencionalmente no teste de caminho de erro. Não é falha.
 
-### `npm run lint`
+### `pnpm run lint`
 ```
 ✔ No ESLint warnings or errors
 ```
 ✅ **PASSOU** — Nenhum erro ou warning.
 
-### `npm run build`
+### `pnpm run build`
 ```
 ✓ Compiled successfully
 ✓ Generating static pages (30/30)

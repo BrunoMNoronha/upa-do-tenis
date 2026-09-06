@@ -92,13 +92,13 @@ Nova função `sanearTipoFormaPagamentoDinheiro()`:
 - Dentre essas, corrige apenas as que têm `tipo` vazio/nulo, setando `tipo = "DINHEIRO"`.
 - **Deliberadamente não** tenta adivinhar ou corrigir nomes ambíguos (ex.: "Dinheiro Físico", "Espécie", "Caixa") — consistente com a restrição do projeto de não alterar dados de forma automática sem regra clara. Esses casos exigem revisão manual pela tela `/formas-pagamento`.
 - Idempotente: rodar novamente não altera nada se já estiver corrigido (testado).
-- Exposto via `npm run saneamento:forma-dinheiro` (script `scripts/saneamento-forma-pagamento-dinheiro.ts`, mesmo padrão de `bootstrap-admin.ts`).
+- Exposto via `pnpm run saneamento:forma-dinheiro` (script `scripts/saneamento-forma-pagamento-dinheiro.ts`, mesmo padrão de `bootstrap-admin.ts`).
 
 ### 5.3 Execução do saneamento no ambiente de dev (verificação)
 Para fechar o ciclo e confirmar a correção de ponta a ponta, o script foi executado no banco de **desenvolvimento** local (`upa_do_tenis_dev`, o mesmo onde o bug foi encontrado na Fatia 13.3):
 
 ```
-npm run saneamento:forma-dinheiro
+pnpm run saneamento:forma-dinheiro
 Formas chamadas "Dinheiro" encontradas: 1
 ✅ Corrigidas 1 forma(s) para tipo = "DINHEIRO":
   - cmr6u027e000753c6nv3ucwue
@@ -130,9 +130,9 @@ PIX/cartão fora do saldo físico e a blindagem por `tipo` (nome divergente, nom
 | Comando | Resultado |
 |---|---|
 | `git status -sb` / `git diff --stat` (antes) | 3 arquivos modificados da Fatia 13.3, nenhuma sobreposição com esta correção |
-| `npm run lint` | ⚠️ Falhou na primeira execução (aspas retas não escapadas em JSX) → ✅ corrigido (`&quot;`) → **aprovado** |
-| `npm run test` | ✅ **29 arquivos / 275 testes** passaram (264 anteriores + 11 novos) |
-| `npm run build` | ✅ Build de produção concluído sem erros |
+| `pnpm run lint` | ⚠️ Falhou na primeira execução (aspas retas não escapadas em JSX) → ✅ corrigido (`&quot;`) → **aprovado** |
+| `pnpm run test` | ✅ **29 arquivos / 275 testes** passaram (264 anteriores + 11 novos) |
+| `pnpm run build` | ✅ Build de produção concluído sem erros |
 | Verificação manual em preview | ✅ Ver seção 8 |
 | `git status -sb` (depois) | Confirma que os 3 arquivos da Fatia 13.3 permanecem com o **mesmo diff**, sem mistura |
 
@@ -142,7 +142,7 @@ PIX/cartão fora do saldo físico e a blindagem por `tipo` (nome divergente, nom
 
 1. Acessada a tela `/formas-pagamento`: rótulo "Tipo Interno" (sem "(Opcional)") e texto de ajuda visíveis.
 2. Tentativa de cadastro de uma forma sem preencher `tipo`: **bloqueado** pelo formulário, com a mensagem de validação exibida; nenhum registro foi criado (contagem "Total" permaneceu 1).
-3. Executado `npm run saneamento:forma-dinheiro` contra o banco de dev: 1 registro corrigido (o mesmo identificado na Fatia 13.3).
+3. Executado `pnpm run saneamento:forma-dinheiro` contra o banco de dev: 1 registro corrigido (o mesmo identificado na Fatia 13.3).
 4. Reaberto um caixa e registradas movimentações vinculadas à forma "Dinheiro" (já corrigida): uma `ENTRADA` de R$ 500,00 e uma `SAÍDA` de R$ 200,00.
 5. Consulta a `GET /api/caixa/atual` confirmou:
    ```json
@@ -165,7 +165,7 @@ PIX/cartão fora do saldo físico e a blindagem por `tipo` (nome divergente, nom
 
 1. Acesse `/formas-pagamento` e tente cadastrar uma forma sem preencher "Tipo Interno": deve ser bloqueado com mensagem de erro clara.
 2. Cadastre uma forma com `tipo` em minúsculas (ex.: "pix") e confirme, na listagem, que foi salva como "PIX" (maiúsculas).
-3. Rode `npm run saneamento:forma-dinheiro` no ambiente desejado (dev/homologação, mediante autorização) e confirme no console que apenas a forma "Dinheiro" é avaliada e corrigida quando necessário.
+3. Rode `pnpm run saneamento:forma-dinheiro` no ambiente desejado (dev/homologação, mediante autorização) e confirme no console que apenas a forma "Dinheiro" é avaliada e corrigida quando necessário.
 4. Rode o comando novamente e confirme a mensagem "Nenhuma correção necessária" (idempotência).
 5. Abra um caixa, registre uma entrada e uma saída vinculadas à forma "Dinheiro" e confirme, em `/caixa`, que o "Saldo Físico" responde corretamente às duas movimentações.
 6. Revise manualmente, em `/formas-pagamento`, se existe alguma forma de pagamento que representa dinheiro com nome diferente de "Dinheiro" (não coberta pelo saneamento automático) e corrija seu `tipo` manualmente se necessário.

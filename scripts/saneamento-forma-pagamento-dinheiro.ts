@@ -10,7 +10,7 @@
  * não tem efeito colateral se já estiver corrigido.
  *
  * Uso:
- *   npm run saneamento:forma-dinheiro
+ *   pnpm run saneamento:forma-dinheiro
  */
 import { prisma } from "../src/lib/prisma";
 import { sanearTipoFormaPagamentoDinheiro } from "../src/lib/formas-pagamento";

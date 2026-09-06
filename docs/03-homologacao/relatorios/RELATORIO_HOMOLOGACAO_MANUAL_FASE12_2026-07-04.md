@@ -6,7 +6,7 @@
 - **Branch:** `main` (sincronizada com `origin/main`, working tree limpo antes do início)
 - **Data da homologação:** 04/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local, Next.js 14.2.35, banco SQLite (`prisma/dev.db`)
+- **Ambiente:** `pnpm run dev` local, Next.js 14.2.35, banco SQLite (`prisma/dev.db`)
 - **Método:** Execução manual guiada via browser automatizado (preview), sem alteração de código-fonte durante a execução
 
 ## Escopo executado

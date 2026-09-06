@@ -38,7 +38,7 @@ Alterados nesta sessão:
 - `src/app/servicos/page.tsx` — idem.
 - `Dockerfile` — removida a cópia isolada de `node_modules/.bin/prisma` (causava
   quebra de resolução de caminho relativo do arquivo `.wasm` do Prisma).
-- `docker-entrypoint.sh` — troca de `npx prisma migrate deploy` por
+- `docker-entrypoint.sh` — troca de `pnpm exec prisma migrate deploy` por
   `node node_modules/prisma/build/index.js migrate deploy` (evita depender do
   shim `.bin/prisma`, que é um symlink no host e é desreferenciado incorretamente
   pelo `COPY` do Docker).
@@ -57,19 +57,19 @@ financeiros, regras de pagamento, caixa ou estoque/insumos.
 
 ### Lint
 ```
-npm run lint
+pnpm run lint
 ```
 Resultado: `✔ No ESLint warnings or errors`
 
 ### Testes
 ```
-npm run test
+pnpm run test
 ```
 Resultado: `Test Files 32 passed (32)` / `Tests 323 passed (323)`
 
 ### Build local
 ```
-npm run build
+pnpm run build
 ```
 Resultado: sucesso. As 5 páginas corrigidas passaram de estáticas (`○`) para
 dinâmicas (`ƒ`): `/caixa`, `/formas-pagamento`, `/insumos`, `/ordens-servico`,
@@ -86,7 +86,7 @@ o prerender falhava.
 
 Correção mínima aplicada: `export const dynamic = "force-dynamic"` nas 5
 páginas (mesmo padrão já usado em `/vendas`, `/produtos`, `/usuarios`,
-`/login`). Após a correção, `npm run lint`, `npm run test` e `npm run build`
+`/login`). Após a correção, `pnpm run lint`, `pnpm run test` e `pnpm run build`
 foram executados novamente com sucesso (resultados acima).
 
 ### Docker build (2ª tentativa)
@@ -114,7 +114,7 @@ docker compose --env-file .env.docker -f docker-compose.local.yml up -d
 ```
 Resultado: containers subiram, mas `upa-app` entrou em **crash loop**.
 
-Causa raiz: `docker-entrypoint.sh` executava `npx prisma migrate deploy`.
+Causa raiz: `docker-entrypoint.sh` executava `pnpm exec prisma migrate deploy`.
 `node_modules/.bin/prisma` no host Windows é um shim/symlink apontando para
 `../prisma/build/index.js`. A instrução `COPY` do Dockerfile copiava apenas
 esse arquivo isoladamente, desreferenciando o symlink e colocando o conteúdo
@@ -206,7 +206,7 @@ Resultado: arquivo gerado com sucesso, 37.831 bytes, 1260 linhas. Pasta
 - Nenhum usuário existe no banco de produção local; login real e navegação
   autenticada (criação de cliente/OS via UI) ainda não foram testados
   manualmente nesta fatia — ficam para homologação manual dedicada, incluindo
-  `npm run bootstrap:admin` (execução manual, fora do escopo automatizado desta tarefa).
+  `pnpm run bootstrap:admin` (execução manual, fora do escopo automatizado desta tarefa).
 - `AUTH_SESSION_SECRET` e `POSTGRES_PASSWORD` usados neste piloto foram gerados
   localmente e estão apenas em `.env.docker` (não versionado); para produção
   real, devem ser gerados/geridos por processo próprio de segredo.

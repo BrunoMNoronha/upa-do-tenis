@@ -61,13 +61,13 @@ Nenhum recomputo de saldo físico, nenhuma chamada de API nova, nenhuma alteraç
 ## 6. Verificação de infraestrutura (Postgres)
 
 - `docker ps --filter "name=upa-postgres"` → container `Up` há mais de 1 hora, porta `0.0.0.0:5432->5432/tcp` publicada.
-- Confirmado aceitando conexões (usado com sucesso pelo `npm run dev`, pelos testes e pelo saneamento abaixo).
+- Confirmado aceitando conexões (usado com sucesso pelo `pnpm run dev`, pelos testes e pelo saneamento abaixo).
 
 ---
 
 ## 7. Revalidação da correção 13.2.1 no banco local
 
-Antes de testar manualmente, foi executado `npm run saneamento:forma-dinheiro` para confirmar que o dado local está correto após a correção crítica:
+Antes de testar manualmente, foi executado `pnpm run saneamento:forma-dinheiro` para confirmar que o dado local está correto após a correção crítica:
 
 ```
 Formas chamadas "Dinheiro" encontradas: 1
@@ -116,11 +116,11 @@ Todos os cenários foram confirmados visualmente (snapshot de acessibilidade + l
 | `git status -sb` / `git diff --stat` | `main...origin/main`, apenas os 4 arquivos esperados da 13.3 (3 modificados + 1 novo) |
 | `git log --oneline -5` | Confirma `b811a76` como HEAD, com `c6e25ec` e a 13.2.1 já publicados |
 | `docker ps --filter "name=upa-postgres"` | ✅ Container `Up`, porta `5432` publicada |
-| `npm run saneamento:forma-dinheiro` | ✅ "Nenhuma correção necessária" — dado local já corrigido |
-| Homologação manual em preview (`npm run dev`) | ✅ Ver seção 8 — 8/8 cenários confirmados, sem erros de console/servidor |
-| `npm run lint` | ✅ No ESLint warnings or errors |
-| `npm run test` | ✅ 29 arquivos / 275 testes aprovados |
-| `npm run build` | ✅ Build de produção concluído sem erros (31 rotas geradas) |
+| `pnpm run saneamento:forma-dinheiro` | ✅ "Nenhuma correção necessária" — dado local já corrigido |
+| Homologação manual em preview (`pnpm run dev`) | ✅ Ver seção 8 — 8/8 cenários confirmados, sem erros de console/servidor |
+| `pnpm run lint` | ✅ No ESLint warnings or errors |
+| `pnpm run test` | ✅ 29 arquivos / 275 testes aprovados |
+| `pnpm run build` | ✅ Build de produção concluído sem erros (31 rotas geradas) |
 
 ---
 

@@ -22,7 +22,7 @@ Nenhuma regressão foi encontrada. Todos os cálculos financeiros do caixa (sald
 - **SO:** Windows 10 Pro
 - **Node/Next.js:** Next.js 14.2.35
 - **Banco de dados (homologação manual):** PostgreSQL local, `upa_do_tenis_dev` (`.env.development`) — isolado do banco de produção e do banco de testes (`upa_do_tenis_test`)
-- **Servidor:** `npm run dev` via preview tool, porta dinâmica (63472, pois 3000 estava ocupada)
+- **Servidor:** `pnpm run dev` via preview tool, porta dinâmica (63472, pois 3000 estava ocupada)
 - **Suíte automatizada:** Vitest, banco `upa_do_tenis_test` (`.env.test`)
 
 ---
@@ -48,9 +48,9 @@ Confirmado: `20c19c8` está no topo de `origin/main`, presente e sincronizado.
 | `git status -sb` | `## main...origin/main` — limpo |
 | `git log --oneline -5` | Topo em `20c19c8`, idêntico local e remoto |
 | `git diff --stat` | Vazio |
-| `npm run lint` | ✅ `No ESLint warnings or errors` |
-| `npm run test` | ✅ **29 arquivos / 278 testes** aprovados (18.76s) |
-| `npm run build` | ✅ Build de produção concluído sem erros; todas as rotas de `/api/caixa/*` compiladas como dinâmicas (`ƒ`) |
+| `pnpm run lint` | ✅ `No ESLint warnings or errors` |
+| `pnpm run test` | ✅ **29 arquivos / 278 testes** aprovados (18.76s) |
+| `pnpm run build` | ✅ Build de produção concluído sem erros; todas as rotas de `/api/caixa/*` compiladas como dinâmicas (`ƒ`) |
 
 Nenhuma falha mascarada ou ignorada. Nenhuma migration ou alteração de `schema.prisma` foi executada.
 

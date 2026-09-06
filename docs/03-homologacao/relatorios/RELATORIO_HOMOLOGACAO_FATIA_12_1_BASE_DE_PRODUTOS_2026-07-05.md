@@ -11,7 +11,7 @@ Primeira fatia da Fase 12 (Atendimento de Balcão e Vendas): criação da entida
 - **Commit anterior (base da fatia):** `61a06a7` — "docs: adicionar documento tecnico da fase 12 atendimento de balcao e vendas"
 - **Data da homologação:** 05/07/2026
 - **Responsável pela execução:** Claude Code (agente), a pedido de Bruno M Noronha
-- **Ambiente:** `npm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev`)
+- **Ambiente:** `pnpm run dev` local (porta 3000 via preview), Next.js 14.2.35, banco PostgreSQL local (`upa_do_tenis_dev`)
 - **Banco de testes:** `upa_do_tenis_test` via `.env.test` (carregado pelo `vitest.config.ts`); migration nova aplicada com `prisma migrate deploy` antes da suíte
 - **Método:** validação combinada — `lint`/`test`/`build` + sessão de browser automatizado (preview) executando o CRUD completo na tela `/produtos`
 
@@ -73,11 +73,11 @@ O produto de teste criado durante a validação foi excluído ao final; o banco 
 | Comando | Resultado |
 |---|---|
 | `git status` / `git diff --stat` | Base limpa (`61a06a7`); ao final: 2 arquivos modificados (+25 linhas), demais arquivos novos |
-| `npx prisma migrate dev --name create_produto` | ✔ Migration criada e aplicada no dev |
-| `npx prisma migrate deploy` (DATABASE_URL do `.env.test`) | ✔ Banco de teste sincronizado (estava 1 migration atrasado) |
-| `npm run lint` | ✔ Sem erros ou warnings |
-| `npm run test` | ✔ 22 arquivos, 197 testes aprovados (189 anteriores + 8 novos), banco `upa_do_tenis_test` |
-| `npm run build` | ✔ Build de produção completo; 28 rotas geradas (incluindo `/produtos` e `/api/produtos`) |
+| `pnpm exec prisma migrate dev --name create_produto` | ✔ Migration criada e aplicada no dev |
+| `pnpm exec prisma migrate deploy` (DATABASE_URL do `.env.test`) | ✔ Banco de teste sincronizado (estava 1 migration atrasado) |
+| `pnpm run lint` | ✔ Sem erros ou warnings |
+| `pnpm run test` | ✔ 22 arquivos, 197 testes aprovados (189 anteriores + 8 novos), banco `upa_do_tenis_test` |
+| `pnpm run build` | ✔ Build de produção completo; 28 rotas geradas (incluindo `/produtos` e `/api/produtos`) |
 
 ## Confirmação de não-alteração (áreas críticas)
 
