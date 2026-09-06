@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { Badge, Button, Card, Input, Label, PanelHeader, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 
 type Cliente = {
@@ -441,51 +441,32 @@ export function OrdemServicoDetalheClient({
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+    <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
       <div className="space-y-6">
-        <Card className="p-6 border-l-4 border-l-[color:var(--accent-strong)] bg-slate-50">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)] mb-4">Resumo Operacional</p>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Cliente</p>
-              <p className="font-semibold text-[color:var(--text)]">{ordem.cliente.nome}</p>
-              <p className="text-sm text-slate-600">{ordem.cliente.telefone}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Status Operacional</p>
-              <p className="mt-1"><Badge tone="neutral">{formatarStatus(ordem.status)}</Badge></p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Prazos</p>
-              <p className="text-sm text-slate-700">
-                <span className="font-medium text-slate-900">Prev:</span> {dateFormatter.format(new Date(ordem.dataPrevisao))}
-              </p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Valor Total</p>
-              <p className="font-semibold text-[color:var(--text)]">{currencyFormatter.format(Number(resumo.valorTotal || 0))}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Valor Pago</p>
-              <p className="font-semibold text-emerald-700">{currencyFormatter.format(Number(resumo.valorPago || 0))}</p>
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 uppercase tracking-wider">Saldo a Pagar</p>
-              <p className="font-semibold text-rose-700">{currencyFormatter.format(Number(resumo.saldo || 0))}</p>
+        <Card className="overflow-hidden">
+          <div className="border-b border-[color:var(--border)] bg-gradient-to-b from-[color:var(--accent-tint)] to-transparent p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">Detalhe da ordem</p>
+                <SectionTitle className="mt-1 text-2xl">{ordem.numero}</SectionTitle>
+                <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                  <span className="font-semibold text-[color:var(--text)]">{ordem.cliente.nome}</span>
+                  <span>{ordem.cliente.telefone}</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="accent">{formatarStatus(ordem.status)}</Badge>
+                <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
+              </div>
             </div>
           </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Cabeçalho da OS</p>
-              <SectionTitle className="mt-2">{ordem.numero}</SectionTitle>
-            </div>
-            <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
+          <div className="grid gap-3 p-6 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
+            <div><p className="text-xs uppercase tracking-[0.12em] text-slate-500">Cliente</p><p className="mt-1 font-semibold text-[color:var(--text)]">{ordem.cliente.nome}</p></div>
+            <div><p className="text-xs uppercase tracking-[0.12em] text-slate-500">Status</p><p className="mt-1"><Badge tone="neutral">{formatarStatus(ordem.status)}</Badge></p></div>
+            <div><p className="text-xs uppercase tracking-[0.12em] text-slate-500">Prazo</p><p className="mt-1 text-[color:var(--text)]">{dateFormatter.format(new Date(ordem.dataPrevisao))}</p></div>
+            <div><p className="text-xs uppercase tracking-[0.12em] text-slate-500">Saldo</p><p className="mt-1 font-semibold text-rose-700">{currencyFormatter.format(Number(resumo.saldo || 0))}</p></div>
           </div>
-
-          <div className="mt-5 grid gap-3 text-sm text-slate-700 sm:grid-cols-2">
+          <div className="border-t border-[color:var(--border)] px-6 py-4">
             <p>
               <span className="font-semibold text-[color:var(--text)]">Entrada:</span>{" "}
               {dateFormatter.format(new Date(ordem.dataEntrada))}
@@ -505,8 +486,11 @@ export function OrdemServicoDetalheClient({
           </div>
         </Card>
 
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Itens da OS</p>
+        <Card className="overflow-hidden">
+          <div className="border-b border-[color:var(--border)] p-5">
+            <PanelHeader title="Itens e serviços" description={`${ordem.itens.length} item(ns) vinculado(s) à ordem`} />
+          </div>
+          <div className="p-6">
           {ordem.itens.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">Nenhum item vinculado.</p>
           ) : (
@@ -613,10 +597,14 @@ export function OrdemServicoDetalheClient({
               ))}
             </div>
           )}
+          </div>
         </Card>
 
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Histórico de status</p>
+        <Card className="overflow-hidden">
+          <div className="border-b border-[color:var(--border)] p-5">
+            <PanelHeader title="Linha do tempo" description="Status e movimentações da ordem" />
+          </div>
+          <div className="p-6">
           {ordem.historicosStatus.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">Sem histórico registrado.</p>
           ) : (
@@ -641,12 +629,21 @@ export function OrdemServicoDetalheClient({
               ))}
             </div>
           )}
+          </div>
         </Card>
       </div>
 
-      <aside className="space-y-6">
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Resumo financeiro</p>
+      <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <Card className="overflow-hidden">
+          <div className="bg-gradient-to-b from-[color:var(--accent-tint)] to-transparent p-6">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Saldo a receber</p>
+            <p className="mt-1 text-3xl font-bold tracking-tight text-[color:var(--text)]">{currencyFormatter.format(Number(resumo.saldo || 0))}</p>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/10">
+              <div className="h-full rounded-full bg-[color:var(--accent)]" style={{ width: `${Math.min(100, Math.round((Number(resumo.valorPago || 0) / Math.max(Number(resumo.valorTotal || 1), 1)) * 100))}%` }} />
+            </div>
+            <p className="mt-2 text-xs text-slate-600">{currencyFormatter.format(Number(resumo.valorPago || 0))} pagos de {currencyFormatter.format(Number(resumo.valorTotal || 0))}</p>
+          </div>
+          <div className="p-5">
           <div className="mt-3">
             <LinhaResumo label="Valor total" valor={resumo.valorTotal} />
             <LinhaResumo label="Desconto" valor={resumo.valorDesconto} />
@@ -659,10 +656,11 @@ export function OrdemServicoDetalheClient({
               Status financeiro: {formatarStatus(resumo.statusFinanceiro)}
             </Badge>
           </div>
+          </div>
         </Card>
 
         <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Registrar pagamento</p>
+          <PanelHeader title="Receber pagamento" description="O lançamento será registrado no caixa aberto." />
 
           {formasPagamento.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">
@@ -749,7 +747,7 @@ export function OrdemServicoDetalheClient({
         </Card>
 
         <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Registrar insumo utilizado</p>
+          <PanelHeader title="Insumos aplicados" description="Vincule o consumo ao item da ordem." />
 
           {ordem.itens.length === 0 || insumosDisponiveis.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">
@@ -847,7 +845,7 @@ export function OrdemServicoDetalheClient({
         </Card>
 
         <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Pagamentos registrados</p>
+          <PanelHeader title="Pagamentos registrados" description={`${ordem.pagamentos.length} lançamento(s)`} />
           {ordem.pagamentos.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">Nenhum pagamento registrado até o momento.</p>
           ) : (
