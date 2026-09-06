@@ -11,4 +11,9 @@ export const formaPagamentoFormSchema = z.object({
   }),
 });
 
+export const formaPagamentoAtualizarSchema = formaPagamentoFormSchema.partial().extend({
+  ativo: z.boolean().optional(),
+});
+
 export type FormaPagamentoFormValues = z.infer<typeof formaPagamentoFormSchema>;
+export type FormaPagamentoAtualizarValues = z.infer<typeof formaPagamentoAtualizarSchema>;

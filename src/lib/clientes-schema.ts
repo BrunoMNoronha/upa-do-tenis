@@ -22,4 +22,9 @@ export const clienteFormSchema = z.object({
   observacoes: optionalTrimmedString,
 });
 
+export const clienteAtualizarSchema = clienteFormSchema.partial().extend({
+  ativo: z.boolean().optional(),
+});
+
 export type ClienteFormValues = z.infer<typeof clienteFormSchema>;
+export type ClienteAtualizarValues = z.infer<typeof clienteAtualizarSchema>;

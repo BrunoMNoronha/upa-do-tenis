@@ -68,15 +68,18 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const count = await prisma.itemVenda.count({
-      where: { produtoId: params.id },
-    });
+    // Ambas as relações são onDelete: Restrict no schema. Contar as duas evita
+    // que um produto só com movimentação de estoque estoure P2003 e vire 500.
+    const [itensVenda, movimentacoes] = await Promise.all([
+      prisma.itemVenda.count({ where: { produtoId: params.id } }),
+      prisma.movimentacaoEstoqueProduto.count({ where: { produtoId: params.id } }),
+    ]);
 
-    if (count > 0) {
+    if (itensVenda > 0 || movimentacoes > 0) {
       return NextResponse.json(
         {
           message:
-            "Este produto não pode ser excluído porque possui vendas vinculadas. Inative-o para tirá-lo de circulação.",
+            "Este produto não pode ser excluído porque possui vendas ou movimentações de estoque vinculadas. Inative-o para tirá-lo de circulação.",
         },
         { status: 409 }
       );

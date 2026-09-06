@@ -16,7 +16,8 @@ export const metadata = {
 
 export default async function OrdensServicoPage() {
   const ordens = await listarOrdensServico();
-  const clientes = await listarClientes();
+  // Tela operacional: só clientes ativos podem receber uma nova OS.
+  const clientes = await listarClientes(undefined, { apenasAtivos: true });
   const servicos = await listarServicos();
 
   return (
