@@ -43,7 +43,7 @@ Os comandos da documentação foram padronizados para pnpm; resultados de homolo
 O projeto usa PostgreSQL via Prisma, com um banco separado por ambiente:
 
 - **Desenvolvimento**: `.env.development` (`DATABASE_URL` aponta para um Postgres local de dev, ex. `upa_do_tenis_dev`).
-- **Teste**: `.env.test` (`DATABASE_URL` aponta para um Postgres **separado**, ex. `upa_do_tenis_test`). O `vitest.config.ts` carrega esse arquivo automaticamente.
+- **Teste**: `.env.test` (`DATABASE_URL` aponta para um Postgres **separado**, ex. `upa_do_tenis_test`). O `vitest.config.mts` carrega esse arquivo automaticamente.
 - **Produção**: `DATABASE_URL` vem apenas de variável de ambiente segura do provedor de hospedagem — nunca de arquivo versionado. Use `.env.production.example` como referência de formato (com `sslmode=require`).
 
 Nenhum desses arquivos (exceto os `.example`) deve ser commitado — todos estão no `.gitignore`.
