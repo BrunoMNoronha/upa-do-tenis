@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
-import { LoadingState, ErrorState } from "@/components/ui";
+import { EmptyState, LoadingState, ErrorState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
 import { CardsResumo } from "./CardsResumo";
@@ -73,6 +74,7 @@ export function RelatorioEstoqueClient() {
     setFim(range.to ? formatarDataLocal(range.to) : "");
   };
 
+
   return (
     <div className="space-y-6">
       {/* Filtros */}
@@ -95,12 +97,12 @@ export function RelatorioEstoqueClient() {
       {estatisticas && (
         <div className="space-y-8 animate-in fade-in duration-500">
           
-          <CardsResumo estatisticas={estatisticas} />
+          <ResumoCards estatisticas={estatisticas} />
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <InsumosCriticos criticos={criticos} />
+            <TabelaInsumosCriticos criticos={criticos} />
 
-            <MovimentacoesRecentes movimentacoes={movimentacoes} />
+            <TabelaMovimentacoesRecentes movimentacoes={movimentacoes} />
           </div>
         </div>
       )}

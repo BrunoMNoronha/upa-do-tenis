@@ -281,7 +281,7 @@ export function ClientesClient({ clientes, busca }: ClientesClientProps) {
                       onClick={() => iniciarEdicao(cliente)}
                       className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
                     >
-                      Editar
+                      Editar cliente
                     </button>
                     <button
                       type="button"
