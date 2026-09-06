@@ -1,7 +1,4 @@
-import {
-  DateRangePicker,
-  type DateRange,
-} from "@/components/date-range-picker";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
 
 interface DashboardFiltrosProps {
@@ -21,11 +18,6 @@ export function DashboardFiltros({
   onFiltrar,
   loading,
 }: DashboardFiltrosProps) {
-  const handleRangeChange = (range: DateRange) => {
-    onInicioChange(range.from ? formatarDataLocal(range.from) : "");
-    onFimChange(range.to ? formatarDataLocal(range.to) : "");
-  };
-
   const currentRange = {
     from: inicio ? new Date(`${inicio}T00:00:00`) : undefined,
     to: fim ? new Date(`${fim}T23:59:59`) : undefined,
@@ -34,7 +26,10 @@ export function DashboardFiltros({
   return (
     <DateRangePicker
       value={currentRange}
-      onChange={handleRangeChange}
+      onChange={(range) => {
+        onInicioChange(range.from ? formatarDataLocal(range.from) : "");
+        onFimChange(range.to ? formatarDataLocal(range.to) : "");
+      }}
       onApply={onFiltrar}
       applying={loading}
       className="w-full"
