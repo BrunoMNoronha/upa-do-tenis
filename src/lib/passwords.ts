@@ -8,6 +8,8 @@ export function hashPassword(senha: string): string {
   return `scrypt:${salt}:${hash}`;
 }
 
+export const DUMMY_HASH = hashPassword("dummy_password");
+
 export function verifyPassword(senha: string, senhaHash: string): boolean {
   const [algoritmo, salt, hash] = senhaHash.split(":");
 

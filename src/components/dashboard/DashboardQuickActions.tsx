@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Button, SectionTitle } from '@/components/ui';
 
 export function DashboardQuickActions() {
