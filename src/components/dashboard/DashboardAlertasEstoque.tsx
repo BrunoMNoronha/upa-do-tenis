@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getResumoAlertasEstoque } from "@/lib/relatorio-estoque-service";
 import Link from "next/link";
 
 interface AlertasEstoque {
