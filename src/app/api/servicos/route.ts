@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { servicoFormSchema } from "@/lib/servicos-schema";
+import { listarServicos } from "@/lib/servicos";
 import { prisma } from "@/lib/prisma";
+
+export async function GET(req: NextRequest) {
+  try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const servicos = await listarServicos();
+    return NextResponse.json(servicos, { status: 200 });
+  } catch (error) {
+    console.error("Erro ao listar serviços:", error);
+    return NextResponse.json(
+      { message: "Ocorreu um erro interno ao listar os serviços." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
