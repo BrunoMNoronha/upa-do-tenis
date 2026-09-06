@@ -1,4 +1,3 @@
-import React from 'react';
 import { DashboardClient } from '@/components/dashboard/DashboardClient';
 import { AppShell } from '@/components/app-shell';
 
