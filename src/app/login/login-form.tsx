@@ -92,8 +92,8 @@ export function LoginForm() {
           </p>
         ) : null}
 
-        <Button type="submit" disabled={carregando}>
-          {carregando ? "Entrando..." : "Entrar"}
+        <Button type="submit" isLoading={carregando}>
+          Entrar
         </Button>
       </form>
     </Card>
