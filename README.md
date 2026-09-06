@@ -113,6 +113,21 @@ pnpm run test
 pnpm run build
 ```
 
+## Deploy Cloud (Vercel + Neon)
+
+Ambiente cloud com a aplicação na **Vercel** e o PostgreSQL no **Neon**, com separação dura entre Production e Preview.
+
+- **[Documentação da fatia](docs/04-producao/FATIA_PRODUCAO_04_VERCEL_NEON.md)** — arquitetura, isolamento Production × Preview, estratégia de migrations, matriz de variáveis.
+- **[Walkthrough](docs/04-producao/WALKTHROUGH_FATIA_PRODUCAO_04.md)** — passo a passo de painel e de comandos.
+- **[Homologação](docs/04-producao/HOMOLOGACAO_FATIA_PRODUCAO_04.md)** — registro de evidências e critérios de aceite.
+
+Pontos que não podem ser esquecidos:
+
+- O Neon expõe **duas URLs** por branch: a **pooled** (com `pgbouncer=true`) é a do runtime; a **direct** é a de `migrate deploy`, `bootstrap-admin` e `pg_dump`. A URL direct **nunca** é cadastrada na Vercel.
+- Migrations rodam apenas pelo workflow manual e aprovado **Migrations (Neon)** (`.github/workflows/migracoes.yml`). Nunca `migrate dev`, `db push`, `migrate reset` ou `seed` contra produção.
+- Preview usa uma branch Neon **fixa e vazia**, com `AUTH_SESSION_SECRET` próprio — Preview também roda com `NODE_ENV=production`.
+- Nenhuma variável no escopo "All Environments" da Vercel; `vercel env pull` é proibido.
+
 ## Produção Local (Docker)
 
 O sistema pode rodar em produção local piloto via Docker. Para quem opera o computador da loja no dia a dia, siga o:

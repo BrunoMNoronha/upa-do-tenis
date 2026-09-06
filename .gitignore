@@ -7,6 +7,8 @@ node_modules
 .env.local
 .env.docker
 .env.docker.dev
+# Arquivos de operador apontando para o Neon (cloud). Nunca versionar.
+.env.neon*
 *.db
 *.db-journal
 prisma/dev.db

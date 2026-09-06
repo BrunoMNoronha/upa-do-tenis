@@ -55,3 +55,75 @@ Procedimento validado tecnicamente. **Pendência:** repetir este mesmo teste con
 - Definir e documentar o destino de armazenamento externo dos backups (fora do servidor de aplicação).
 - Automatizar a rotina de backup diário (cron/scheduler do provedor) quando o ambiente de produção estiver definido.
 - Repetir o teste de restore contra o banco de produção real antes do go-live.
+
+---
+
+## Neon (ambiente cloud)
+
+Aplica-se ao ambiente descrito em [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_NEON.md). Todos os comandos usam a URL **direct/unpooled** do Neon — o pooler não é adequado para `pg_dump`/`pg_restore`.
+
+### Camada 1 — recursos nativos do Neon
+
+O Neon oferece *branch restore* e *point-in-time restore* (PITR) sobre a janela de history do plano contratado.
+
+> [!IMPORTANT]
+> A retenção real depende do plano e deve ser **lida no console do Neon**, nunca estimada. Registrar aqui:
+>
+> - Plano contratado: `____________`
+> - Janela de history/PITR: `____________`
+> - Data da verificação: `____-__-__`
+
+Recursos nativos **não substituem backup**: eles não protegem contra exclusão do projeto Neon, perda de acesso à conta ou incidente do provedor.
+
+### Camada 2 — dump lógico offsite
+
+Cadência: **semanal**, mais um dump **imediatamente antes de cada `migrate deploy`** em Production.
+
+Usando a imagem Postgres que o projeto já utiliza, sem exigir `pg_dump` instalado na máquina:
+
+```bash
+mkdir -p backups
+docker run --rm postgres:16 pg_dump --no-owner --format=custom "<url DIRECT da branch production>" \
+  > backups/neon_prod_$(date +%Y%m%d_%H%M).dump
+```
+
+`backups/` já está no `.gitignore`, mas não existe em um clone limpo — daí o `mkdir -p`, sem o qual o shell falha ao abrir o destino da redireção antes mesmo de subir o container. Guardar os arquivos fora da máquina de operação.
+
+> [!CAUTION]
+> A connection string carrega a credencial. Nunca ecoar o comando em log de CI, print ou canal compartilhado. Preferir carregar a URL de `.env.neon.prod` (ignorado pelo git) em vez de digitá-la.
+
+Restore de um dump lógico em uma branch nova:
+
+```bash
+docker run --rm -i postgres:16 pg_restore --no-owner -d "<url DIRECT da branch alvo>" < <arquivo.dump>
+```
+
+### Drill de restore (obrigatório antes do go-live cloud)
+
+1. No console do Neon, criar a branch `restore-test-<AAAAMMDD>` a partir de um timestamp de alguns minutos atrás.
+2. Copiar a URL **direct** dessa branch.
+3. Validar coerência de schema:
+   ```bash
+   DATABASE_URL="<url DIRECT da restore-test>" corepack pnpm exec prisma migrate status
+   ```
+4. Rodar as contagens da seção "Validação pós-restore" no SQL Editor do Neon, comparando com a branch `production`.
+
+Os passos 1 a 4 validam apenas o **PITR nativo**. O drill só está completo quando o **dump lógico** também é restaurado — sem isso, um arquivo vazio, truncado ou incompatível passa por todo o checklist de go-live e só é descoberto no incidente em que o próprio projeto Neon estiver indisponível, que é exatamente o cenário para o qual a camada offsite existe:
+
+5. Criar uma segunda branch `restore-dump-<AAAAMMDD>` **vazia** (não a partir de `production`) e restaurar nela o arquivo gerado na camada 2:
+   ```bash
+   docker run --rm -i postgres:16 pg_restore --no-owner -d "<url DIRECT da restore-dump>" < backups/neon_prod_<AAAAMMDDHHMM>.dump
+   ```
+6. Validar o resultado com os mesmos critérios da seção "Validação pós-restore": contagem de tabelas, contagem de registros de `Usuario`, `OrdemServico` e `MovimentacaoCaixa` conferindo com a origem, e schema coerente:
+   ```bash
+   DATABASE_URL="<url DIRECT da restore-dump>" corepack pnpm exec prisma migrate status
+   ```
+   Um `pg_restore` que termina com erro, ou contagens zeradas, **reprova o drill**: significa que o backup offsite não existe de fato.
+7. **Excluir as duas branches de teste** — elas consomem quota e mantêm uma cópia dos dados reais.
+
+Registrar o resultado em [HOMOLOGACAO_FATIA_PRODUCAO_04.md](HOMOLOGACAO_FATIA_PRODUCAO_04.md), seção 10.
+
+### Pendências específicas do Neon
+
+- Automatizar o dump semanal offsite (hoje é manual).
+- Confirmar a retenção real do plano e reavaliá-la se o plano mudar.
