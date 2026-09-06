@@ -1,0 +1,3 @@
+## 2023-10-27 - Refactoring large React components
+**Learning:** When refactoring large Next.js/React files, extracting forms and lists into child components greatly improves readability. However, special care must be given to preserving original component behavior like filtering available items in comboboxes or correctly preserving input types, and testing locally requires temporary SQLite setups that MUST be rolled back cleanly via `git restore --staged` before commits.
+**Action:** Next time I refactor components, I will be more careful to migrate exact logic without dropping `.filter` maps, and I will strictly follow the Prisma SQLite rollback protocol including `git restore --staged` before calling PR review.
