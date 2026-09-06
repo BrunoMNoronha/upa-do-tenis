@@ -52,6 +52,37 @@ describe("PATCH /api/servicos/[id]", () => {
     });
   });
 
+  it("atualiza todos os parâmetros do serviço (200)", async () => {
+    prismaMock.servico.update.mockResolvedValueOnce({
+      id: "srv-1",
+      nome: "Troca de sola premium",
+      descricao: "Sola reforçada",
+      precoBase: 125.5,
+      ativo: false,
+    });
+
+    const response = await PATCH(
+      criarRequest("srv-1", "PATCH", {
+        nome: "Troca de sola premium",
+        descricao: "Sola reforçada",
+        precoBase: "R$ 125,50",
+        ativo: false,
+      }),
+      { params: { id: "srv-1" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.servico.update).toHaveBeenCalledWith({
+      where: { id: "srv-1" },
+      data: {
+        nome: "Troca de sola premium",
+        descricao: "Sola reforçada",
+        precoBase: 125.5,
+        ativo: false,
+      },
+    });
+  });
+
   it("inativa o serviço sem alterar os demais campos (200)", async () => {
     prismaMock.servico.update.mockResolvedValueOnce({ id: "srv-1", ativo: false });
 
