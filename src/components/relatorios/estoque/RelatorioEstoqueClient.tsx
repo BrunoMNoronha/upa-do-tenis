@@ -97,12 +97,12 @@ export function RelatorioEstoqueClient() {
       {estatisticas && (
         <div className="space-y-8 animate-in fade-in duration-500">
           
-          <ResumoCards estatisticas={estatisticas} />
+          <CardsResumo estatisticas={estatisticas} />
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <TabelaInsumosCriticos criticos={criticos} />
+            <InsumosCriticos criticos={criticos} />
 
-            <TabelaMovimentacoesRecentes movimentacoes={movimentacoes} />
+            <MovimentacoesRecentes movimentacoes={movimentacoes} />
           </div>
         </div>
       )}
