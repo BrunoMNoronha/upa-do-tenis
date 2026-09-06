@@ -11,11 +11,7 @@ export function obterSegredoSessao(): string {
     return segredo;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "AUTH_SESSION_SECRET não configurado. Defina uma chave com pelo menos 16 caracteres."
-    );
-  }
-
-  return "upa-do-tenis-segredo-dev";
+  throw new Error(
+    "AUTH_SESSION_SECRET não configurado. Defina uma chave com pelo menos 16 caracteres."
+  );
 }

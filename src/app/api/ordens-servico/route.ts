@@ -1,10 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { obterUsuarioSessaoDaRequest, exigirSessaoApi } from "@/lib/auth-server";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
 import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastreabilidade";
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
+import { listarOrdensServico } from "@/lib/ordens-servico";
+
+export async function GET(req: NextRequest) {
+  try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const ordens = await listarOrdensServico();
+    return NextResponse.json(ordens, { status: 200 });
+  } catch (error) {
+    console.error("Erro ao listar ordens de serviço:", error);
+    return NextResponse.json(
+      { message: "Ocorreu um erro interno ao listar as ordens de serviço." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

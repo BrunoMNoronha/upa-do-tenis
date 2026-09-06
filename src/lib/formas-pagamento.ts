@@ -59,9 +59,15 @@ export async function sanearTipoFormaPagamentoDinheiro() {
 
   const corrigidas = candidatas.filter((forma) => !forma.tipo || forma.tipo.trim() === "");
 
-  for (const forma of corrigidas) {
-    await prisma.formaPagamento.update({
-      where: { id: forma.id },
+  // Performance Optimization (Bolt):
+  // Substitui o loop sequencial N+1 por uma única consulta `updateMany` em lote (batch).
+  // Reduz as viagens de ida e volta (roundtrips) ao banco de dados de O(N) para O(1),
+  // eliminando gargalos de I/O de rede e retenção de conexões no pool.
+  if (corrigidas.length > 0) {
+    await prisma.formaPagamento.updateMany({
+      where: {
+        id: { in: corrigidas.map((forma) => forma.id) },
+      },
       data: { tipo: "DINHEIRO" },
     });
   }

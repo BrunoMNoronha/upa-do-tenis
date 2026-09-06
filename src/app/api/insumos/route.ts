@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { insumoFormSchema } from "@/lib/insumos-schema";
+import { listarInsumos } from "@/lib/insumos";
 import { prisma } from "@/lib/prisma";
+
+export async function GET(req: NextRequest) {
+  try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const insumos = await listarInsumos();
+    return NextResponse.json(insumos, { status: 200 });
+  } catch (error) {
+    console.error("Erro ao listar insumos:", error);
+    return NextResponse.json(
+      { message: "Ocorreu um erro interno ao listar os insumos." },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Badge, Button, Card, FilterChip, Input, Label, PanelHeader, SectionTitle, StatCard, Textarea } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 import { formatCurrency, formatPhone, maskCPFCNPJ, maskCurrency, maskPhone, whatsappLink } from "@/lib/formatters";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
@@ -173,27 +173,27 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
   }
 
   return (
-    <article className={`rounded-3xl border p-5 shadow-[0_12px_30px_rgba(0,0,0,0.08)] ${
-      isAtrasada ? "border-rose-500/50 bg-rose-950/20" : "border-white/10 bg-white/5"
+    <article className={`rounded-[var(--r-field)] border p-4 transition ${
+      isAtrasada ? "border-rose-300 bg-rose-50/60" : "border-black/10 bg-white hover:border-[color:var(--accent-soft)]"
     }`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-soft)]">{ordem.numero}</p>
-          <h3 className="mt-2 text-lg font-semibold text-white">{ordem.cliente?.nome}</h3>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">{ordem.numero}</p>
+          <h3 className="mt-1 text-base font-semibold text-[color:var(--text)]">{ordem.cliente?.nome}</h3>
           {(() => {
             const telefone = ordem.cliente?.telefone;
             if (!telefone) return null;
             const telefoneMascarado = formatPhone(telefone);
             const link = whatsappLink(telefone);
             if (!link) {
-              return <p className="mt-1 text-sm text-slate-200">{telefoneMascarado}</p>;
+              return <p className="mt-1 text-sm text-slate-600">{telefoneMascarado}</p>;
             }
             return (
               <a
                 href={link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-1 inline-block text-sm text-[color:var(--accent-soft)] hover:underline"
+                className="mt-1 inline-block text-sm text-slate-600 hover:text-[color:var(--accent-strong)] hover:underline"
               >
                 {telefoneMascarado}
               </a>
@@ -208,40 +208,40 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 text-sm text-slate-200 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Item</p>
-          <p className="mt-1 text-white">{itemPrincipal?.descricao || "Nenhum"}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Item</p>
+          <p className="mt-1 text-[color:var(--text)]">{itemPrincipal?.descricao || "Nenhum"}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Serviço</p>
-          <p className="mt-1 text-white">{servicosDaOrdem || "Geral"}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Serviço</p>
+          <p className="mt-1 text-[color:var(--text)]">{servicosDaOrdem || "Geral"}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Prazo</p>
-          <p className="mt-1 text-white">{ordem.dataPrevisao ? dateFormatter.format(new Date(ordem.dataPrevisao)) : "-"}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Prazo</p>
+          <p className="mt-1 text-[color:var(--text)]">{ordem.dataPrevisao ? dateFormatter.format(new Date(ordem.dataPrevisao)) : "-"}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Total</p>
-          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Valor Total</p>
+          <p className="mt-1 text-[color:var(--text)]">{currencyFormatter.format(Number(ordem.valorTotal))}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Valor Pago</p>
-          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.valorPago || 0))}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Valor Pago</p>
+          <p className="mt-1 text-[color:var(--text)]">{currencyFormatter.format(Number(ordem.valorPago || 0))}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Saldo</p>
-          <p className="mt-1 text-white">{currencyFormatter.format(Number(ordem.saldo || 0))}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Saldo</p>
+          <p className="mt-1 font-semibold text-[color:var(--text)]">{currencyFormatter.format(Number(ordem.saldo || 0))}</p>
         </div>
         <div className="sm:col-span-2 lg:col-span-2">
-          <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Observações</p>
-          <p className="mt-1 text-white">{ordem.observacoes || "Sem observações adicionais."}</p>
+          <p className="text-xs uppercase tracking-[0.12em] text-slate-500">Observações</p>
+          <p className="mt-1 text-[color:var(--text)]">{ordem.observacoes || "Sem observações adicionais."}</p>
         </div>
       </div>
 
       {error && <p className="mt-4 text-sm font-semibold text-red-400">{error}</p>}
 
-      <div className="mt-5 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-3">
         <div className="flex flex-wrap items-center gap-2">
           <Button href={`/ordens-servico/${ordem.id}`} variant="secondary">
             Ver detalhe
@@ -253,7 +253,7 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
-            className="text-sm font-semibold text-[color:var(--accent-soft)] hover:underline"
+            className="text-sm font-semibold text-[color:var(--accent-strong)] hover:underline"
           >
             {showHistory ? "Ocultar Histórico" : "Ver Histórico"}
           </button>
@@ -261,17 +261,17 @@ function OrdemServicoCard({ ordem, isAtrasada }: { ordem: OrdemServicoReal, isAt
       </div>
 
       {showHistory && ordem.historicosStatus && (
-        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Histórico de Status</p>
+        <div className="mt-4 space-y-3 border-t border-black/5 pt-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Histórico de Status</p>
           <div className="space-y-2">
             {ordem.historicosStatus.map((h) => (
               <div key={h.id} className="flex items-start gap-3 text-sm">
-                <span className="whitespace-nowrap text-slate-400">
+                <span className="whitespace-nowrap text-slate-500">
                   {new Date(h.criadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
                 </span>
-                <span className="text-slate-200">
-                  {h.statusAnterior ? `${h.statusAnterior} → ` : ""}
-                  <span className="font-semibold text-white">{h.statusNovo}</span>
+                <span className="text-slate-600">
+                  {h.statusAnterior ? `${h.statusAnterior} -> ` : ""}
+                  <span className="font-semibold text-[color:var(--text)]">{h.statusNovo}</span>
                   {h.observacao ? ` - ${h.observacao}` : ""}
                 </span>
               </div>
@@ -479,8 +479,12 @@ export function OrdensServicoClient({
     return prev < new Date();
   };
 
+  const totalAbertas = ordens.filter((ordem) => ordem.status === "ABERTA").length;
+  const totalEmAndamento = ordens.filter((ordem) => ordem.status === "EM_ANDAMENTO").length;
+  const totalComSaldo = ordens.filter((ordem) => Number(ordem.saldo || 0) > 0).length;
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+    <section className="grid gap-6 lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
       <section id="nova-ordem">
         <Card className="p-6">
           <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -734,17 +738,32 @@ export function OrdensServicoClient({
         </Card>
       </section>
 
-      <Card className="bg-[color:var(--text)] p-6 text-white">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista de ordens</p>
-            <h2 className="mt-2 text-2xl font-semibold">OS Registradas</h2>
-          </div>
-
-          <Badge tone="accent">{ordens.length} ordens</Badge>
+      <Card className="overflow-hidden">
+        <div className="border-b border-[color:var(--border)] p-5">
+          <PanelHeader
+            eyebrow="Fila de atendimento"
+            title="OS registradas"
+            description={`${filteredOrders.length} de ${ordens.length} ordens visíveis`}
+            action={<Badge tone="accent">{ordens.length} ordens</Badge>}
+          />
         </div>
 
-        <div className="mb-4">
+        <div className="grid gap-3 border-b border-[color:var(--border)] p-4 sm:grid-cols-3">
+          <StatCard label="Abertas" value={totalAbertas} hint="Aguardando início" active={statusFilter === "ABERTA"} onClick={() => {
+            setStatusFilter("ABERTA");
+            updateFilters("statusOp", "ABERTA");
+          }} />
+          <StatCard label="Em andamento" value={totalEmAndamento} hint="Na oficina" active={statusFilter === "EM_ANDAMENTO"} onClick={() => {
+            setStatusFilter("EM_ANDAMENTO");
+            updateFilters("statusOp", "EM_ANDAMENTO");
+          }} />
+          <StatCard label="Com saldo" value={totalComSaldo} hint="A receber" active={financeFilter === "COM_SALDO_EM_ABERTO"} onClick={() => {
+            setFinanceFilter("COM_SALDO_EM_ABERTO");
+            updateFilters("statusFin", "COM_SALDO_EM_ABERTO");
+          }} />
+        </div>
+
+        <div className="border-b border-[color:var(--border)] p-4">
           <Input 
             placeholder="Buscar por cliente ou número da OS..."
             value={searchTerm}
@@ -752,77 +771,53 @@ export function OrdensServicoClient({
               setSearchTerm(e.target.value);
               updateFilters("busca", e.target.value);
             }}
-            className="max-w-md !bg-white/10 !text-white !border-white/20 placeholder:text-slate-400"
+            className="max-w-md"
           />
-        </div>
-
-        <div className="mb-5 flex flex-wrap gap-2">
-          {filterOptions.map((option) => {
-            const active = statusFilter === option.value;
-            return (
-              <button
+          <div className="mt-3 flex flex-wrap gap-2">
+            {filterOptions.map((option) => (
+              <FilterChip
                 key={option.value}
-                type="button"
+                active={statusFilter === option.value}
                 onClick={() => {
                   setStatusFilter(option.value as StatusFilter);
                   updateFilters("statusOp", option.value);
                 }}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                  active
-                    ? "border-transparent bg-white text-[color:var(--text)]"
-                    : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-                }`}
               >
                 {option.label}
-              </button>
-            );
-          })}
-          
-          <button
-            type="button"
-            onClick={() => {
-              setShowAtrasadas(!showAtrasadas);
-              updateFilters("atrasadas", (!showAtrasadas).toString());
-            }}
-            className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-              showAtrasadas
-                ? "border-transparent bg-rose-500 text-white"
-                : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-            }`}
-          >
-            Atrasadas
-          </button>
-        </div>
-
-        <div className="mb-5 flex flex-wrap gap-2">
-          {financeFilterOptions.map((option) => {
-            const active = financeFilter === option.value;
-            return (
-              <button
+              </FilterChip>
+            ))}
+            {financeFilterOptions.slice(1).map((option) => (
+              <FilterChip
                 key={option.value}
-                type="button"
+                tone="warning"
+                active={financeFilter === option.value}
                 onClick={() => {
                   setFinanceFilter(option.value);
                   updateFilters("statusFin", option.value);
                 }}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                  active
-                    ? "border-transparent bg-amber-100 text-amber-900"
-                    : "border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-                }`}
               >
-                {option.label}
-              </button>
-            );
-          })}
+                Financeiro: {option.label}
+              </FilterChip>
+            ))}
+            <FilterChip
+              tone="danger"
+              active={showAtrasadas}
+              onClick={() => {
+                setShowAtrasadas(!showAtrasadas);
+                updateFilters("atrasadas", (!showAtrasadas).toString());
+              }}
+            >
+              Atrasadas
+            </FilterChip>
+          </div>
         </div>
 
         {filteredOrders.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
+          <div className="m-4 rounded-[var(--r-field)] border border-dashed border-black/10 bg-[color:var(--surface-muted)] p-6 text-sm leading-6 text-slate-600">
             Nenhuma ordem encontrada.
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3 p-4">
             {filteredOrders.map((ordem) => (
               <OrdemServicoCard key={ordem.id} ordem={ordem} isAtrasada={checkIsAtrasada(ordem)} />
             ))}
