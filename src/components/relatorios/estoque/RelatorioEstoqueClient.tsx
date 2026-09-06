@@ -7,14 +7,10 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-};
+import { CardsResumo } from "./components/CardsResumo";
+import { TabelaCriticos } from "./components/TabelaCriticos";
+import { TabelaMovimentacoes } from "./components/TabelaMovimentacoes";
 
-const formatDate = (date: Date | string) => {
-  const d = new Date(date);
-  return new Intl.DateTimeFormat("pt-BR").format(d);
-};
 
 const getTipoLabel = (tipo: string) => {
   const map: Record<string, string> = {
@@ -272,7 +268,7 @@ export function RelatorioEstoqueClient() {
     setFim(range.to ? formatarDataLocal(range.to) : "");
   };
 
-  return (
+    return (
     <div className="space-y-6">
       {/* Filtros */}
       <DateRangePicker
@@ -293,11 +289,12 @@ export function RelatorioEstoqueClient() {
 
       {estatisticas && (
         <div className="space-y-8 animate-in fade-in duration-500">
-          <ResumoCards estatisticas={estatisticas} />
+          
+          <CardsResumo estatisticas={estatisticas} />
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <InsumosCriticosList criticos={criticos} />
-            <MovimentacoesTable movimentacoes={movimentacoes} />
+            <TabelaCriticos criticos={criticos} />
+            <TabelaMovimentacoes movimentacoes={movimentacoes} />
           </div>
         </div>
       )}
