@@ -5,6 +5,9 @@ import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, Resumo
 import { LoadingState, ErrorState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
+import { ResumoCards } from "./ResumoCards";
+import { InsumosCriticos } from "./InsumosCriticos";
+import { MovimentacoesRecentes } from "./MovimentacoesRecentes";
 
 import { CardsResumo } from "./CardsResumo";
 import { InsumosCriticos } from "./InsumosCriticos";
@@ -103,7 +106,6 @@ export function RelatorioEstoqueClient() {
 
             <MovimentacoesRecentes movimentacoes={movimentacoes} />
           </div>
-          
         </div>
       )}
     </div>
