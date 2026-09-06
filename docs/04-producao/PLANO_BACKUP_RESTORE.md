@@ -50,6 +50,27 @@ Executado ciclo completo de backup → restore → validação → limpeza contr
 
 Procedimento validado tecnicamente. **Pendência:** repetir este mesmo teste contra o banco de produção real (ou uma cópia dele) assim que ele existir, antes do go-live — o teste acima prova o procedimento, não substitui a validação contra dados de produção reais.
 
+## Scripts automatizados
+
+Os comandos abaixo foram adicionados ao repositório para padronizar backup e restore em desktop Windows com Docker local:
+
+```powershell
+# backup local com validação e retenção
+pwsh ./scripts/backup/Backup-Database.ps1 -KeepLocalBackups 7
+
+# restore em banco temporário (padrão seguro)
+pwsh ./scripts/backup/Restore-Database.ps1 -BackupPath ./backups/database/upa_do_tenis_2026-01-01_02-00-00.dump -AllowProduction:$false
+
+# agendamento diário no Windows
+pwsh ./scripts/backup/Install-BackupTask.ps1 -TaskName UPA-Backup-Diario -StartTime "02:00"
+```
+
+Observações:
+
+- O backup usa `pg_dump -Fc` dentro do contêiner `upa-db` e valida o archive antes do upload.
+- O script gera `.sha256` e preserva o backup local válido caso a etapa de upload falhe.
+- O restore padrão exige banco temporário/isolado; `-AllowProduction` é reservado para recuperação explícita do ambiente operacional, com aprovação manual.
+
 ## Pendências
 
 - Definir e documentar o destino de armazenamento externo dos backups (fora do servidor de aplicação).
