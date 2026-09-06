@@ -1,8 +1,13 @@
+import React from "react";
 import Link from "next/link";
 import { InsumoCritico } from "@/lib/relatorio-estoque-service";
 import { EmptyState } from "@/components/ui";
 
-export function InsumosCriticos({ criticos }: { criticos: InsumoCritico[] }) {
+interface InsumosCriticosProps {
+  criticos: InsumoCritico[];
+}
+
+export function InsumosCriticos({ criticos }: InsumosCriticosProps) {
   return (
     <div className="lg:col-span-1 rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div className="border-b border-gray-200 bg-gray-50/50 px-4 py-4 sm:px-6">
