@@ -1,4 +1,3 @@
-import React from 'react';
 import { TopList, TopListItem } from './TopList';
 
 interface DashboardInsumosMaisUtilizadosProps {
