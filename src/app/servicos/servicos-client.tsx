@@ -28,6 +28,7 @@ const defaultValues: ServicoFormValues = {
   nome: "",
   descricao: "",
   precoBase: 0,
+  ativo: true,
 };
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
@@ -65,6 +66,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
     defaultValues,
     mode: "onChange",
   });
+  const precoBaseField = register("precoBase");
 
   const iniciarEdicao = (servico: ServicoListado) => {
     setEditando(servico);
@@ -73,6 +75,7 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
       nome: servico.nome,
       descricao: servico.descricao ?? "",
       precoBase: formatCurrency(servico.precoBase) as unknown as number,
+      ativo: servico.ativo,
     });
   };
 
@@ -133,17 +136,17 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
             <Input
               id="precoBase"
               type="text"
-              {...register("precoBase")}
+              {...precoBaseField}
               onChange={(e) => {
                 e.target.value = maskCurrency(e.target.value);
-                register("precoBase").onChange(e);
+                precoBaseField.onChange(e);
               }}
               onBlur={(e) => {
                 if (e.target.value) {
                   e.target.value = formatCurrency(e.target.value);
-                  register("precoBase").onChange(e);
+                  precoBaseField.onChange(e);
                 }
-                register("precoBase").onBlur(e);
+                precoBaseField.onBlur(e);
               }}
               placeholder="R$ 0,00"
             />
@@ -159,6 +162,13 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
               placeholder="Detalhes adicionais sobre o serviço"
             />
           </div>
+
+          {editando ? (
+            <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
+              <Input type="checkbox" className="h-4 w-4" {...register("ativo")} />
+              Serviço ativo
+            </label>
+          ) : null}
 
           {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
