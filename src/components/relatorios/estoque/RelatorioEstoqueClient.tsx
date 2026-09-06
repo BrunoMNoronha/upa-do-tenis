@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
-import Link from "next/link";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { LoadingState, ErrorState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
+import { ResumoCards } from "./ResumoCards";
+import { InsumosCriticos } from "./InsumosCriticos";
+import { MovimentacoesRecentes } from "./MovimentacoesRecentes";
 
 import { CardsResumo } from "./components/CardsResumo";
 import { TabelaCriticos } from "./components/TabelaCriticos";
@@ -269,7 +271,7 @@ export function RelatorioEstoqueClient() {
     setFim(range.to ? formatarDataLocal(range.to) : "");
   };
 
-    return (
+  return (
     <div className="space-y-6">
       {/* Filtros */}
       <DateRangePicker
@@ -294,8 +296,9 @@ export function RelatorioEstoqueClient() {
           <CardsResumo estatisticas={estatisticas} />
 
           <div className="grid gap-6 lg:grid-cols-3">
-            <TabelaCriticos criticos={criticos} />
-            <TabelaMovimentacoes movimentacoes={movimentacoes} />
+            <InsumosCriticos criticos={criticos} />
+
+            <MovimentacoesRecentes movimentacoes={movimentacoes} />
           </div>
         </div>
       )}
