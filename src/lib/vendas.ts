@@ -143,37 +143,41 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
     });
 
     // 8. Criar cada item e baixar o estoque do produto correspondente.
-    for (const linha of linhas) {
-      const itemVenda = await tx.itemVenda.create({
-        data: {
-          vendaId: venda.id,
-          produtoId: linha.produtoId,
-          descricao: linha.descricao,
-          quantidade: linha.quantidade,
-          precoUnitario: linha.precoUnitario,
-          precoTotal: linha.precoTotal,
-        },
-      });
-
-      try {
-        await baixarEstoqueProdutoVenda(
-          {
-            produtoId: linha.produtoId,
-            quantidade: linha.quantidade,
+    // Performance optimization: Executa o processamento dos itens de forma concorrente via Promise.all
+    // reduzindo o tempo total de resposta de O(N) para O(max(T)).
+    await Promise.all(
+      linhas.map(async (linha) => {
+        const itemVenda = await tx.itemVenda.create({
+          data: {
             vendaId: venda.id,
-            itemVendaId: itemVenda.id,
+            produtoId: linha.produtoId,
+            descricao: linha.descricao,
+            quantidade: linha.quantidade,
+            precoUnitario: linha.precoUnitario,
+            precoTotal: linha.precoTotal,
           },
-          tx,
-        );
-      } catch (error) {
-        // O serviço de venda é o contrato de erro único para a camada de API.
-        // Traduz a falha de estoque preservando status e mensagem.
-        if (error instanceof MovimentacaoEstoqueProdutoError) {
-          throw new VendaBalcaoError(error.message, error.status);
+        });
+
+        try {
+          await baixarEstoqueProdutoVenda(
+            {
+              produtoId: linha.produtoId,
+              quantidade: linha.quantidade,
+              vendaId: venda.id,
+              itemVendaId: itemVenda.id,
+            },
+            tx,
+          );
+        } catch (error) {
+          // O serviço de venda é o contrato de erro único para a camada de API.
+          // Traduz a falha de estoque preservando status e mensagem.
+          if (error instanceof MovimentacaoEstoqueProdutoError) {
+            throw new VendaBalcaoError(error.message, error.status);
+          }
+          throw error;
         }
-        throw error;
-      }
-    }
+      })
+    );
 
     // 9. Entrada de caixa da venda, com origem própria e vínculo à venda.
     //    Criada diretamente na transação para não tocar o serviço de caixa

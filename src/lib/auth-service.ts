@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/passwords";
+import { DUMMY_HASH, verifyPassword } from "@/lib/passwords";
 import { usuarioPublicoSelect } from "@/lib/usuarios";
 
 export type UsuarioAutenticado = {
@@ -22,7 +22,9 @@ export async function autenticarUsuario(
     where: { email: email.trim().toLowerCase() },
   });
 
-  if (!usuario || !verifyPassword(senha, usuario.senhaHash)) {
+  const senhaValida = verifyPassword(senha, usuario?.senhaHash ?? DUMMY_HASH);
+
+  if (!usuario || !senhaValida) {
     return { status: "credenciais_invalidas" };
   }
 
