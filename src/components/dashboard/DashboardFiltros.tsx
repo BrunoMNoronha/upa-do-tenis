@@ -1,6 +1,8 @@
-import React from 'react';
-import { DateRangePicker, type DateRange } from '@/components/date-range-picker';
-import { formatarDataLocal } from '@/lib/date-range';
+import {
+  DateRangePicker,
+  type DateRange,
+} from "@/components/date-range-picker";
+import { formatarDataLocal } from "@/lib/date-range";
 
 interface DashboardFiltrosProps {
   inicio: string;
@@ -19,7 +21,6 @@ export function DashboardFiltros({
   onFiltrar,
   loading,
 }: DashboardFiltrosProps) {
-  
   const handleRangeChange = (range: DateRange) => {
     onInicioChange(range.from ? formatarDataLocal(range.from) : "");
     onFimChange(range.to ? formatarDataLocal(range.to) : "");

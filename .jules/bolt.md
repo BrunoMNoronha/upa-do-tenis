@@ -1,0 +1,3 @@
+## 2025-02-18 - Evite `reduce` para criação dinâmica de mapas em pequenos arrays
+**Learning:** Em otimizações no V8/Node.js, substituir repetidas chamadas `Array.prototype.find()` por um único `Array.prototype.reduce()` construindo um objeto mapa dinâmico nem sempre melhora a performance real se o array for muito pequeno. A sobrecarga de alocação de propriedades dinâmicas e o garbage collection do `reduce` pode deixá-lo mais lento que a busca O(N*M) com M pequeno.
+**Action:** Para transformar processamento O(K*N) em O(N) com máxima performance, declare as variáveis de saída fora do escopo e utilize um `for...of` com mutação local (`let`) em vez de construir novos objetos usando callbacks funcionais e reduções.
