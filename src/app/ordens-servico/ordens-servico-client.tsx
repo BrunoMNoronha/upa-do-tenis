@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useTransition, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -401,9 +401,11 @@ function OrdemServicoCard({
 function OrdemServicoForm({
   clientes,
   servicos,
+  onClose,
 }: {
   clientes: Cliente[];
   servicos: Servico[];
+  onClose: () => void;
 }) {
   const router = useRouter();
   const [clientesDisponiveis, setClientesDisponiveis] =
@@ -555,6 +557,7 @@ function OrdemServicoForm({
 
     reset(criarDefaultValues());
     setServicosSelecionados([]);
+    onClose();
 
     startTransition(() => {
       router.refresh();
@@ -563,8 +566,8 @@ function OrdemServicoForm({
 
   return (
     <section id="nova-ordem">
-      <Card className="p-6">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+      <Card className="p-6 shadow-none">
+        <div className="sticky -mx-6 -mt-6 mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
               Nova ordem
@@ -577,7 +580,17 @@ function OrdemServicoForm({
               de dados.
             </p>
           </div>
-          <Badge tone="accent">Banco Real</Badge>
+          <div className="flex items-start gap-2">
+            <Badge tone="accent">Banco Real</Badge>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar cadastro de OS"
+              className="rounded-full p-2 text-slate-500 transition hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
+            >
+              <span aria-hidden="true" className="text-xl leading-none">×</span>
+            </button>
+          </div>
         </div>
 
         <form className="grid gap-4" onSubmit={onSubmit}>
@@ -914,7 +927,10 @@ function OrdemServicoForm({
             <p className="text-sm text-red-600">{submitError}</p>
           ) : null}
 
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap justify-between gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancelar
+            </Button>
             <Button type="submit" disabled={isPending}>
               {isPending ? "Salvando..." : "Cadastrar ordem"}
             </Button>
@@ -1127,10 +1143,70 @@ export function OrdensServicoClient({
   servicos: Servico[];
 }) {
   const ordens = initialOrders as OrdemServicoReal[];
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+    if (window.location.hash === "#nova-ordem") {
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  useEffect(() => {
+    const syncDrawerWithHash = () => {
+      setDrawerOpen(window.location.hash === "#nova-ordem");
+    };
+
+    syncDrawerWithHash();
+    window.addEventListener("hashchange", syncDrawerWithHash);
+    return () => window.removeEventListener("hashchange", syncDrawerWithHash);
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDrawer();
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [closeDrawer, drawerOpen]);
+
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(320px,0.8fr)_minmax(0,1.2fr)]">
-      <OrdemServicoForm clientes={clientes} servicos={servicos} />
+    <section>
       <OrdemServicoList ordens={ordens} />
+      {drawerOpen ? (
+        <>
+          <button
+            type="button"
+            aria-label="Fechar cadastro de OS"
+            onClick={closeDrawer}
+            className="fixed inset-0 z-40 cursor-default bg-slate-950/45 backdrop-blur-[1px]"
+          />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cadastro-os-titulo"
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl"
+          >
+            <div id="cadastro-os-titulo" className="sr-only">
+              Cadastro de nova ordem de serviço
+            </div>
+            <OrdemServicoForm
+              clientes={clientes}
+              servicos={servicos}
+              onClose={closeDrawer}
+            />
+          </aside>
+        </>
+      ) : null}
     </section>
   );
 }
