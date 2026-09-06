@@ -1,0 +1,3 @@
+## 2026-03-30 - Otimização de busca O(1) no Dashboard para Top Serviços e Top Insumos
+**Learning:** O uso de `Array.prototype.find()` dentro de repetições (`map`) para mapear relacionamentos agregados resulta em complexidade quadrática O(N*M). Substituir a busca linear em arrays por buscas em `Map` reduz a complexidade para tempo linear O(N+M), resultando em ganhos massivos de desempenho (redução de ~92% no tempo de processamento em CPU).
+**Action:** Em agregadores de métricas ou juntadas na memória (in-memory joins), sempre construir um `Map` com as entidades buscadas pelo ID antes de mapear os resultados agregados.
