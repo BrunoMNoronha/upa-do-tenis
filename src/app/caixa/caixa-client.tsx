@@ -1,9 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { Badge, Button, Card, SectionTitle, LoadingState, ErrorState } from "@/components/ui";
 import { sanitizeCurrency } from "@/lib/sanitizers";
-import { formatCurrency, maskCurrency } from "@/lib/formatters";
+
+import { NenhumCaixaAberto } from "./components/nenhum-caixa-aberto";
+import { MovimentacoesCaixa } from "./components/movimentacoes-caixa";
+import { ResumoCaixa } from "./components/resumo-caixa";
+import { FecharCaixa } from "./components/fechar-caixa";
 
 type FormaPagamento = {
   id: string;
@@ -50,15 +54,6 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
   timeStyle: "short",
 });
-
-function LinhaResumo({ label, valor }: { label: string; valor: number }) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b border-black/5 py-2 text-sm last:border-b-0">
-      <span className="text-slate-600">{label}</span>
-      <strong className="text-[color:var(--text)]">{currencyFormatter.format(Number(valor || 0))}</strong>
-    </div>
-  );
-}
 
 export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamento[] }) {
   const [estado, setEstado] = useState<"carregando" | "erro" | "sucesso">("carregando");
@@ -188,37 +183,14 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
   if (estado === "carregando") return <LoadingState text="Carregando caixa..." />;
   if (estado === "erro") return <ErrorState title="Erro" description={erro || ""} action={<Button onClick={() => void carregarCaixa()}>Tentar novamente</Button>} />;
 
-  // Prévia de conferência, calculada apenas para exibição antes da confirmação.
-  // A divergência oficial continua sendo calculada e persistida pelo backend em fecharCaixa().
-  const divergenciaPrevista = caixa && fecharForm.saldoFinalInformado
-    ? sanitizeCurrency(fecharForm.saldoFinalInformado) - caixa.totais.saldoFisicoCalculado
-    : null;
-
   if (!caixa) {
     return (
-      <Card className="max-w-md mx-auto p-6">
-        <SectionTitle>Nenhum caixa aberto</SectionTitle>
-        <p className="mt-2 text-sm text-slate-600 mb-6">Você precisa abrir o caixa para iniciar as operações do dia e receber pagamentos.</p>
-        <form onSubmit={handleAbrirCaixa} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="saldoInicial">Saldo Inicial Físico (Dinheiro em gaveta)</Label>
-            <Input
-              id="saldoInicial"
-              type="text"
-              value={saldoInicial}
-              onChange={(e) => setSaldoInicial(maskCurrency(e.target.value))}
-              onBlur={(e) => {
-                if (e.target.value) setSaldoInicial(formatCurrency(e.target.value));
-              }}
-              placeholder="R$ 0,00"
-              required
-            />
-          </div>
-          <Button type="submit" disabled={abrirLoading}>
-            {abrirLoading ? "Abrindo..." : "Abrir Caixa"}
-          </Button>
-        </form>
-      </Card>
+      <NenhumCaixaAberto
+        saldoInicial={saldoInicial}
+        setSaldoInicial={setSaldoInicial}
+        abrirLoading={abrirLoading}
+        handleAbrirCaixa={handleAbrirCaixa}
+      />
     );
   }
 
@@ -246,238 +218,30 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
           </div>
         </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle>Movimentações</SectionTitle>
-            <Button onClick={() => setMovFormVisible(!movFormVisible)} variant="secondary" type="button">
-              {movFormVisible ? "Cancelar" : "Nova Movimentação"}
-            </Button>
-          </div>
-
-          {movFormVisible && (
-            <div className="mb-6 p-4 border rounded-xl bg-slate-50">
-              <h4 className="font-semibold mb-4">Registrar Movimentação</h4>
-              <form onSubmit={handleMovimentacao} className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="tipoMov">Tipo</Label>
-                  <select
-                    id="tipoMov"
-                    value={movimentacaoForm.tipo}
-                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, tipo: e.target.value })}
-                    className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
-                    required
-                  >
-                    <option value="ENTRADA">Entrada</option>
-                    <option value="SAIDA">Saída</option>
-                    <option value="SANGRIA">Sangria (Retirada)</option>
-                    <option value="REFORCO">Reforço (Troco)</option>
-                  </select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="valorMov">Valor</Label>
-                  <Input
-                    id="valorMov"
-                    type="text"
-                    value={movimentacaoForm.valor}
-                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, valor: maskCurrency(e.target.value) })}
-                    onBlur={(e) => {
-                      if (e.target.value) setMovimentacaoForm({ ...movimentacaoForm, valor: formatCurrency(e.target.value) });
-                    }}
-                    placeholder="R$ 0,00"
-                    required
-                  />
-                </div>
-                {(movimentacaoForm.tipo === "ENTRADA" || movimentacaoForm.tipo === "SAIDA") && (
-                  <div className="grid gap-2 sm:col-span-2">
-                    <Label htmlFor="formaPgtoMov">Forma de Pagamento (Opcional)</Label>
-                    <select
-                      id="formaPgtoMov"
-                      value={movimentacaoForm.formaPagamentoId}
-                      onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, formaPagamentoId: e.target.value })}
-                      className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
-                    >
-                      <option value="">Nenhuma (Físico/Dinheiro implícito)</option>
-                      {formasPagamento.map((f) => (
-                        <option key={f.id} value={f.id}>{f.nome}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="grid gap-2 sm:col-span-2">
-                  <Label htmlFor="descMov">Descrição</Label>
-                  <Input
-                    id="descMov"
-                    value={movimentacaoForm.descricao}
-                    onChange={(e) => setMovimentacaoForm({ ...movimentacaoForm, descricao: e.target.value })}
-                    placeholder="Ex: Compra de material, Lanche, etc."
-                    required
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <Button type="submit" disabled={movLoading}>{movLoading ? "Salvando..." : "Salvar"}</Button>
-                </div>
-              </form>
-            </div>
-          )}
-
-          {caixa.movimentacoes.length === 0 ? (
-            <p className="text-sm text-slate-600">Nenhuma movimentação registrada.</p>
-          ) : (
-            <div className="rounded-xl border overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50 border-b text-xs uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Data/Hora</th>
-                    <th className="px-4 py-3 font-semibold">Tipo</th>
-                    <th className="px-4 py-3 font-semibold">Descrição</th>
-                    <th className="px-4 py-3 font-semibold">Origem</th>
-                    <th className="px-4 py-3 font-semibold">Forma Pgto</th>
-                    <th className="px-4 py-3 font-semibold text-right">Valor</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
-                  {caixa.movimentacoes.map(mov => (
-                    <tr key={mov.id} className="hover:bg-slate-50">
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                        {dateFormatter.format(new Date(mov.criadoEm))}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge tone={mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "success" : "danger"}>{mov.tipo}</Badge>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        {mov.descricao}
-                        {mov.ordemServicoId && <span className="ml-2 text-xs text-slate-400 font-normal">(OS Vinculada)</span>}
-                      </td>
-                      <td className="px-4 py-3 text-slate-600">{mov.origem}</td>
-                      <td className="px-4 py-3 text-slate-600">
-                        {mov.formaPagamento?.nome || "-"}
-                      </td>
-                      <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "text-emerald-600" : "text-rose-600"}`}>
-                        {mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "+" : "-"}{currencyFormatter.format(mov.valor)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        <MovimentacoesCaixa
+          movimentacoes={caixa.movimentacoes}
+          movFormVisible={movFormVisible}
+          setMovFormVisible={setMovFormVisible}
+          handleMovimentacao={handleMovimentacao}
+          movimentacaoForm={movimentacaoForm}
+          setMovimentacaoForm={setMovimentacaoForm}
+          movLoading={movLoading}
+          formasPagamento={formasPagamento}
+        />
       </div>
 
       <aside className="space-y-6">
-        <Card className="p-6">
-          <SectionTitle className="mb-4">Resumo Físico (Gaveta)</SectionTitle>
-          <div className="space-y-1">
-            <LinhaResumo label="Saldo Inicial" valor={caixa.saldoInicial} />
-            <LinhaResumo label="Entradas (Dinheiro)" valor={caixa.totais.entradasFisicas} />
-            <LinhaResumo label="Saídas (Dinheiro)" valor={caixa.totais.saidasFisicas} />
-            <LinhaResumo label="Reforços" valor={caixa.totais.reforcos} />
-            <LinhaResumo label="Sangrias" valor={caixa.totais.sangrias} />
-          </div>
-          <div className="mt-4 pt-4 border-t">
-            <div className="flex justify-between font-bold text-lg">
-              <span>Saldo Físico</span>
-              <span className="text-emerald-700">{currencyFormatter.format(caixa.totais.saldoFisicoCalculado)}</span>
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            Divergência calculada apenas sobre dinheiro físico.
-          </p>
-        </Card>
+        <ResumoCaixa caixa={caixa} />
 
-        <Card className="p-6 bg-slate-50 border-l-4 border-l-[color:var(--accent)]">
-          <SectionTitle className="mb-4 text-[color:var(--accent)]">Total Recebido no Dia</SectionTitle>
-          <div className="space-y-2 mb-4">
-            {Object.keys(caixa.totais.totaisPorFormaPagamento).length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhum recebimento registrado ainda.</p>
-            ) : (
-              Object.entries(caixa.totais.totaisPorFormaPagamento).map(([forma, total]) => (
-                <LinhaResumo key={forma} label={forma} valor={total as number} />
-              ))
-            )}
-          </div>
-          <div className="pt-2 border-t font-bold flex justify-between">
-            <span>Total Geral Recebido</span>
-            <span>{currencyFormatter.format(caixa.totais.totalGeralRecebido)}</span>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">
-            PIX, cartão e outras formas são exibidos aqui apenas para conferência operacional. Total geral recebido não representa dinheiro em gaveta.
-          </p>
-        </Card>
-
-        <Card className="p-6 border-rose-200 bg-rose-50/50">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-rose-800">Fechar Caixa</h3>
-          </div>
-          {!fecharFormVisible ? (
-            <Button variant="secondary" onClick={() => setFecharFormVisible(true)} className="w-full text-rose-700 border-rose-300 hover:bg-rose-100" type="button">
-              Iniciar Fechamento
-            </Button>
-          ) : (
-            <form onSubmit={handleFecharCaixa} className="grid gap-3 mt-4">
-              <div className="grid gap-2">
-                <Label htmlFor="saldoInformado">Dinheiro Físico na Gaveta</Label>
-                <Input
-                  id="saldoInformado"
-                  type="text"
-                  value={fecharForm.saldoFinalInformado}
-                  onChange={(e) => setFecharForm({ ...fecharForm, saldoFinalInformado: maskCurrency(e.target.value) })}
-                  onBlur={(e) => {
-                    if (e.target.value) setFecharForm({ ...fecharForm, saldoFinalInformado: formatCurrency(e.target.value) });
-                  }}
-                  placeholder="R$ 0,00"
-                  required
-                />
-              </div>
-
-              <div className="rounded-lg border border-rose-200 bg-white p-3 space-y-1">
-                <p className="text-xs font-semibold text-rose-800 uppercase tracking-wide mb-1">Resumo antes de fechar</p>
-                <LinhaResumo label="Dinheiro Físico Esperado" valor={caixa.totais.saldoFisicoCalculado} />
-                {fecharForm.saldoFinalInformado && (
-                  <div className="flex items-center justify-between gap-4 py-2 text-sm">
-                    <span className="text-slate-600">Divergência Prevista</span>
-                    <strong className={
-                      divergenciaPrevista! < 0 ? "text-rose-600" : divergenciaPrevista! > 0 ? "text-emerald-600" : "text-[color:var(--text)]"
-                    }>
-                      {currencyFormatter.format(divergenciaPrevista!)}
-                    </strong>
-                  </div>
-                )}
-                {Object.keys(caixa.totais.totaisPorFormaPagamento).length > 0 && (
-                  <div className="pt-2 mt-2 border-t space-y-1">
-                    <p className="text-xs text-slate-500 mb-1">Totais por forma (conferência operacional):</p>
-                    {Object.entries(caixa.totais.totaisPorFormaPagamento).map(([forma, total]) => (
-                      <LinhaResumo key={forma} label={forma} valor={total as number} />
-                    ))}
-                  </div>
-                )}
-                <div className="pt-2 border-t flex justify-between font-semibold text-sm">
-                  <span>Total Geral Recebido</span>
-                  <span>{currencyFormatter.format(caixa.totais.totalGeralRecebido)}</span>
-                </div>
-                <p className="text-xs text-slate-500 pt-1">
-                  Divergência calculada apenas sobre dinheiro físico. PIX/cartão são exibidos para conferência operacional.
-                </p>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="obsFechamento">Observação (Opcional)</Label>
-                <Textarea
-                  id="obsFechamento"
-                  value={fecharForm.observacao}
-                  onChange={(e) => setFecharForm({ ...fecharForm, observacao: e.target.value })}
-                  placeholder="Divergências, observações do dia..."
-                />
-              </div>
-              <div className="flex gap-2 mt-2">
-                <Button type="submit" disabled={fecharLoading} className="flex-1 bg-rose-600 hover:bg-rose-700">
-                  {fecharLoading ? "Fechando..." : "Confirmar Fechamento"}
-                </Button>
-                <Button type="button" variant="secondary" onClick={() => setFecharFormVisible(false)}>Cancelar</Button>
-              </div>
-            </form>
-          )}
-        </Card>
+        <FecharCaixa
+          caixa={caixa}
+          fecharFormVisible={fecharFormVisible}
+          setFecharFormVisible={setFecharFormVisible}
+          handleFecharCaixa={handleFecharCaixa}
+          fecharForm={fecharForm}
+          setFecharForm={setFecharForm}
+          fecharLoading={fecharLoading}
+        />
       </aside>
     </div>
   );
