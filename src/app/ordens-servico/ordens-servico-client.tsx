@@ -10,6 +10,7 @@ import { Combobox } from "@/components/combobox";
 import { formatCurrency, formatPhone, maskCPFCNPJ, maskCurrency, maskPhone, whatsappLink } from "@/lib/formatters";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
 import { ordemServicoFormSchema, type OrdemServicoFormValues, type OrdemServicoServicoValues } from "@/lib/ordens-servico-schema";
+import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico";
 import {
   filtrarOrdensServicoListagem,
@@ -65,16 +66,18 @@ function getStatusTone(status: string): "neutral" | "success" | "warning" | "dan
   }
 }
 
-const defaultValues: OrdemServicoFormValues = {
+const criarDefaultValues = (): OrdemServicoFormValues => ({
   clienteId: "",
   numeroSufixo: "",
   itemRecebido: "",
   servicoId: "",
   servicos: [],
+  dataEntrada: dataOperacionalHoje(),
+  justificativaDataEntrada: "",
   prazoPrevisto: "",
   valorEstimado: 0,
   observacoes: "",
-};
+});
 
 const defaultClienteValues: ClienteFormValues = {
   nome: "",
@@ -335,9 +338,16 @@ export function OrdensServicoClient({
     formState: { errors },
   } = useForm<OrdemServicoFormValues>({
     resolver: zodResolver(ordemServicoFormSchema),
-    defaultValues,
+    defaultValues: criarDefaultValues(),
     mode: "onChange",
   });
+
+  // "Hoje" no fuso da operação: mesma referência usada pelo schema, para que a
+  // regra de data futura/retroativa não dependa do fuso do processo.
+  const hojeOperacional = dataOperacionalHoje();
+  const dataEntradaSelecionada = watch("dataEntrada");
+  const exigeJustificativaDataEntrada =
+    !!dataEntradaSelecionada && dataEntradaSelecionada !== hojeOperacional;
 
   const {
     register: registerCliente,
@@ -431,7 +441,7 @@ export function OrdensServicoClient({
       return;
     }
 
-    reset(defaultValues);
+    reset(criarDefaultValues());
     setServicosSelecionados([]);
 
     startTransition(() => {
@@ -638,6 +648,36 @@ export function OrdensServicoClient({
                 <p className="text-xs text-slate-500">Nenhum serviço selecionado. O item poderá ser detalhado depois.</p>
               )}
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="dataEntrada">Data de entrada</Label>
+              <Input
+                id="dataEntrada"
+                type="date"
+                max={hojeOperacional}
+                {...register("dataEntrada")}
+              />
+              {errors.dataEntrada ? <p className="text-sm text-red-600">{errors.dataEntrada.message}</p> : null}
+              {exigeJustificativaDataEntrada ? (
+                <p className="text-xs text-slate-500">
+                  Registro retroativo — o número da OS continua sendo gerado com a data de hoje.
+                </p>
+              ) : null}
+            </div>
+
+            {exigeJustificativaDataEntrada ? (
+              <div className="grid gap-2">
+                <Label htmlFor="justificativaDataEntrada">Justificativa da data retroativa</Label>
+                <Textarea
+                  id="justificativaDataEntrada"
+                  rows={2}
+                  {...register("justificativaDataEntrada")}
+                />
+                {errors.justificativaDataEntrada ? (
+                  <p className="text-sm text-red-600">{errors.justificativaDataEntrada.message}</p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="grid gap-2 md:grid-cols-2">
               <div className="grid gap-2">

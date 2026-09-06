@@ -81,3 +81,23 @@ export function calcularIntervaloPreset(
     }
   }
 }
+
+export const FUSO_OPERACIONAL = "America/Sao_Paulo";
+
+/**
+ * Dia corrente ("YYYY-MM-DD") no fuso da operação, independente do fuso do
+ * processo (o servidor pode rodar em UTC). Serve de referência para comparar
+ * datas informadas pelo operador, que sempre pensa no calendário local.
+ */
+export function dataOperacionalHoje(referencia: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: FUSO_OPERACIONAL,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(referencia);
+
+  const buscar = (tipo: string) => partes.find((parte) => parte.type === tipo)?.value ?? "";
+
+  return `${buscar("year")}-${buscar("month")}-${buscar("day")}`;
+}

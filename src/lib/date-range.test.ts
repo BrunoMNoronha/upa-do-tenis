@@ -5,6 +5,7 @@ import {
   inicioDoDiaSeguinte,
   formatarDataLocal,
   calcularIntervaloPreset,
+  dataOperacionalHoje,
 } from "./date-range";
 
 describe("date-range", () => {
@@ -171,6 +172,22 @@ describe("date-range", () => {
 
       expect(agora.getTime()).toBeGreaterThanOrEqual(inicio.getTime());
       expect(agora.getTime()).toBeLessThan(fimExclusivo.getTime());
+    });
+  });
+
+  describe("dataOperacionalHoje", () => {
+    it("retorna o dia corrente no fuso da operação", () => {
+      expect(dataOperacionalHoje(new Date("2026-09-05T12:00:00Z"))).toBe("2026-09-05");
+    });
+
+    it("mantém o dia brasileiro quando o processo já virou para o dia seguinte em UTC", () => {
+      // 05/09 23:30 em Brasília = 06/09 02:30 em UTC.
+      expect(dataOperacionalHoje(new Date("2026-09-06T02:30:00Z"))).toBe("2026-09-05");
+    });
+
+    it("mantém o dia anterior antes das 03:00 UTC", () => {
+      // 04/09 23:59:59 em Brasília = 05/09 02:59:59 em UTC.
+      expect(dataOperacionalHoje(new Date("2026-09-05T02:59:59Z"))).toBe("2026-09-04");
     });
   });
 });
