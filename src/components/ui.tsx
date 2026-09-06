@@ -16,6 +16,14 @@ type CardProps = {
   children: React.ReactNode;
 };
 
+type PanelHeaderProps = {
+  title: string;
+  description?: string;
+  eyebrow?: string;
+  action?: React.ReactNode;
+  className?: string;
+};
+
 type LabelProps = React.LabelHTMLAttributes<HTMLLabelElement> & {
   className?: string;
   children: React.ReactNode;
@@ -59,7 +67,70 @@ export function Button({ href, variant = "primary", className, children, ...prop
 }
 
 export function Card({ className, children }: CardProps) {
-  return <section className={composeClasses("rounded-[1.75rem] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-[0_20px_40px_rgba(31,41,55,0.07)]", className)}>{children}</section>;
+  return <section className={composeClasses("rounded-[var(--r-card)] border border-[color:var(--border)] bg-[color:var(--surface)] shadow-[0_16px_36px_rgba(31,41,55,0.06)]", className)}>{children}</section>;
+}
+
+export function PanelHeader({ title, description, eyebrow, action, className }: PanelHeaderProps) {
+  return (
+    <div className={composeClasses("flex flex-wrap items-start justify-between gap-3", className)}>
+      <div>
+        {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">{eyebrow}</p> : null}
+        <h2 className="mt-1 text-lg font-semibold tracking-tight text-[color:var(--text)]">{title}</h2>
+        {description ? <p className="mt-1 text-sm leading-5 text-slate-600">{description}</p> : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+export function FilterChip({
+  active = false,
+  children,
+  onClick,
+  tone = "accent",
+}: {
+  active?: boolean;
+  children: React.ReactNode;
+  onClick?: () => void;
+  tone?: "accent" | "warning" | "danger";
+}) {
+  const activeClasses = {
+    accent: "border-[color:var(--accent)] bg-[color:var(--accent-tint)] text-[color:var(--accent-strong)]",
+    warning: "border-amber-300 bg-amber-50 text-amber-900",
+    danger: "border-rose-300 bg-rose-50 text-rose-800",
+  } as const;
+
+  const content = (
+    <span className={composeClasses(
+      "inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+      active ? activeClasses[tone] : "border-black/10 bg-white text-slate-600 hover:border-[color:var(--accent-soft)] hover:bg-[color:var(--accent-tint)]",
+    )}>
+      {children}
+    </span>
+  );
+
+  return onClick ? <button type="button" onClick={onClick}>{content}</button> : content;
+}
+
+export function StatCard({ label, value, hint, active = false, onClick }: {
+  label: string;
+  value: React.ReactNode;
+  hint?: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
+  const content = (
+    <div className={composeClasses(
+      "rounded-[var(--r-card)] border bg-[color:var(--surface)] px-4 py-3 shadow-[0_8px_22px_rgba(31,41,55,0.04)]",
+      active ? "border-[color:var(--accent)]" : "border-[color:var(--border)]",
+    )}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</p>
+      <p className="mt-1 text-2xl font-bold tracking-tight text-[color:var(--text)]">{value}</p>
+      {hint ? <p className="mt-0.5 text-xs text-slate-500">{hint}</p> : null}
+    </div>
+  );
+
+  return onClick ? <button type="button" onClick={onClick} className="text-left">{content}</button> : content;
 }
 
 export function Label({ className, children, ...props }: LabelProps) {

@@ -1,0 +1,3 @@
+## 2024-05-18 - [Remoção de scripts e utilitários duplicados]
+**Learning:** Sempre remova arquivos e scripts utilitários temporários (ex: scripts Node.js criados para atualização, busca ou manipulação pontual de arquivos) do diretório do projeto antes de solicitar code review ou realizar commits. Adicionalmente, em refatorações de componentes React ou lógicas complexas, extraia funções utilitárias compartilhadas (como formatação de moeda ou datas) para arquivos dedicados (ex: `utils.ts`) em vez de duplicá-las, para evitar rejeição em code reviews.
+**Action:** Usar `git status` e `rm` para garantir que meu workspace não contenha scripts criados temporariamente, e aplicar o padrão DRY ao extrair lógicas comuns em vez de repetir.

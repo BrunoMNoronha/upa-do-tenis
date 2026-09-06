@@ -13,6 +13,9 @@
   --accent: #8c5a32;
   --accent-strong: #6e4526;
   --accent-soft: #f0d6c2;
+  --accent-tint: #fbf4ee;
+  --r-card: 20px;
+  --r-field: 12px;
   --success: #166534;
   --warning: #b45309;
   --danger: #b91c1c;
