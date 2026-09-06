@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exigirSessaoApi } from "@/lib/auth-server";
+import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { dataOperacionalHoje } from "@/lib/date-range";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
+import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastreabilidade";
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
 
 export async function POST(req: NextRequest) {
   try {
-    const naoAutenticado = await exigirSessaoApi(req);
-    if (naoAutenticado) return naoAutenticado;
+    const usuario = await obterUsuarioSessaoDaRequest(req);
+    if (!usuario) {
+      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    }
 
     const body = await req.json();
     const result = ordemServicoFormSchema.safeParse(body);
@@ -20,6 +24,16 @@ export async function POST(req: NextRequest) {
     }
 
     const data = result.data;
+
+    // Data operacional da OS: informada pelo operador (retroativa) ou agora.
+    // criadoEm permanece como registro técnico imutável.
+    const hoje = dataOperacionalHoje();
+    const dataOperacional = data.dataEntrada?.trim() ? data.dataEntrada.trim() : hoje;
+    const ehRetroativa = dataOperacional !== hoje;
+    const dataEntradaPersistida = ehRetroativa
+      ? new Date(`${dataOperacional}T12:00:00`)
+      : new Date();
+
     const servicosInformados = data.servicos.length > 0
       ? data.servicos
       : data.servicoId
@@ -86,30 +100,50 @@ export async function POST(req: NextRequest) {
       itens: [],
     });
 
-    const novaOS = await prisma.ordemServico.create({
-      data: {
-        numero: numeroStr,
-        clienteId: data.clienteId,
-        status: "ABERTA",
-        dataEntrada: new Date(),
-        dataPrevisao: new Date(`${data.prazoPrevisto}T12:00:00`),
-        valorTotal: resumoFinanceiro.valorTotal,
-        valorDesconto: resumoFinanceiro.valorDesconto,
-        valorSinal: resumoFinanceiro.valorSinal,
-        valorPago: resumoFinanceiro.valorPago,
-        saldo: resumoFinanceiro.saldo,
-        observacoes: data.observacoes,
-        itens: {
-          create: {
-            tipoItem: "CALCADO", // Default for now
-            descricao: data.itemRecebido,
-            valor: valorTotal,
-            servicos: servicosInformados.length > 0
-              ? { create: servicosInformados }
-              : undefined,
+    const novaOS = await prisma.$transaction(async (tx) => {
+      const ordemCriada = await tx.ordemServico.create({
+        data: {
+          numero: numeroStr,
+          clienteId: data.clienteId,
+          status: "ABERTA",
+          dataEntrada: dataEntradaPersistida,
+          dataPrevisao: new Date(`${data.prazoPrevisto}T12:00:00`),
+          valorTotal: resumoFinanceiro.valorTotal,
+          valorDesconto: resumoFinanceiro.valorDesconto,
+          valorSinal: resumoFinanceiro.valorSinal,
+          valorPago: resumoFinanceiro.valorPago,
+          saldo: resumoFinanceiro.saldo,
+          observacoes: data.observacoes,
+          itens: {
+            create: {
+              tipoItem: "CALCADO", // Default for now
+              descricao: data.itemRecebido,
+              valor: valorTotal,
+              servicos: servicosInformados.length > 0
+                ? { create: servicosInformados }
+                : undefined,
+            }
           }
-        }
-      },
+        },
+      });
+
+      if (ehRetroativa) {
+        await tx.historicoStatus.create({
+          data: {
+            ordemServicoId: ordemCriada.id,
+            statusAnterior: null,
+            statusNovo: "ABERTA",
+            observacao: montarObservacaoRegistroRetroativo({
+              dataOperacional,
+              registradoEm: new Date(),
+              usuarioNome: usuario.nome || usuario.email,
+              justificativa: data.justificativaDataEntrada ?? "",
+            }),
+          },
+        });
+      }
+
+      return ordemCriada;
     });
 
     return NextResponse.json(novaOS, { status: 201 });

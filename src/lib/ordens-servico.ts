@@ -40,9 +40,9 @@ export async function listarOrdensServico() {
         },
       },
     },
-    orderBy: {
-      criadoEm: "desc",
-    },
+    // Ordem operacional: dataEntrada pode ser retroativa; criadoEm desempata
+    // registros do mesmo dia mantendo o mais recente primeiro.
+    orderBy: [{ dataEntrada: "desc" }, { criadoEm: "desc" }],
   });
 
   return ordens.map((ordem) => {

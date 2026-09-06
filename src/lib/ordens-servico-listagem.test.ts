@@ -183,4 +183,16 @@ describe("ordens-servico listagem", () => {
     expect(ordens[0].saldo).toBe(120);
     expect(ordens[0].statusFinanceiro).toBe("PARCIAL");
   });
+
+  it("ordena pela data operacional com criadoEm como desempate", async () => {
+    prismaMock.ordemServico.findMany.mockResolvedValueOnce([]);
+
+    await listarOrdensServico();
+
+    expect(prismaMock.ordemServico.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ dataEntrada: "desc" }, { criadoEm: "desc" }],
+      }),
+    );
+  });
 });
