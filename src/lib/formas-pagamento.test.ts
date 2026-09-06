@@ -6,7 +6,7 @@ vi.mock("./prisma", () => ({
   prisma: {
     formaPagamento: {
       findMany: vi.fn(),
-      update: vi.fn(),
+      updateMany: vi.fn(),
     },
   },
 }));
@@ -16,16 +16,16 @@ describe("sanearTipoFormaPagamentoDinheiro", () => {
     vi.clearAllMocks();
   });
 
-  it("corrige a forma 'Dinheiro' com tipo vazio para DINHEIRO (reproduz o achado da Fatia 13.3)", async () => {
+  it("corrige a forma 'Dinheiro' com tipo vazio para DINHEIRO via updateMany (reproduz o achado da Fatia 13.3)", async () => {
     vi.mocked(prisma.formaPagamento.findMany).mockResolvedValue([
       { id: "forma-1", nome: "Dinheiro", tipo: "" },
     ] as any);
-    vi.mocked(prisma.formaPagamento.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.formaPagamento.updateMany).mockResolvedValue({ count: 1 } as any);
 
     const resultado = await sanearTipoFormaPagamentoDinheiro();
 
-    expect(prisma.formaPagamento.update).toHaveBeenCalledWith({
-      where: { id: "forma-1" },
+    expect(prisma.formaPagamento.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["forma-1"] } },
       data: { tipo: "DINHEIRO" },
     });
     expect(resultado.totalAnalisadas).toBe(1);
@@ -33,11 +33,31 @@ describe("sanearTipoFormaPagamentoDinheiro", () => {
     expect(resultado.idsCorrigidos).toEqual(["forma-1"]);
   });
 
+  it("corrige múltiplas formas 'Dinheiro' em lote (batch) com uma única chamada updateMany", async () => {
+    vi.mocked(prisma.formaPagamento.findMany).mockResolvedValue([
+      { id: "forma-1", nome: "Dinheiro", tipo: "" },
+      { id: "forma-2", nome: "dinheiro", tipo: null },
+      { id: "forma-3", nome: "DINHEIRO", tipo: "   " },
+    ] as any);
+    vi.mocked(prisma.formaPagamento.updateMany).mockResolvedValue({ count: 3 } as any);
+
+    const resultado = await sanearTipoFormaPagamentoDinheiro();
+
+    expect(prisma.formaPagamento.updateMany).toHaveBeenCalledTimes(1);
+    expect(prisma.formaPagamento.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: ["forma-1", "forma-2", "forma-3"] } },
+      data: { tipo: "DINHEIRO" },
+    });
+    expect(resultado.totalAnalisadas).toBe(3);
+    expect(resultado.totalCorrigidas).toBe(3);
+    expect(resultado.idsCorrigidos).toEqual(["forma-1", "forma-2", "forma-3"]);
+  });
+
   it("corrige a forma 'Dinheiro' com tipo nulo para DINHEIRO", async () => {
     vi.mocked(prisma.formaPagamento.findMany).mockResolvedValue([
       { id: "forma-1", nome: "Dinheiro", tipo: null },
     ] as any);
-    vi.mocked(prisma.formaPagamento.update).mockResolvedValue({} as any);
+    vi.mocked(prisma.formaPagamento.updateMany).mockResolvedValue({ count: 1 } as any);
 
     const resultado = await sanearTipoFormaPagamentoDinheiro();
 
@@ -51,7 +71,7 @@ describe("sanearTipoFormaPagamentoDinheiro", () => {
 
     const resultado = await sanearTipoFormaPagamentoDinheiro();
 
-    expect(prisma.formaPagamento.update).not.toHaveBeenCalled();
+    expect(prisma.formaPagamento.updateMany).not.toHaveBeenCalled();
     expect(resultado.totalCorrigidas).toBe(0);
   });
 
@@ -67,6 +87,6 @@ describe("sanearTipoFormaPagamentoDinheiro", () => {
       select: { id: true, nome: true, tipo: true },
     });
     expect(resultado.totalCorrigidas).toBe(0);
-    expect(prisma.formaPagamento.update).not.toHaveBeenCalled();
+    expect(prisma.formaPagamento.updateMany).not.toHaveBeenCalled();
   });
 });
