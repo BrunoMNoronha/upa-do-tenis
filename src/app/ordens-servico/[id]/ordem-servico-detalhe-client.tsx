@@ -2,165 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, Card, Input, Label, PanelHeader, SectionTitle, Textarea, LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { Badge, Button, Card, PanelHeader, SectionTitle, LoadingState, ErrorState, EmptyState, Input } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 
-type Cliente = {
-  id: string;
-  nome: string;
-  telefone: string;
-  email?: string | null;
-  cpfCnpj?: string | null;
-};
+import {
+  OrdemServicoDetalhe,
+  FormaPagamento,
+  InsumoDisponivel,
+  ServicoDisponivel,
+  EstadoTela,
+  ServicoItem,
+  ItemOS
+} from "./types";
+import {
+  currencyFormatter,
+  dateFormatter,
+  formatarStatus,
+  obterTomStatusFinanceiro
+} from "./utils";
 
-type ServicoItem = {
-  id: string;
-  valor: number;
-  servico?: {
-    id: string;
-    nome: string;
-    precoBase?: number;
-  } | null;
-};
-
-type ItemOS = {
-  id: string;
-  tipoItem: string;
-  descricao: string;
-  valor: number;
-  observacoes?: string | null;
-  servicos: ServicoItem[];
-  insumos: InsumoAplicado[];
-};
-
-type InsumoAplicado = {
-  id: string;
-  quantidade: number;
-  custoUnitarioAplicado: number;
-  custoTotalAplicado: number;
-  observacoes?: string | null;
-  insumo: {
-    id: string;
-    nome: string;
-    unidadeMedida?: string;
-  };
-};
-
-type InsumoDisponivel = {
-  id: string;
-  nome: string;
-  unidadeMedida: string;
-};
-
-type ServicoDisponivel = {
-  id: string;
-  nome: string;
-  precoBase: number;
-};
-
-type FormaPagamento = {
-  id: string;
-  nome: string;
-  tipo?: string | null;
-};
-
-type Pagamento = {
-  id: string;
-  tipo: string;
-  valor: number;
-  dataPagamento: string;
-  observacoes?: string | null;
-  formaPagamento: FormaPagamento;
-};
-
-type HistoricoStatus = {
-  id: string;
-  statusAnterior?: string | null;
-  statusNovo: string;
-  observacao?: string | null;
-  criadoEm: string;
-};
-
-type ResumoFinanceiro = {
-  valorTotal: number;
-  valorDesconto: number;
-  valorSinal: number;
-  valorPago: number;
-  saldo: number;
-  statusFinanceiro: "PENDENTE" | "PARCIAL" | "PAGO" | "CANCELADO";
-};
-
-type OrdemServicoDetalhe = {
-  id: string;
-  numero: string;
-  status: string;
-  dataEntrada: string;
-  dataPrevisao: string;
-  dataConclusao?: string | null;
-  observacoes?: string | null;
-  cliente: Cliente;
-  itens: ItemOS[];
-  pagamentos: Pagamento[];
-  historicosStatus: HistoricoStatus[];
-  resumoFinanceiro: ResumoFinanceiro;
-};
-
-type EstadoTela = "carregando" | "erro" | "nao-encontrada" | "sucesso";
-
-type PagamentoFormValues = {
-  formaPagamentoId: string;
-  valor: string;
-  dataPagamento: string;
-  observacoes: string;
-};
-
-type InsumoFormValues = {
-  itemOrdemServicoId: string;
-  insumoId: string;
-  quantidade: string;
-  custoUnitarioAplicado: string;
-  observacoes: string;
-};
-
-const pagamentoFormDefaultValues: PagamentoFormValues = {
-  formaPagamentoId: "",
-  valor: "",
-  dataPagamento: "",
-  observacoes: "",
-};
-
-const insumoFormDefaultValues: InsumoFormValues = {
-  itemOrdemServicoId: "",
-  insumoId: "",
-  quantidade: "",
-  custoUnitarioAplicado: "",
-  observacoes: "",
-};
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
-
-function formatarStatus(status: string) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(" ");
-}
-
-function obterTomStatusFinanceiro(status: ResumoFinanceiro["statusFinanceiro"]) {
-  if (status === "PAGO") return "success" as const;
-  if (status === "PARCIAL") return "warning" as const;
-  if (status === "CANCELADO") return "danger" as const;
-  return "neutral" as const;
-}
+import { ReceberPagamentoForm } from "./components/ReceberPagamentoForm";
+import { AplicarInsumoForm } from "./components/AplicarInsumoForm";
+import { HistoricoPagamentosList } from "./components/HistoricoPagamentosList";
 
 function LinhaResumo({ label, valor }: { label: string; valor: number }) {
   return (
@@ -185,14 +48,7 @@ export function OrdemServicoDetalheClient({
   const [estado, setEstado] = useState<EstadoTela>("carregando");
   const [erro, setErro] = useState<string | null>(null);
   const [ordem, setOrdem] = useState<OrdemServicoDetalhe | null>(null);
-  const [pagamentoForm, setPagamentoForm] = useState<PagamentoFormValues>(pagamentoFormDefaultValues);
-  const [pagamentoErro, setPagamentoErro] = useState<string | null>(null);
-  const [pagamentoSucesso, setPagamentoSucesso] = useState<string | null>(null);
-  const [enviandoPagamento, setEnviandoPagamento] = useState(false);
-  const [insumoForm, setInsumoForm] = useState<InsumoFormValues>(insumoFormDefaultValues);
-  const [insumoErro, setInsumoErro] = useState<string | null>(null);
-  const [insumoSucesso, setInsumoSucesso] = useState<string | null>(null);
-  const [enviandoInsumo, setEnviandoInsumo] = useState(false);
+
   const [itemServicoEditando, setItemServicoEditando] = useState<string | null>(null);
   const [servicosEditando, setServicosEditando] = useState<ServicoItem[]>([]);
   const [servicosErro, setServicosErro] = useState<string | null>(null);
@@ -230,136 +86,6 @@ export function OrdemServicoDetalheClient({
   useEffect(() => {
     void carregarDetalhe();
   }, [carregarDetalhe]);
-
-  const handlePagamentoInput = (field: keyof PagamentoFormValues, value: string) => {
-    setPagamentoErro(null);
-    setPagamentoSucesso(null);
-    setPagamentoForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleRegistrarPagamento = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setPagamentoErro(null);
-    setPagamentoSucesso(null);
-
-    if (!pagamentoForm.formaPagamentoId) {
-      setPagamentoErro("Selecione uma forma de pagamento.");
-      return;
-    }
-
-    if (!pagamentoForm.valor) {
-      setPagamentoErro("Informe o valor do pagamento.");
-      return;
-    }
-
-    const valorNumerico = Number(pagamentoForm.valor.replace(",", "."));
-    if (!Number.isFinite(valorNumerico) || valorNumerico <= 0) {
-      setPagamentoErro("Informe um valor maior que zero.");
-      return;
-    }
-
-    if (!pagamentoForm.dataPagamento) {
-      setPagamentoErro("Informe a data do pagamento.");
-      return;
-    }
-
-    setEnviandoPagamento(true);
-
-    try {
-      const response = await fetch(`/api/ordens-servico/${ordemServicoId}/pagamentos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          formaPagamentoId: pagamentoForm.formaPagamentoId,
-          valor: valorNumerico,
-          dataPagamento: pagamentoForm.dataPagamento,
-          observacoes: pagamentoForm.observacoes.trim() || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setPagamentoErro(payload?.message || "Não foi possível registrar o pagamento.");
-        return;
-      }
-
-      await carregarDetalhe(true);
-      setPagamentoForm(pagamentoFormDefaultValues);
-      setPagamentoSucesso("Pagamento registrado com sucesso.");
-    } catch {
-      setPagamentoErro("Falha de comunicação ao registrar o pagamento.");
-    } finally {
-      setEnviandoPagamento(false);
-    }
-  };
-
-  const handleInsumoInput = (field: keyof InsumoFormValues, value: string) => {
-    setInsumoErro(null);
-    setInsumoSucesso(null);
-    setInsumoForm((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleRegistrarInsumo = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setInsumoErro(null);
-    setInsumoSucesso(null);
-
-    if (!insumoForm.itemOrdemServicoId) {
-      setInsumoErro("Selecione o item da OS.");
-      return;
-    }
-
-    if (!insumoForm.insumoId) {
-      setInsumoErro("Selecione o insumo utilizado.");
-      return;
-    }
-
-    const quantidade = Number(insumoForm.quantidade.replace(",", "."));
-    if (!Number.isFinite(quantidade) || quantidade <= 0) {
-      setInsumoErro("Informe uma quantidade maior que zero.");
-      return;
-    }
-
-    const custoUnitarioAplicado = Number(insumoForm.custoUnitarioAplicado.replace(",", "."));
-    if (!Number.isFinite(custoUnitarioAplicado) || custoUnitarioAplicado < 0) {
-      setInsumoErro("Informe um custo unitário maior ou igual a zero.");
-      return;
-    }
-
-    setEnviandoInsumo(true);
-
-    try {
-      const response = await fetch(`/api/ordens-servico/${ordemServicoId}/insumos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          itemOrdemServicoId: insumoForm.itemOrdemServicoId,
-          insumoId: insumoForm.insumoId,
-          quantidade,
-          custoUnitarioAplicado,
-          observacoes: insumoForm.observacoes.trim() || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        setInsumoErro(payload?.message || "Não foi possível registrar o insumo utilizado.");
-        return;
-      }
-
-      await carregarDetalhe(true);
-      setInsumoForm(insumoFormDefaultValues);
-      setInsumoSucesso("Insumo vinculado ao item com sucesso.");
-    } catch {
-      setInsumoErro("Falha de comunicação ao registrar o insumo.");
-    } finally {
-      setEnviandoInsumo(false);
-    }
-  };
 
   const iniciarEdicaoServicos = (item: ItemOS) => {
     setItemServicoEditando(item.id);
@@ -408,6 +134,10 @@ export function OrdemServicoDetalheClient({
     } finally {
       setSalvandoServicos(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    await carregarDetalhe(true);
   };
 
   const resumo = useMemo(() => ordem?.resumoFinanceiro, [ordem]);
@@ -507,10 +237,13 @@ export function OrdemServicoDetalheClient({
                   <div className="mt-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Serviços vinculados</p>
-                      <Button type="button" variant="ghost" onClick={() => iniciarEdicaoServicos(item)}>
+                      {itemServicoEditando !== item.id ? (
+                        <Button type="button" variant="ghost" onClick={() => iniciarEdicaoServicos(item)}>
                         Editar serviços
                       </Button>
+                      ) : null}
                     </div>
+
                     {itemServicoEditando === item.id ? (
                       <div className="mt-3 space-y-3 rounded-xl border border-[color:var(--accent-soft)] bg-slate-50 p-3">
                         <Combobox
@@ -659,211 +392,20 @@ export function OrdemServicoDetalheClient({
           </div>
         </Card>
 
-        <Card className="p-6">
-          <PanelHeader title="Receber pagamento" description="O lançamento será registrado no caixa aberto." />
+        <ReceberPagamentoForm
+          ordemServicoId={ordemServicoId}
+          formasPagamento={formasPagamento}
+          onPagamentoRegistrado={handleRefresh}
+        />
 
-          {formasPagamento.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600">
-              Nenhuma forma de pagamento ativa está disponível. Cadastre uma forma em Financeiro para registrar pagamentos.
-            </p>
-          ) : (
-            <form className="mt-4 grid gap-3" onSubmit={handleRegistrarPagamento}>
-              <div className="grid gap-2">
-                <Label htmlFor="formaPagamentoId">Forma de pagamento</Label>
-                <select
-                  id="formaPagamentoId"
-                  value={pagamentoForm.formaPagamentoId}
-                  onChange={(event) => handlePagamentoInput("formaPagamentoId", event.target.value)}
-                  className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {formasPagamento.map((forma) => (
-                    <option key={forma.id} value={forma.id}>
-                      {forma.nome}
-                      {forma.tipo ? ` - ${forma.tipo}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
+        <AplicarInsumoForm
+          ordemServicoId={ordemServicoId}
+          itensOrdem={ordem.itens}
+          insumosDisponiveis={insumosDisponiveis}
+          onInsumoRegistrado={handleRefresh}
+        />
 
-              <div className="grid gap-2">
-                <Label htmlFor="valorPagamento">Valor</Label>
-                <Input
-                  id="valorPagamento"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={pagamentoForm.valor}
-                  onChange={(event) => handlePagamentoInput("valor", event.target.value)}
-                  placeholder="0,00"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="dataPagamento">Data de pagamento</Label>
-                <Input
-                  id="dataPagamento"
-                  type="date"
-                  value={pagamentoForm.dataPagamento}
-                  onChange={(event) => handlePagamentoInput("dataPagamento", event.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="observacoesPagamento">Observações (opcional)</Label>
-                <Textarea
-                  id="observacoesPagamento"
-                  rows={3}
-                  value={pagamentoForm.observacoes}
-                  onChange={(event) => handlePagamentoInput("observacoes", event.target.value)}
-                  placeholder="Detalhes adicionais sobre o pagamento"
-                />
-              </div>
-
-              {pagamentoErro ? (
-                <div className="text-sm text-red-600">
-                  <p>{pagamentoErro}</p>
-                  {typeof pagamentoErro === "string" && pagamentoErro.includes("caixa") && (
-                    <div className="mt-2">
-                      <Button href="/caixa" type="button" variant="secondary">
-                        Abrir o Caixa
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-              {pagamentoSucesso ? <p className="text-sm text-emerald-700">{pagamentoSucesso}</p> : null}
-
-              <div>
-                <Button type="submit" disabled={enviandoPagamento}>
-                  {enviandoPagamento ? "Registrando..." : "Registrar pagamento"}
-                </Button>
-              </div>
-            </form>
-          )}
-        </Card>
-
-        <Card className="p-6">
-          <PanelHeader title="Insumos aplicados" description="Vincule o consumo ao item da ordem." />
-
-          {ordem.itens.length === 0 || insumosDisponiveis.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600">
-              Para registrar insumo, a OS precisa ter item e deve existir insumo cadastrado ativo.
-            </p>
-          ) : (
-            <form className="mt-4 grid gap-3" onSubmit={handleRegistrarInsumo}>
-              <div className="grid gap-2">
-                <Label htmlFor="itemOrdemServicoId">Item da OS</Label>
-                <select
-                  id="itemOrdemServicoId"
-                  value={insumoForm.itemOrdemServicoId}
-                  onChange={(event) => handleInsumoInput("itemOrdemServicoId", event.target.value)}
-                  className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {ordem.itens.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.descricao}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="insumoId">Insumo</Label>
-                <select
-                  id="insumoId"
-                  value={insumoForm.insumoId}
-                  onChange={(event) => handleInsumoInput("insumoId", event.target.value)}
-                  className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
-                  required
-                >
-                  <option value="">Selecione...</option>
-                  {insumosDisponiveis.map((insumo) => (
-                    <option key={insumo.id} value={insumo.id}>
-                      {insumo.nome} ({insumo.unidadeMedida})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-2 sm:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="quantidadeInsumo">Quantidade</Label>
-                  <Input
-                    id="quantidadeInsumo"
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    value={insumoForm.quantidade}
-                    onChange={(event) => handleInsumoInput("quantidade", event.target.value)}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
-
-                <div className="grid gap-2">
-                  <Label htmlFor="custoUnitarioAplicado">Custo unitário aplicado</Label>
-                  <Input
-                    id="custoUnitarioAplicado"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={insumoForm.custoUnitarioAplicado}
-                    onChange={(event) => handleInsumoInput("custoUnitarioAplicado", event.target.value)}
-                    placeholder="0,00"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="observacoesInsumo">Observações (opcional)</Label>
-                <Textarea
-                  id="observacoesInsumo"
-                  rows={3}
-                  value={insumoForm.observacoes}
-                  onChange={(event) => handleInsumoInput("observacoes", event.target.value)}
-                  placeholder="Informações adicionais do insumo aplicado"
-                />
-              </div>
-
-              {insumoErro ? <p className="text-sm text-red-600">{insumoErro}</p> : null}
-              {insumoSucesso ? <p className="text-sm text-emerald-700">{insumoSucesso}</p> : null}
-
-              <div>
-                <Button type="submit" disabled={enviandoInsumo}>
-                  {enviandoInsumo ? "Registrando..." : "Registrar insumo"}
-                </Button>
-              </div>
-            </form>
-          )}
-        </Card>
-
-        <Card className="p-6">
-          <PanelHeader title="Pagamentos registrados" description={`${ordem.pagamentos.length} lançamento(s)`} />
-          {ordem.pagamentos.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600">Nenhum pagamento registrado até o momento.</p>
-          ) : (
-            <div className="mt-4 space-y-3">
-              {ordem.pagamentos.map((pagamento) => (
-                <article key={pagamento.id} className="rounded-2xl border border-black/10 bg-white/80 p-3 text-sm text-slate-700">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-semibold text-[color:var(--text)]">{currencyFormatter.format(Number(pagamento.valor || 0))}</p>
-                    <Badge tone="accent">{pagamento.formaPagamento?.nome || "Forma não informada"}</Badge>
-                  </div>
-                  <p className="mt-1">Tipo: {pagamento.tipo}</p>
-                  <p className="mt-1">Data: {dateFormatter.format(new Date(pagamento.dataPagamento))}</p>
-                  {pagamento.observacoes ? <p className="mt-1">Obs.: {pagamento.observacoes}</p> : null}
-                </article>
-              ))}
-            </div>
-          )}
-        </Card>
+        <HistoricoPagamentosList pagamentos={ordem.pagamentos} />
       </aside>
     </section>
   );

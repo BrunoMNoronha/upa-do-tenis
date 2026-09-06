@@ -52,11 +52,10 @@ export function Button({ href, variant = "primary", className, isLoading, disabl
     className,
   );
 
-  if (href) {
     return (
-      <Link className={baseClasses} href={href}>
+      <button ref={ref} className={baseClasses} {...props}>
         {children}
-      </Link>
+      </button>
     );
   }
 
@@ -247,4 +246,4 @@ export function LoadingState({ text = "Carregando...", className }: LoadingState
       <p className="mt-4 text-sm font-medium text-slate-600">{text}</p>
     </div>
   );
-}
+}

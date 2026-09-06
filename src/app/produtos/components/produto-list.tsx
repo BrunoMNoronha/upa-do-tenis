@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { Badge, Card } from "@/components/ui";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 
 type ProdutoListado = {
   id: string;
@@ -29,57 +29,15 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListProps) {
-  const router = useRouter();
-  const [listaError, setListaError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  const alternarStatus = async (produto: ProdutoListado) => {
-    setListaError(null);
-
-    const response = await fetch(`/api/produtos/${produto.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ativo: !produto.ativo }),
-    });
-
-    if (!response.ok) {
-      const body = (await response.json()) as { message?: string };
-      setListaError(body.message ?? "Não foi possível alterar o status do produto.");
-      return;
-    }
-
-    startTransition(() => {
-      router.refresh();
-    });
-  };
-
-  const excluirProduto = async (produto: ProdutoListado) => {
-    setListaError(null);
-
-    const confirmado = window.confirm(`Excluir o produto "${produto.nome}"? Esta ação não pode ser desfeita.`);
-
-    if (!confirmado) {
-      return;
-    }
-
-    const response = await fetch(`/api/produtos/${produto.id}`, {
-      method: "DELETE",
-    });
-
-    if (!response.ok) {
-      const body = (await response.json()) as { message?: string };
-      setListaError(body.message ?? "Não foi possível excluir o produto.");
-      return;
-    }
-
-    onDeleteCurrent(produto.id);
-
-    startTransition(() => {
-      router.refresh();
-    });
-  };
+  const {
+    listaError,
+    isPending,
+    alternarStatus,
+    itemParaExcluir,
+    pedirExclusao,
+    cancelarExclusao,
+    confirmarExclusao,
+  } = useCadastroAcoes<ProdutoListado>({ endpoint: "/api/produtos", rotulo: "o produto" });
 
   return (
     <Card className="bg-[color:var(--text)] p-6 text-white">
@@ -150,7 +108,7 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
                 </button>
                 <button
                   type="button"
-                  onClick={() => excluirProduto(produto)}
+                  onClick={() => pedirExclusao(produto)}
                   disabled={isPending}
                   className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
@@ -161,6 +119,16 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        aberto={itemParaExcluir !== null}
+        titulo="Excluir produto"
+        descricao={`Excluir o produto "${itemParaExcluir?.nome ?? ""}"? Esta ação não pode ser desfeita.`}
+        textoConfirmar="Excluir"
+        tone="danger"
+        onConfirmar={() => confirmarExclusao((produto) => onDeleteCurrent(produto.id))}
+        onCancelar={cancelarExclusao}
+      />
     </Card>
   );
 }
