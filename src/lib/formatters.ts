@@ -105,3 +105,10 @@ export function formatCurrency(value: number | string | null | undefined): strin
     currency: 'BRL',
   }).format(numVal);
 }
+
+export function formatDateBr(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  return new Intl.DateTimeFormat("pt-BR").format(d);
+}
