@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
-import { LoadingState, ErrorState } from "@/components/ui";
+import { EmptyState, LoadingState, ErrorState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
-import { ResumoCards } from "./ResumoCards";
 import { InsumosCriticos } from "./InsumosCriticos";
 import { MovimentacoesRecentes } from "./MovimentacoesRecentes";
 
