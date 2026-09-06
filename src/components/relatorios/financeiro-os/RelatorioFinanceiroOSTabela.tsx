@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 import { RelatorioOSItem } from '@/lib/relatorio-financeiro-os-service';
 import { Badge, EmptyState } from '@/components/ui';

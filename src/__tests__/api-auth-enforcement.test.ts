@@ -21,10 +21,16 @@ import { GET as caixaIdGet } from "@/app/api/caixa/[id]/route";
 import { POST as caixaFecharPost } from "@/app/api/caixa/[id]/fechar/route";
 import { POST as caixaMovPost } from "@/app/api/caixa/[id]/movimentacoes/route";
 import { GET as clientesGet, POST as clientesPost } from "@/app/api/clientes/route";
-import { DELETE as clientesDelete } from "@/app/api/clientes/[id]/route";
-import { POST as servicosPost } from "@/app/api/servicos/route";
-import { DELETE as servicosDelete } from "@/app/api/servicos/[id]/route";
-import { POST as osPost } from "@/app/api/ordens-servico/route";
+import {
+  PATCH as clientesPatch,
+  DELETE as clientesDelete,
+} from "@/app/api/clientes/[id]/route";
+import { GET as servicosGet, POST as servicosPost } from "@/app/api/servicos/route";
+import {
+  PATCH as servicosPatch,
+  DELETE as servicosDelete,
+} from "@/app/api/servicos/[id]/route";
+import { GET as osGet, POST as osPost } from "@/app/api/ordens-servico/route";
 import { GET as osIdGet, DELETE as osIdDelete } from "@/app/api/ordens-servico/[id]/route";
 import { PATCH as osStatusPatch } from "@/app/api/ordens-servico/[id]/status/route";
 import {
@@ -35,8 +41,11 @@ import {
   GET as osInsumosGet,
   POST as osInsumosPost,
 } from "@/app/api/ordens-servico/[id]/insumos/route";
-import { POST as insumosPost } from "@/app/api/insumos/route";
-import { DELETE as insumosDelete } from "@/app/api/insumos/[id]/route";
+import { GET as insumosGet, POST as insumosPost } from "@/app/api/insumos/route";
+import {
+  PATCH as insumosPatch,
+  DELETE as insumosDelete,
+} from "@/app/api/insumos/[id]/route";
 import {
   GET as insumosMovGet,
   POST as insumosMovPost,
@@ -45,7 +54,11 @@ import { GET as relatorioEstoqueGet } from "@/app/api/relatorios/estoque/route";
 import { GET as relatorioAlertasGet } from "@/app/api/relatorios/estoque/alertas/route";
 import { GET as relatorioFinanceiroGet } from "@/app/api/relatorios/financeiro-os/route";
 import { POST as formasPagamentoPost } from "@/app/api/formas-pagamento/route";
-import { POST as produtosPost } from "@/app/api/produtos/route";
+import {
+  PATCH as formasPagamentoPatch,
+  DELETE as formasPagamentoDelete,
+} from "@/app/api/formas-pagamento/[id]/route";
+import { GET as produtosGet, POST as produtosPost } from "@/app/api/produtos/route";
 import {
   PATCH as produtosPatch,
   DELETE as produtosDelete,
@@ -80,14 +93,24 @@ const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/clientes", () => clientesGet(criarRequest("/api/clientes"))],
   ["POST /api/clientes", () => clientesPost(criarRequest("/api/clientes", "POST"))],
   [
+    "PATCH /api/clientes/[id]",
+    () => clientesPatch(criarRequest("/api/clientes/abc", "PATCH"), params),
+  ],
+  [
     "DELETE /api/clientes/[id]",
     () => clientesDelete(criarRequest("/api/clientes/abc", "DELETE"), params),
   ],
+  ["GET /api/servicos", () => servicosGet(criarRequest("/api/servicos"))],
   ["POST /api/servicos", () => servicosPost(criarRequest("/api/servicos", "POST"))],
+  [
+    "PATCH /api/servicos/[id]",
+    () => servicosPatch(criarRequest("/api/servicos/abc", "PATCH"), params),
+  ],
   [
     "DELETE /api/servicos/[id]",
     () => servicosDelete(criarRequest("/api/servicos/abc", "DELETE"), params),
   ],
+  ["GET /api/ordens-servico", () => osGet(criarRequest("/api/ordens-servico"))],
   ["POST /api/ordens-servico", () => osPost(criarRequest("/api/ordens-servico", "POST"))],
   ["GET /api/ordens-servico/[id]", () => osIdGet(criarRequest("/api/ordens-servico/abc"), params)],
   [
@@ -114,7 +137,12 @@ const casos: Array<[string, () => Promise<Response>]> = [
     "POST /api/ordens-servico/[id]/insumos",
     () => osInsumosPost(criarRequest("/api/ordens-servico/abc/insumos", "POST"), params),
   ],
+  ["GET /api/insumos", () => insumosGet(criarRequest("/api/insumos"))],
   ["POST /api/insumos", () => insumosPost(criarRequest("/api/insumos", "POST"))],
+  [
+    "PATCH /api/insumos/[id]",
+    () => insumosPatch(criarRequest("/api/insumos/abc", "PATCH"), params),
+  ],
   [
     "DELETE /api/insumos/[id]",
     () => insumosDelete(criarRequest("/api/insumos/abc", "DELETE"), params),
@@ -140,6 +168,15 @@ const casos: Array<[string, () => Promise<Response>]> = [
     "POST /api/formas-pagamento",
     () => formasPagamentoPost(criarRequest("/api/formas-pagamento", "POST")),
   ],
+  [
+    "PATCH /api/formas-pagamento/[id]",
+    () => formasPagamentoPatch(criarRequest("/api/formas-pagamento/abc", "PATCH"), params),
+  ],
+  [
+    "DELETE /api/formas-pagamento/[id]",
+    () => formasPagamentoDelete(criarRequest("/api/formas-pagamento/abc", "DELETE"), params),
+  ],
+  ["GET /api/produtos", () => produtosGet(criarRequest("/api/produtos"))],
   ["POST /api/produtos", () => produtosPost(criarRequest("/api/produtos", "POST"))],
   [
     "PATCH /api/produtos/[id]",

@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
 import Link from "next/link";
-import { LoadingState, ErrorState, EmptyState } from "@/components/ui";
+import { RelatorioEstoqueEstatisticas, InsumoCritico, MovimentacaoResumo, ResumoPorTipo } from "@/lib/relatorio-estoque-service";
+import { EmptyState, LoadingState, ErrorState } from "@/components/ui";
 import { DateRangePicker, type DateRange } from "@/components/date-range-picker";
 import { formatarDataLocal } from "@/lib/date-range";
 import { formatCurrency, formatDateBr } from "@/lib/formatters";
@@ -297,7 +297,6 @@ export function RelatorioEstoqueClient() {
 
             <TabelaMovimentacoesRecentes movimentacoes={movimentacoes} />
           </div>
-          
         </div>
       )}
     </div>

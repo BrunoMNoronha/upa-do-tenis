@@ -1,3 +1,7 @@
 ## 2025-02-18 - Evite `reduce` para criação dinâmica de mapas em pequenos arrays
 **Learning:** Em otimizações no V8/Node.js, substituir repetidas chamadas `Array.prototype.find()` por um único `Array.prototype.reduce()` construindo um objeto mapa dinâmico nem sempre melhora a performance real se o array for muito pequeno. A sobrecarga de alocação de propriedades dinâmicas e o garbage collection do `reduce` pode deixá-lo mais lento que a busca O(N*M) com M pequeno.
 **Action:** Para transformar processamento O(K*N) em O(N) com máxima performance, declare as variáveis de saída fora do escopo e utilize um `for...of` com mutação local (`let`) em vez de construir novos objetos usando callbacks funcionais e reduções.
+
+## 2025-02-18 - Paralelização Massiva em Agregações do Prisma
+**Learning:** Em funções de dashboard que computam inúmeras métricas agregadas sem dependência de dados entre si (ex: totais recebidos, totais pendentes, contagens segmentadas por status e ticket médio), executar as queries de forma sequencial (11 vezes `await prisma...`) introduz um gargalo de rede clássico O(N).
+**Action:** Utilize o padrão `Promise.all()` agrupando massivamente todas as agregações independentes para resolver de forma concorrente O(max(T)), e execute os queries subsequentes que dependem destes agregados (ex: buscar entidades a partir de arrays de IDs) em um segundo bloco `Promise.all()` logo a seguir.

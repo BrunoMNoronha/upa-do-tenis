@@ -22,53 +22,109 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
   const inicio = inicioDoDia(dataInicio);
   const fimExclusivo = inicioDoDiaSeguinte(dataFim);
 
-  // 1. Total Recebido no período (Soma de todos os pagamentos)
-  const totalRecebidoAgg = await prisma.pagamento.aggregate({
-    _sum: {
-      valor: true,
-    },
-    where: {
-      dataPagamento: {
-        gte: inicio,
-        lt: fimExclusivo,
+  // Execução paralela de todas as agregações independentes para reduzir tempo de resposta.
+  const [
+    totalRecebidoAgg,
+    totalPendenteAgg,
+    osPorStatus,
+    osPagas,
+    osPendentesPagamento,
+    osParcialmentePagas,
+    ticketMedioAgg,
+    topServicosAgg,
+    topInsumosAgg
+  ] = await Promise.all([
+    // 1. Total Recebido no período (Soma de todos os pagamentos)
+    prisma.pagamento.aggregate({
+      _sum: { valor: true },
+      where: { dataPagamento: { gte: inicio, lt: fimExclusivo } },
+    }),
+    // 2. Total Pendente (Soma do saldo das OS que entraram no período e não estão canceladas)
+    prisma.ordemServico.aggregate({
+      _sum: { saldo: true },
+      where: {
+        dataEntrada: { gte: inicio, lt: fimExclusivo },
+        status: { notIn: ['CANCELADA'] },
+        saldo: { gt: 0 },
       },
-    },
-  });
+    }),
+    // 3. Contagem de OS por Status (Apenas as que entraram no período)
+    prisma.ordemServico.groupBy({
+      by: ['status'],
+      _count: { id: true },
+      where: { dataEntrada: { gte: inicio, lt: fimExclusivo } },
+    }),
+    // 4. Status Financeiro das OS (Pagas)
+    prisma.ordemServico.count({
+      where: {
+        dataEntrada: { gte: inicio, lt: fimExclusivo },
+        status: { notIn: ['CANCELADA'] },
+        saldo: 0,
+        valorTotal: { gt: 0 },
+      },
+    }),
+    // Pendentes de Pagamento
+    prisma.ordemServico.count({
+      where: {
+        dataEntrada: { gte: inicio, lt: fimExclusivo },
+        status: { notIn: ['CANCELADA'] },
+        valorPago: 0,
+        valorTotal: { gt: 0 },
+      },
+    }),
+    // Parcialmente Pagas
+    prisma.ordemServico.count({
+      where: {
+        dataEntrada: { gte: inicio, lt: fimExclusivo },
+        status: { notIn: ['CANCELADA'] },
+        valorPago: { gt: 0 },
+        saldo: { gt: 0 },
+      },
+    }),
+    // 5. Ticket Médio
+    prisma.ordemServico.aggregate({
+      _avg: { valorTotal: true },
+      where: {
+        dataEntrada: { gte: inicio, lt: fimExclusivo },
+        status: { notIn: ['CANCELADA'] },
+        valorTotal: { gt: 0 },
+      },
+    }),
+    // 6. Top 5 Serviços mais executados
+    prisma.servicoItemOrdem.groupBy({
+      by: ['servicoId'],
+      _count: { servicoId: true },
+      where: {
+        itemOrdemServico: {
+          ordemServico: {
+            dataEntrada: { gte: inicio, lt: fimExclusivo },
+            status: { notIn: ['CANCELADA'] },
+          }
+        }
+      },
+      orderBy: { _count: { servicoId: 'desc' } },
+      take: 5,
+    }),
+    // 7. Top 5 Insumos mais utilizados
+    prisma.insumoItemOrdem.groupBy({
+      by: ['insumoId'],
+      _sum: { quantidade: true },
+      where: {
+        itemOrdemServico: {
+          ordemServico: {
+            dataEntrada: { gte: inicio, lt: fimExclusivo },
+            status: { notIn: ['CANCELADA'] },
+          }
+        }
+      },
+      orderBy: { _sum: { quantidade: 'desc' } },
+      take: 5,
+    })
+  ]);
+
   const totalRecebido = Number(totalRecebidoAgg._sum.valor || 0);
-
-  // 2. Total Pendente (Soma do saldo das OS que entraram no período e não estão canceladas)
-  const totalPendenteAgg = await prisma.ordemServico.aggregate({
-    _sum: {
-      saldo: true,
-    },
-    where: {
-      dataEntrada: {
-        gte: inicio,
-        lt: fimExclusivo,
-      },
-      status: {
-        notIn: ['CANCELADA'],
-      },
-      saldo: {
-        gt: 0,
-      },
-    },
-  });
   const totalPendente = Number(totalPendenteAgg._sum.saldo || 0);
-
-  // 3. Contagem de OS por Status (Apenas as que entraram no período)
-  const osPorStatus = await prisma.ordemServico.groupBy({
-    by: ['status'],
-    _count: {
-      id: true,
-    },
-    where: {
-      dataEntrada: {
-        gte: inicio,
-        lt: fimExclusivo,
-      },
-    },
-  });
+  const ticketMedio = Number(ticketMedioAgg._avg.valorTotal || 0);
 
   // Otimização: Iteração única sobre o array para evitar 4 chamadas .find() em sequência (O(N) vs O(4N))
   // Melhoria de performance de ~27% na estruturação dos dados (de ~219ms para ~159ms em benchmark de 5M iterações)
@@ -84,77 +140,20 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
     else if (status === 'ENTREGUE') osEntregues = _count.id;
   }
 
-  // 4. Status Financeiro das OS
-  // Pagas: saldo = 0 e valorTotal > 0
-  const osPagas = await prisma.ordemServico.count({
-    where: {
-      dataEntrada: { gte: inicio, lt: fimExclusivo },
-      status: { notIn: ['CANCELADA'] },
-      saldo: 0,
-      valorTotal: { gt: 0 },
-    },
-  });
-
-  // Pendentes de Pagamento: valorPago = 0 e valorTotal > 0
-  const osPendentesPagamento = await prisma.ordemServico.count({
-    where: {
-      dataEntrada: { gte: inicio, lt: fimExclusivo },
-      status: { notIn: ['CANCELADA'] },
-      valorPago: 0,
-      valorTotal: { gt: 0 },
-    },
-  });
-
-  // Parcialmente Pagas: valorPago > 0 e saldo > 0
-  const osParcialmentePagas = await prisma.ordemServico.count({
-    where: {
-      dataEntrada: { gte: inicio, lt: fimExclusivo },
-      status: { notIn: ['CANCELADA'] },
-      valorPago: { gt: 0 },
-      saldo: { gt: 0 },
-    },
-  });
-
-  // 5. Ticket Médio
-  const ticketMedioAgg = await prisma.ordemServico.aggregate({
-    _avg: {
-      valorTotal: true,
-    },
-    where: {
-      dataEntrada: { gte: inicio, lt: fimExclusivo },
-      status: { notIn: ['CANCELADA'] },
-      valorTotal: { gt: 0 },
-    },
-  });
-  const ticketMedio = Number(ticketMedioAgg._avg.valorTotal || 0);
-
-  // 6. Top 5 Serviços mais executados
-  const topServicosAgg = await prisma.servicoItemOrdem.groupBy({
-    by: ['servicoId'],
-    _count: {
-      servicoId: true,
-    },
-    where: {
-      itemOrdemServico: {
-        ordemServico: {
-          dataEntrada: { gte: inicio, lt: fimExclusivo },
-          status: { notIn: ['CANCELADA'] },
-        }
-      }
-    },
-    orderBy: {
-      _count: {
-        servicoId: 'desc',
-      },
-    },
-    take: 5,
-  });
-
   const servicosIds = topServicosAgg.map(s => s.servicoId);
-  const servicos = await prisma.servico.findMany({
-    where: { id: { in: servicosIds } },
-    select: { id: true, nome: true },
-  });
+  const insumosIds = topInsumosAgg.map(i => i.insumoId);
+
+  // Consultas secundárias paralelas baseadas nos IDs agregados
+  const [servicos, insumos] = await Promise.all([
+    prisma.servico.findMany({
+      where: { id: { in: servicosIds } },
+      select: { id: true, nome: true },
+    }),
+    prisma.insumo.findMany({
+      where: { id: { in: insumosIds } },
+      select: { id: true, nome: true, unidadeMedida: true },
+    })
+  ]);
 
   // Otimização: Uso de Map para busca O(1) reduzindo de O(N*M) para O(N+M)
   // Medição: Benchmark local de 100k iterações caiu de 183ms para ~6ms
@@ -167,34 +166,6 @@ export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Prom
       nome: servico?.nome || 'Serviço Desconhecido',
       quantidade: agg._count.servicoId,
     };
-  });
-
-  // 7. Top 5 Insumos mais utilizados
-  const topInsumosAgg = await prisma.insumoItemOrdem.groupBy({
-    by: ['insumoId'],
-    _sum: {
-      quantidade: true,
-    },
-    where: {
-      itemOrdemServico: {
-        ordemServico: {
-          dataEntrada: { gte: inicio, lt: fimExclusivo },
-          status: { notIn: ['CANCELADA'] },
-        }
-      }
-    },
-    orderBy: {
-      _sum: {
-        quantidade: 'desc',
-      },
-    },
-    take: 5,
-  });
-
-  const insumosIds = topInsumosAgg.map(i => i.insumoId);
-  const insumos = await prisma.insumo.findMany({
-    where: { id: { in: insumosIds } },
-    select: { id: true, nome: true, unidadeMedida: true },
   });
 
   // Otimização: Uso de Map para busca O(1) reduzindo de O(N*M) para O(N+M)
