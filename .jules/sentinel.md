@@ -1,6 +1,4 @@
-
-## 2026-07-07 - Remoção do segredo de sessão padrão em desenvolvimento
-
-**Vulnerabilidade:** O código continha um segredo de sessão HMAC padrão ("upa-do-tenis-segredo-dev") para ambientes de não-produção (`src/lib/auth-constants.ts`), abrindo margem para falsificação de cookies de sessão em staging, dev ou preview expostos se `AUTH_SESSION_SECRET` não estivesse configurado.
-**Aprendizado:** Fallbacks com chaves estáticas em código fonte, mesmo sob condições de `NODE_ENV !== "production"`, representam um risco de segurança relevante em ambientes de homologação ou pré-produção.
-**Prevenção:** Exigir obrigatoriamente a variável de ambiente `AUTH_SESSION_SECRET` (mínimo 16 caracteres) em todos os ambientes e lançar erro imediato se a configuração estiver ausente ou for fraca.
+## 2024-05-24 - Timing Attack em Validação de Senha
+**Vulnerabilidade:** Ocultar o cálculo de hash da senha em fluxos de erro precoce (ex: se o usuário não for encontrado no banco de dados).
+**Aprendizado:** A validação curta "early return" permitia que invasores verificassem se um email existia medindo o tempo de resposta do servidor, visto que `verifyPassword` leva significativamente mais tempo que falhas imediatas de banco de dados.
+**Prevenção:** Sempre execute o cálculo de hash (`verifyPassword`) mesmo para usuários inexistentes usando um `DUMMY_HASH` consistente para mascarar diferenças no tempo de execução.
