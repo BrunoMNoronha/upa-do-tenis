@@ -73,7 +73,7 @@ Aplicável quando o go-live for na Vercel + Neon ([FATIA_PRODUCAO_04_VERCEL_NEON
 - [ ] Environment `production` do GitHub com **required reviewers** configurado.
 - [ ] Deployment Protection (Vercel Authentication) ativa no Preview.
 - [ ] Retenção/PITR real do plano Neon registrada em [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md) — valor lido no console, não estimado.
-- [ ] Drill de restore executado em branch `restore-test-*` e a branch de teste removida.
+- [ ] Drill de restore executado **nas duas camadas**: PITR nativo em `restore-test-*` e `pg_restore` do dump offsite em `restore-dump-*`; branches de teste removidas.
 - [ ] Instant Rollback da Vercel compreendido pelo responsável ([PLANO_ROLLBACK.md](PLANO_ROLLBACK.md)).
 - [ ] CI (`.github/workflows/ci.yml`) verde na `main`.
 

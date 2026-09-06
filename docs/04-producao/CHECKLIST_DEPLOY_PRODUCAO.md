@@ -84,6 +84,9 @@ Em caso de qualquer item não atendido, **não prosseguir** — aplicar o `PLANO
 
 Quando o deploy for para o ambiente cloud descrito em [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_NEON.md), os itens 1 a 4 e 7 a 13 acima continuam valendo integralmente. Os itens **5 (migrations)** e **6 (subir aplicação)** são substituídos pela sequência abaixo, **nesta ordem**.
 
+> [!NOTE]
+> Esta ordem vale a partir do **segundo release**. No primeiro rollout ela se inverte: `workflow_dispatch` só fica disponível depois que `migracoes.yml` existe na branch padrão, então o merge vem antes do primeiro dispatch. Ver a Etapa 3 de [WALKTHROUGH_FATIA_PRODUCAO_04.md](WALKTHROUGH_FATIA_PRODUCAO_04.md).
+
 ### 5c. Backup pré-migration
 
 - [ ] Dump lógico da branch `production` do Neon gerado (ver seção "Neon" em [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)).

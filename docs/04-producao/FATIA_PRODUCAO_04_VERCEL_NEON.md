@@ -104,6 +104,9 @@ Migrations são aplicadas pelo workflow manual [`.github/workflows/migracoes.yml
 - O Environment `production` deve ter **Required reviewers** configurado, deixando a execução pendente de aprovação humana.
 - Passos: `migrate status` (evidência do alvo) → `migrate deploy` → `migrate status` (gate).
 
+> [!NOTE]
+> `workflow_dispatch` só aparece em **Actions** quando o arquivo do workflow já existe na **branch padrão**. No primeiro rollout, portanto, o merge precede o primeiro dispatch — ver a Etapa 3 de [WALKTHROUGH_FATIA_PRODUCAO_04.md](WALKTHROUGH_FATIA_PRODUCAO_04.md). A ordem de release abaixo vale a partir do segundo release.
+
 > [!IMPORTANT]
 > A linha `Datasource "db": PostgreSQL database "<db>", schema "public" at "<host>"` impressa pelo `migrate status` é a **evidência do banco alvo** e deve ser copiada para o relatório de homologação. Registrar o host, nunca as credenciais.
 

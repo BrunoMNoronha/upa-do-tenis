@@ -82,11 +82,12 @@ Cadência: **semanal**, mais um dump **imediatamente antes de cada `migrate depl
 Usando a imagem Postgres que o projeto já utiliza, sem exigir `pg_dump` instalado na máquina:
 
 ```bash
+mkdir -p backups
 docker run --rm postgres:16 pg_dump --no-owner --format=custom "<url DIRECT da branch production>" \
   > backups/neon_prod_$(date +%Y%m%d_%H%M).dump
 ```
 
-`backups/` já está no `.gitignore`. Guardar os arquivos fora da máquina de operação.
+`backups/` já está no `.gitignore`, mas não existe em um clone limpo — daí o `mkdir -p`, sem o qual o shell falha ao abrir o destino da redireção antes mesmo de subir o container. Guardar os arquivos fora da máquina de operação.
 
 > [!CAUTION]
 > A connection string carrega a credencial. Nunca ecoar o comando em log de CI, print ou canal compartilhado. Preferir carregar a URL de `.env.neon.prod` (ignorado pelo git) em vez de digitá-la.
@@ -106,7 +107,19 @@ docker run --rm -i postgres:16 pg_restore --no-owner -d "<url DIRECT da branch a
    DATABASE_URL="<url DIRECT da restore-test>" corepack pnpm exec prisma migrate status
    ```
 4. Rodar as contagens da seção "Validação pós-restore" no SQL Editor do Neon, comparando com a branch `production`.
-5. **Excluir a branch de teste** — ela consome quota e mantém uma cópia dos dados reais.
+
+Os passos 1 a 4 validam apenas o **PITR nativo**. O drill só está completo quando o **dump lógico** também é restaurado — sem isso, um arquivo vazio, truncado ou incompatível passa por todo o checklist de go-live e só é descoberto no incidente em que o próprio projeto Neon estiver indisponível, que é exatamente o cenário para o qual a camada offsite existe:
+
+5. Criar uma segunda branch `restore-dump-<AAAAMMDD>` **vazia** (não a partir de `production`) e restaurar nela o arquivo gerado na camada 2:
+   ```bash
+   docker run --rm -i postgres:16 pg_restore --no-owner -d "<url DIRECT da restore-dump>" < backups/neon_prod_<AAAAMMDDHHMM>.dump
+   ```
+6. Validar o resultado com os mesmos critérios da seção "Validação pós-restore": contagem de tabelas, contagem de registros de `Usuario`, `OrdemServico` e `MovimentacaoCaixa` conferindo com a origem, e schema coerente:
+   ```bash
+   DATABASE_URL="<url DIRECT da restore-dump>" corepack pnpm exec prisma migrate status
+   ```
+   Um `pg_restore` que termina com erro, ou contagens zeradas, **reprova o drill**: significa que o backup offsite não existe de fato.
+7. **Excluir as duas branches de teste** — elas consomem quota e mantêm uma cópia dos dados reais.
 
 Registrar o resultado em [HOMOLOGACAO_FATIA_PRODUCAO_04.md](HOMOLOGACAO_FATIA_PRODUCAO_04.md), seção 10.
 

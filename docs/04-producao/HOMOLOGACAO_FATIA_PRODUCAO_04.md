@@ -186,7 +186,9 @@ Saída de `vercel env ls` (valores mascarados):
 
 - [ ] Retenção/PITR real registrada em [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)
 - [ ] `pg_dump` da branch `production` executado com sucesso — arquivo: `____________`
-- [ ] Drill de restore executado em branch `restore-test-________` e a branch de teste foi removida
+- [ ] Drill de PITR executado em branch `restore-test-________`
+- [ ] Drill do **dump lógico** executado: `pg_restore` do arquivo offsite em branch vazia `restore-dump-________`, com contagens conferidas e `migrate status` coerente
+- [ ] As duas branches de teste foram removidas
 - [ ] Procedimento de Instant Rollback da Vercel conferido em [PLANO_ROLLBACK.md](PLANO_ROLLBACK.md)
 
 ---

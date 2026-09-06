@@ -29,7 +29,7 @@ git diff --stat
 git grep -nE "postgres(ql)?://" -- . ':!*.example' ':!docs/**' ':!*.yml'
 ```
 
-Abrir o PR com as alterações da fatia. **Não fazer merge ainda** — a ordem correta é migrar antes de deployar.
+Abrir o PR com as alterações da fatia. O merge acontece na Etapa 3 — leia a nota sobre `workflow_dispatch` antes de seguir.
 
 - [ ] Gates locais verdes
 - [ ] PR aberto
@@ -71,18 +71,28 @@ Em **Settings → Environments** do repositório:
 
 ---
 
-## Etapa 3 — Migrations na branch `production`
+## Etapa 3 — Disponibilizar o workflow e migrar a branch `production`
 
-1. Backup prévio (mesmo com banco vazio, valida o comando — ver [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)).
-2. GitHub → **Actions → Migrations (Neon) → Run workflow**:
-   - branch: a do PR (ou `main`);
+> [!IMPORTANT]
+> O evento `workflow_dispatch` só fica disponível em **Actions** depois que o arquivo do workflow existe na **branch padrão** (`main`). Como `migracoes.yml` nasce neste PR, **no primeiro rollout o merge vem antes do primeiro dispatch** — o inverso da ordem de release permanente.
+>
+> Isso é seguro porque, até a Etapa 4, as variáveis de Production ainda **não** estão cadastradas na Vercel: sem `DATABASE_URL`, a aplicação não conecta em banco nenhum, e o deploy disparado pelo merge é inócuo. Se preferir garantia adicional, pause a integração Git do projeto na Vercel (**Settings → Git**) até a Etapa 5.
+>
+> A partir do segundo release vale a ordem definitiva de [CHECKLIST_DEPLOY_PRODUCAO.md](CHECKLIST_DEPLOY_PRODUCAO.md): **migrar antes de mergear**.
+
+1. Confirmar que as variáveis de Production **ainda não** foram cadastradas na Vercel.
+2. Fazer merge do PR em `main`. O workflow **Migrations (Neon)** passa a aparecer em Actions.
+3. Backup prévio (mesmo com banco vazio, valida o comando — ver [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)).
+4. GitHub → **Actions → Migrations (Neon) → Run workflow**:
+   - branch: `main`;
    - `ambiente`: **production**;
    - `confirmacao`: `APLICAR`.
-3. Aprovar a execução pendente (required reviewers).
-4. Copiar do log:
+5. Aprovar a execução pendente (required reviewers).
+6. Copiar do log:
    - a linha `Datasource "db": ... at "<host>"` do passo **Status antes**;
    - o resultado do passo **Status depois** — esperado `Database schema is up to date!` com **4 migrations** aplicadas.
 
+- [ ] PR mergeado e workflow visível em Actions
 - [ ] Host confirmado como a branch `production` do Neon
 - [ ] 4 migrations aplicadas
 
@@ -109,7 +119,7 @@ Em **Settings → Environments** do repositório:
 
 ## Etapa 5 — Primeiro deploy de Production
 
-1. Fazer merge do PR em `main`.
+1. O merge já ocorreu na Etapa 3. Para que as variáveis da Etapa 4 passem a valer, forçar um novo deploy: **Deployments** → o último deployment de `main` → **Redeploy**.
 2. Acompanhar o build e conferir no log:
    - `Detected package manager: pnpm <versão>` — se resolver abaixo de 11, aplicar a ladder de contingência da [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_NEON.md#contingências-aplicar-só-se-o-primeiro-build-falhar);
    - versão do Node ≥ 22.13;
