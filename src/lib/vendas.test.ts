@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach, afterAll } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, afterAll, vi } from "vitest";
+import * as movService from "./movimentacao-estoque-produto-service";
 import { PrismaClient } from "@prisma/client";
 
 import { registrarVendaBalcao, VendaBalcaoError } from "./vendas";
@@ -195,6 +196,53 @@ describe("registrarVendaBalcao", () => {
     ).rejects.toBeInstanceOf(VendaBalcaoError);
 
     expect(await prisma.venda.count()).toBe(0);
+  });
+
+  it("traduz MovimentacaoEstoqueProdutoError para VendaBalcaoError", async () => {
+    const { MovimentacaoEstoqueProdutoError } = await import("./movimentacao-estoque-produto-service");
+
+    const erroMock = new MovimentacaoEstoqueProdutoError("Estoque bloqueado", 422);
+
+    vi.spyOn(movService, "baixarEstoqueProdutoVenda").mockRejectedValueOnce(erroMock);
+
+    let errorCapturado: any;
+    try {
+      await registrarVendaBalcao({
+        formaPagamentoId,
+        itens: [{ produtoId: produtoAId, quantidade: 1 }],
+      });
+    } catch (e) {
+      errorCapturado = e;
+    }
+
+    expect(errorCapturado).toBeInstanceOf(VendaBalcaoError);
+    expect(errorCapturado.message).toBe("Estoque bloqueado");
+    expect(errorCapturado.status).toBe(422);
+
+    vi.restoreAllMocks();
+  });
+
+  it("relança erros genericos sem traducao", async () => {
+    const erroGenerico = new Error("Erro de banco de dados");
+
+    vi.spyOn(movService, "baixarEstoqueProdutoVenda").mockRejectedValueOnce(erroGenerico);
+
+    let errorCapturado: any;
+    try {
+      await registrarVendaBalcao({
+        formaPagamentoId,
+        itens: [{ produtoId: produtoAId, quantidade: 1 }],
+      });
+    } catch (e) {
+      errorCapturado = e;
+    }
+
+    expect(errorCapturado).toBeInstanceOf(Error);
+    expect(errorCapturado.message).toBe("Erro de banco de dados");
+    // Garante que não é VendaBalcaoError
+    expect(errorCapturado).not.toBeInstanceOf(VendaBalcaoError);
+
+    vi.restoreAllMocks();
   });
 });
 
