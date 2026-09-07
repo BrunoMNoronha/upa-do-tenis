@@ -40,6 +40,20 @@ export function sanitizeCurrency(value: string | number | null | undefined): num
   return isNaN(num) ? 0 : num;
 }
 
+/**
+ * Estreita um valor `unknown` para o tipo aceito por `sanitizeCurrency`.
+ *
+ * Strings, números, `null` e `undefined` passam inalterados; qualquer outro
+ * tipo é convertido com `String(...)`, reproduzindo exatamente o cast
+ * implícito que `sanitizeCurrency` já aplicava. Serve para tratar valores
+ * vindos de `JSON.parse`, `FormData` ou APIs externas sem recorrer a `any`.
+ */
+export function toCurrencyInput(value: unknown): string | number | null | undefined {
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string" || typeof value === "number") return value;
+  return String(value);
+}
+
 export function sanitizeText(value: string | null | undefined): string {
   if (!value) return "";
   return value.trim().replace(/\s+/g, " ");
