@@ -108,5 +108,33 @@ describe("insumos-movimentacoes", () => {
         })
       ).rejects.toThrow(InsumoMovimentacaoError);
     });
+
+    it("deve capturar erro relacionado a motivo ausente do service", async () => {
+      prismaMock.insumo.findUnique.mockResolvedValueOnce({ id: "ins-1" });
+      vi.mocked(criarMovimentacaoEstoque).mockRejectedValueOnce(new Error("Motivo é obrigatório para este tipo de movimentação"));
+
+      await expect(
+        registrarMovimentacaoManual("ins-1", {
+          tipo: TipoMovimentacao.SAIDA_MANUAL,
+          quantidade: 10,
+        })
+      ).rejects.toThrow(InsumoMovimentacaoError);
+    });
+
+    it("deve repassar outros tipos de erros lançados pelo service", async () => {
+      prismaMock.insumo.findUnique.mockResolvedValueOnce({ id: "ins-1" });
+      vi.mocked(criarMovimentacaoEstoque).mockRejectedValueOnce(new Error("Erro de conexão com o banco"));
+
+      try {
+        await registrarMovimentacaoManual("ins-1", {
+          tipo: TipoMovimentacao.SAIDA_MANUAL,
+          quantidade: 10,
+        });
+        expect.fail("Deveria ter lançado um erro");
+      } catch (error) {
+        expect(error).not.toBeInstanceOf(InsumoMovimentacaoError);
+        expect((error as Error).message).toBe("Erro de conexão com o banco");
+      }
+    });
   });
 });
