@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
+import { listarOrdensServico } from "@/lib/ordens-servico";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,11 @@ vi.mock("@/lib/auth-server", () => ({
     email: "bruno@sapataria.com",
     ativo: true,
   }),
+  exigirSessaoApi: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock("@/lib/ordens-servico", () => ({
+  listarOrdensServico: vi.fn(),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -52,6 +58,38 @@ function argumentosDoCreate() {
 }
 
 // ── Testes ────────────────────────────────────────────────────────────────────
+
+describe("GET /api/ordens-servico", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("retorna 200 com a lista de ordens de serviço", async () => {
+    const mockOrdens = [
+      { id: "os-1", numero: "OS-05092026-0001", status: "ABERTA" },
+    ];
+    vi.mocked(listarOrdensServico).mockResolvedValue(mockOrdens as any);
+
+    const req = new NextRequest("http://localhost/api/ordens-servico", { method: "GET" });
+    const resposta = await GET(req);
+
+    expect(resposta.status).toBe(200);
+    const body = await resposta.json();
+    expect(body).toEqual(mockOrdens);
+    expect(listarOrdensServico).toHaveBeenCalledTimes(1);
+  });
+
+  it("retorna 500 se ocorrer um erro ao listar as ordens", async () => {
+    vi.mocked(listarOrdensServico).mockRejectedValue(new Error("Erro de banco de dados"));
+
+    const req = new NextRequest("http://localhost/api/ordens-servico", { method: "GET" });
+    const resposta = await GET(req);
+
+    expect(resposta.status).toBe(500);
+    const body = await resposta.json();
+    expect(body.message).toBe("Ocorreu um erro interno ao listar as ordens de serviço.");
+  });
+});
 
 describe("POST /api/ordens-servico", () => {
   beforeEach(() => {
