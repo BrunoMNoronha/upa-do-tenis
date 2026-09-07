@@ -3,6 +3,8 @@ import { ServicosClient } from "./servicos-client";
 
 import { listarServicosParaGestao } from "@/lib/servicos";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -11,6 +13,8 @@ export const metadata = {
 };
 
 export default async function ServicosPage() {
+  await exigirSessao();
+
   const servicos = await listarServicosParaGestao();
 
   return (

@@ -3,6 +3,8 @@ import { AppShell } from "@/components/app-shell";
 import { listarProdutos } from "@/lib/produtos";
 import { ProdutosClient } from "./produtos-client";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Produtos | UPA do Tênis",
   description: "Cadastro e consulta de produtos para venda no balcão.",
@@ -11,6 +13,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ProdutosPage() {
+  await exigirSessao();
+
   const produtos = await listarProdutos();
 
   return (

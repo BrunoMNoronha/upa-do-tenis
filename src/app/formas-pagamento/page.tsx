@@ -3,6 +3,8 @@ import { FormasPagamentoClient } from "./formas-pagamento-client";
 
 import { listarFormasPagamentoParaGestao } from "@/lib/formas-pagamento";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -11,6 +13,8 @@ export const metadata = {
 };
 
 export default async function FormasPagamentoPage() {
+  await exigirSessao();
+
   const formas = await listarFormasPagamentoParaGestao();
 
   return (

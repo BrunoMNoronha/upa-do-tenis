@@ -20,6 +20,22 @@ model Usuario {
   @@index([ativo])
 }
 
+/// Contador de tentativas para rate limiting (issue #82).
+///
+/// Não é dado de domínio: cada registro é descartável depois de `expiraEm`,
+/// nada referencia esta tabela e apagá-la por inteiro apenas zera bloqueios
+/// em vigor. A chave é um hash — a tabela nunca guarda e-mail ou IP em claro.
+model RegistroRateLimit {
+  chave         String    @id
+  falhas        Int       @default(0)
+  bloqueadoAte  DateTime?
+  ultimaFalhaEm DateTime
+  expiraEm      DateTime
+  atualizadoEm  DateTime  @updatedAt
+
+  @@index([expiraEm])
+}
+
 model Cliente {
   id            String         @id @default(cuid())
   nome          String

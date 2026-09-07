@@ -89,21 +89,35 @@ export async function POST(req: NextRequest) {
     const valorTotalServicos = servicosInformados.reduce((total, servico) => total + servico.valor, 0);
     const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : data.valorEstimado;
 
+
     // Generate a unique number OS-DDMMAAAA-XXXX
     const now = new Date();
     const dd = String(now.getDate()).padStart(2, '0');
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const aaaa = now.getFullYear();
-    const numeroStr = `OS-${dd}${mm}${aaaa}-${data.numeroSufixo}`;
+    const datePrefix = `OS-${dd}${mm}${aaaa}`;
 
-    const existingOs = await prisma.ordemServico.findUnique({
-      where: { numero: numeroStr },
-    });
+    let numeroStr = "";
+    let isUnique = false;
+    let attempts = 0;
+    const maxAttempts = 10;
 
-    if (existingOs) {
+    while (!isUnique && attempts < maxAttempts) {
+      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      numeroStr = `${datePrefix}-${randomSuffix}`;
+      const existingOs = await prisma.ordemServico.findUnique({
+        where: { numero: numeroStr },
+      });
+      if (!existingOs) {
+        isUnique = true;
+      }
+      attempts++;
+    }
+
+    if (!isUnique) {
       return NextResponse.json(
-        { message: `Já existe uma Ordem de Serviço com o número ${numeroStr}.` },
-        { status: 409 }
+        { message: "Não foi possível gerar um número de OS único após várias tentativas." },
+        { status: 500 }
       );
     }
 

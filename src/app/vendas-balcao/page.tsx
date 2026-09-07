@@ -3,6 +3,8 @@ import { listarProdutos } from "@/lib/produtos";
 import { listarFormasPagamento } from "@/lib/formas-pagamento";
 import { VendaBalcaoClient } from "./venda-balcao-client";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Venda de Balcão | UPA do Tênis",
   description: "Registre vendas diretas de produtos no balcão de atendimento da sapataria.",
@@ -11,6 +13,8 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function VendaBalcaoPage() {
+  await exigirSessao();
+
   const [produtos, formasPagamento] = await Promise.all([
     listarProdutos(),
     listarFormasPagamento(),

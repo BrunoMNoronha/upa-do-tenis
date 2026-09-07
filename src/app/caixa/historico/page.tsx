@@ -1,7 +1,13 @@
 import { AppShell } from "@/components/app-shell";
 import { CaixaHistoricoClient } from "./historico-client";
 
-export default function CaixaHistoricoPage() {
+import { exigirSessao } from "@/lib/auth-server";
+
+export const dynamic = "force-dynamic";
+
+export default async function CaixaHistoricoPage() {
+  await exigirSessao();
+
   return (
     <AppShell
       title="Histórico de Caixas"

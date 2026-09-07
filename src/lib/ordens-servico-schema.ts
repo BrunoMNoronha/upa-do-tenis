@@ -16,7 +16,6 @@ export const ordemServicoServicoSchema = z.object({
 
 export const ordemServicoFormSchema = z.object({
   clienteId: z.string().min(1, "O cliente é obrigatório."),
-  numeroSufixo: z.string().regex(/^[0-9]{4}$/, "O sufixo deve ter exatamente 4 dígitos numéricos."),
   itemRecebido: z.string().min(2, "A descrição do item é obrigatória."),
   servicoId: z.string().optional(),
   servicos: z.array(ordemServicoServicoSchema).optional().default([]),

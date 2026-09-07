@@ -33,7 +33,6 @@ vi.mock("@/lib/auth-server", () => ({
 
 const payloadBase = {
   clienteId: "cliente-1",
-  numeroSufixo: "0001",
   itemRecebido: "Tênis preto",
   prazoPrevisto: "2026-09-10",
   valorEstimado: 100,
@@ -119,7 +118,7 @@ describe("POST /api/ordens-servico", () => {
       }),
     );
 
-    expect(argumentosDoCreate().data.numero).toBe("OS-05092026-0001");
+    expect(argumentosDoCreate().data.numero).toMatch(/^OS-05092026-\d{4}$/);
   });
 
   it("rejeita data futura sem abrir transação", async () => {
@@ -136,12 +135,12 @@ describe("POST /api/ordens-servico", () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it("mantém o 409 de número duplicado antes da transação", async () => {
-    prismaMock.ordemServico.findUnique.mockResolvedValueOnce({ id: "os-existente" });
+  it("retorna 500 quando não for possível gerar um número único", async () => {
+    prismaMock.ordemServico.findUnique.mockResolvedValue({ id: "os-existente" });
 
     const resposta = await POST(criarRequest(payloadBase));
 
-    expect(resposta.status).toBe(409);
+    expect(resposta.status).toBe(500);
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 

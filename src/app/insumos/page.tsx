@@ -3,6 +3,8 @@ import { InsumosClient } from "./insumos-client";
 
 import { listarInsumos } from "@/lib/insumos";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -15,6 +17,8 @@ export default async function InsumosPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  await exigirSessao();
+
   const insumos = (await listarInsumos()).map((insumo) => ({
     id: insumo.id,
     nome: insumo.nome,
