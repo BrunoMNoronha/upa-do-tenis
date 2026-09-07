@@ -3,14 +3,33 @@ import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, ma
 import { sanitizeCurrency } from '../lib/sanitizers';
 
 describe('Formatters', () => {
-  it('should format 11-digit phone', () => {
-    expect(formatPhone('69999999999')).toBe('(69) 99999-9999');
+  describe('formatPhone', () => {
+    it('should format 11-digit phone', () => {
+      expect(formatPhone('69999999999')).toBe('(69) 99999-9999');
+    });
+
+    it('should format 10-digit phone', () => {
+      expect(formatPhone('6933334444')).toBe('(69) 3333-4444');
+    });
+
+    it('should format phone numbers containing non-digit characters', () => {
+      expect(formatPhone('69abc33334444')).toBe('(69) 3333-4444');
+      expect(formatPhone('(69) 99999-9999')).toBe('(69) 99999-9999');
+    });
+
+    it('should return empty string for null, undefined or empty string', () => {
+      expect(formatPhone(null)).toBe('');
+      expect(formatPhone(undefined)).toBe('');
+      expect(formatPhone('')).toBe('');
+    });
+
+    it('should return original value for lengths other than 10 or 11', () => {
+      expect(formatPhone('123')).toBe('123');
+      expect(formatPhone('123456789012')).toBe('123456789012');
+      expect(formatPhone('abc')).toBe('abc');
+    });
   });
-  
-  it('should format 10-digit phone', () => {
-    expect(formatPhone('6933334444')).toBe('(69) 3333-4444');
-  });
-  
+
   it('should format CPF', () => {
     expect(formatCPFCNPJ('11122233344')).toBe('111.222.333-44');
   });
