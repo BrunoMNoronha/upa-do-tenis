@@ -9,12 +9,16 @@ export const dynamic = "force-dynamic";
 import { listarClientes } from "@/lib/clientes";
 import { listarServicos } from "@/lib/servicos";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Ordens de Serviço | UPA do Tênis",
   description: "Listagem e cadastro inicial de ordens de serviço.",
 };
 
 export default async function OrdensServicoPage() {
+  await exigirSessao();
+
   const ordens = await listarOrdensServico();
   // Tela operacional: só clientes ativos podem receber uma nova OS.
   const clientes = await listarClientes(undefined, { apenasAtivos: true });

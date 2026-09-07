@@ -1,6 +1,8 @@
 import { AppShell } from "@/components/app-shell";
 import { Badge, Button, Card, SectionTitle } from "@/components/ui";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 const highlights = [
   "Clientes",
   "Ordens de serviço",
@@ -9,7 +11,11 @@ const highlights = [
   "Histórico de status",
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  await exigirSessao();
+
   return (
     <AppShell
       eyebrow="Painel inicial"

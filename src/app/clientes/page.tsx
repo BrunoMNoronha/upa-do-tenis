@@ -4,6 +4,8 @@ import { ClientesClient } from "./clientes-client";
 
 import { listarClientes } from "@/lib/clientes";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -12,6 +14,8 @@ export const metadata = {
 };
 
 export default async function ClientesPage({ searchParams }: { searchParams: { busca?: string } }) {
+  await exigirSessao();
+
   const busca = searchParams.busca || "";
   const clientes = await listarClientes(busca);
 

@@ -2,9 +2,13 @@ import { AppShell } from "@/components/app-shell";
 import { CaixaClient } from "./caixa-client";
 import { prisma } from "@/lib/prisma";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const dynamic = "force-dynamic";
 
 export default async function CaixaPage() {
+  await exigirSessao();
+
   const formasPagamento = await prisma.formaPagamento.findMany({
     where: { ativo: true },
     orderBy: { nome: "asc" },

@@ -5,6 +5,8 @@ import { listarServicos } from "@/lib/servicos";
 
 import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 type OrdemServicoDetalhePageProps = {
   params: {
     id: string;
@@ -16,7 +18,11 @@ export const metadata = {
   description: "Visualização consolidada de dados operacionais e financeiros da OS.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDetalhePageProps) {
+  await exigirSessao();
+
   const formasPagamento = await listarFormasPagamento();
   // listarInsumos() traz também os inativos (a tela de cadastro precisa deles
   // para reativar); aqui, no consumo, só os ativos podem ser oferecidos.
