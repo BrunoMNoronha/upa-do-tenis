@@ -3,10 +3,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/auth-schema";
 import { autenticarUsuario } from "@/lib/auth-service";
 import {
+  consultarBloqueioLogin,
+  derivarChavesLogin,
+  extrairIpCliente,
+  mensagemBloqueio,
+  obterStoreLogin,
+  registrarFalhaLogin,
+  registrarSucessoLogin,
+} from "@/lib/login-rate-limit";
+import {
   SESSAO_COOKIE_NOME,
   SESSAO_DURACAO_SEGUNDOS,
   criarTokenSessao,
 } from "@/lib/auth-session";
+
+type EventoLogin = {
+  evento: "login_bloqueado" | "login_falha" | "login_inativo";
+  email: string;
+  ip: string;
+  politica?: string;
+  falhasConsecutivas?: number;
+  retryAfterSegundos?: number;
+};
+
+/**
+ * Log estruturado de tentativa malsucedida, para auditoria de campanhas de
+ * força bruta. Registra apenas e-mail, IP e contadores — nunca senha, hash
+ * ou token de sessão.
+ */
+function registrarEvento(evento: EventoLogin): void {
+  console.warn(JSON.stringify({ ...evento, em: new Date().toISOString() }));
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,9 +47,46 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resultado = await autenticarUsuario(result.data.email, result.data.senha);
+    const { email, senha } = result.data;
+    const store = obterStoreLogin();
+    const ip = extrairIpCliente(req.headers);
+    const chaves = derivarChavesLogin(email, ip);
+    const agora = Date.now();
+
+    // Antes de autenticar: verificar credencial custa CPU de scrypt, então o
+    // bloqueio precisa ser aplicado antes para não virar vetor de DoS.
+    const bloqueio = await consultarBloqueioLogin(store, chaves, agora);
+
+    if (bloqueio) {
+      registrarEvento({
+        evento: "login_bloqueado",
+        email,
+        ip,
+        politica: bloqueio.politica,
+        retryAfterSegundos: bloqueio.retryAfterSegundos,
+      });
+
+      return NextResponse.json(
+        { message: mensagemBloqueio(bloqueio.retryAfterSegundos) },
+        {
+          status: 429,
+          headers: { "Retry-After": String(bloqueio.retryAfterSegundos) },
+        }
+      );
+    }
+
+    const resultado = await autenticarUsuario(email, senha);
 
     if (resultado.status === "credenciais_invalidas") {
+      const { falhasEmailIp } = await registrarFalhaLogin(store, chaves, agora);
+
+      registrarEvento({
+        evento: "login_falha",
+        email,
+        ip,
+        falhasConsecutivas: falhasEmailIp,
+      });
+
       return NextResponse.json(
         { message: "E-mail ou senha inválidos." },
         { status: 401 }
@@ -30,11 +94,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (resultado.status === "usuario_inativo") {
+      // A senha estava correta: não é sinal de força bruta e não conta como
+      // falha, mas fica registrado para auditoria.
+      registrarEvento({ evento: "login_inativo", email, ip });
+
       return NextResponse.json(
         { message: "Usuário inativo. Procure o administrador do sistema." },
         { status: 403 }
       );
     }
+
+    await registrarSucessoLogin(store, chaves);
 
     const response = NextResponse.json(
       {
