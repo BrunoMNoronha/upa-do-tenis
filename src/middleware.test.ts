@@ -12,6 +12,20 @@ function criarRequest(path: string, token?: string) {
 }
 
 describe("middleware de autenticação", () => {
+  it("bloqueia IP estrangeiro", async () => {
+    const req = criarRequest("/login");
+    req.headers.set("x-vercel-ip-country", "US");
+    const response = await middleware(req);
+    expect(response.status).toBe(403);
+  });
+
+  it("permite IP BR", async () => {
+    const req = criarRequest("/login");
+    req.headers.set("x-vercel-ip-country", "BR");
+    const response = await middleware(req);
+    expect(response.status).toBe(200);
+  });
+
   it("redireciona página privada sem sessão para /login", async () => {
     const response = await middleware(criarRequest("/dashboard"));
 
