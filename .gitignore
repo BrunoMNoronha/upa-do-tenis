@@ -29,3 +29,6 @@ scripts/backup/backup.config.psd1
 # Configuracao e credenciais do rclone (OAuth do Google Drive + chaves crypt):
 rclone.conf
 *.rclone.conf
+
+# Worktrees locais de sessoes do Claude Code
+.claude/worktrees/
