@@ -108,5 +108,30 @@ describe("insumos-movimentacoes", () => {
         })
       ).rejects.toThrow(InsumoMovimentacaoError);
     });
+
+    it("deve capturar erro de motivo obrigatório do service", async () => {
+      prismaMock.insumo.findUnique.mockResolvedValueOnce({ id: "ins-1" });
+      vi.mocked(criarMovimentacaoEstoque).mockRejectedValueOnce(new Error("Motivo é obrigatório para este tipo de movimentação"));
+
+      await expect(
+        registrarMovimentacaoManual("ins-1", {
+          tipo: TipoMovimentacao.AJUSTE,
+          quantidade: 100,
+        })
+      ).rejects.toThrow(InsumoMovimentacaoError);
+    });
+
+    it("deve propagar erro desconhecido do service", async () => {
+      prismaMock.insumo.findUnique.mockResolvedValueOnce({ id: "ins-1" });
+      const unknownError = new Error("Erro desconhecido no banco");
+      vi.mocked(criarMovimentacaoEstoque).mockRejectedValueOnce(unknownError);
+
+      await expect(
+        registrarMovimentacaoManual("ins-1", {
+          tipo: TipoMovimentacao.ENTRADA_MANUAL,
+          quantidade: 10,
+        })
+      ).rejects.toThrow(unknownError);
+    });
   });
 });
