@@ -1,17 +1,11 @@
 import Link from 'next/link';
 import { RelatorioOSItem } from '@/lib/relatorio-financeiro-os-service';
 import { Badge, EmptyState } from '@/components/ui';
+import { formatCurrency } from '@/lib/formatters';
 
 interface TabelaProps {
   itens: RelatorioOSItem[];
 }
-
-const formatarMoeda = (valor: number) => {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(valor);
-};
 
 const formatarData = (dataStr: string) => {
   if (!dataStr) return '-';
@@ -84,11 +78,11 @@ export function RelatorioFinanceiroOSTabela({ itens }: TabelaProps) {
                   {item.statusFinanceiro}
                 </Badge>
               </td>
-              <td className="px-6 py-4 text-right">{formatarMoeda(item.valorTotal)}</td>
-              <td className="px-6 py-4 text-right">{formatarMoeda(item.valorPago)}</td>
+              <td className="px-6 py-4 text-right">{formatCurrency(item.valorTotal)}</td>
+              <td className="px-6 py-4 text-right">{formatCurrency(item.valorPago)}</td>
               <td className="px-6 py-4 text-right">
                 <span className={item.saldo > 0 ? "font-semibold text-rose-600" : "text-slate-500"}>
-                  {formatarMoeda(item.saldo)}
+                  {formatCurrency(item.saldo)}
                 </span>
               </td>
             </tr>

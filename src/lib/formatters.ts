@@ -77,6 +77,11 @@ export function whatsappLink(value: string | null | undefined): string {
   return "";
 }
 
+export const brlFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
 /**
  * Máscara monetária de digitação por centavos (padrão operacional de balcão):
  * considera apenas os dígitos e interpreta os 2 últimos como centavos,
@@ -89,10 +94,7 @@ export function maskCurrency(value: string | null | undefined): string {
   const digits = String(value).replace(/\D/g, "").slice(0, 10);
   if (digits.length === 0) return "";
   const cents = parseInt(digits, 10);
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(cents / 100);
+  return brlFormatter.format(cents / 100);
 }
 
 export function formatCurrency(value: number | string | null | undefined): string {
@@ -100,10 +102,7 @@ export function formatCurrency(value: number | string | null | undefined): strin
   
   const numVal = sanitizeCurrency(value);
   
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(numVal);
+  return brlFormatter.format(numVal);
 }
 
 export function formatDateBr(date: Date | string | null | undefined): string {

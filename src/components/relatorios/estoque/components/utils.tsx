@@ -1,5 +1,7 @@
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
 export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return currencyFormatter.format(value);
 };
 
 export const formatDate = (date: Date | string) => {
