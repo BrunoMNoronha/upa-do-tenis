@@ -200,6 +200,48 @@ describe("rate limiting em POST /api/auth/login", () => {
     expect(serializado).not.toContain("scrypt");
   });
 
+  it("login continua funcionando quando o store está indisponível", async () => {
+    // Simula a janela em que o código já está no ar e a migration ainda não
+    // foi aplicada: toda operação do store falha.
+    const indisponivel = {
+      ler: () => Promise.reject(new Error('relation "RegistroRateLimit" does not exist')),
+      gravar: () => Promise.reject(new Error('relation "RegistroRateLimit" does not exist')),
+      remover: () => Promise.reject(new Error('relation "RegistroRateLimit" does not exist')),
+    };
+    redefinirStoreLogin(indisponivel);
+
+    const erro = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    // Senha errada continua respondendo 401, não 500.
+    expect((await tentarSenhaErrada()).status).toBe(401);
+
+    // E o login legítimo continua passando: a falta do limitador nunca pode
+    // travar o balcão.
+    prismaMock.usuario.findUnique.mockResolvedValueOnce(usuario);
+    const sucesso = await POST(criarRequest(usuario.email, "senha-correta", IP_BALCAO));
+
+    expect(sucesso.status).toBe(200);
+    expect(sucesso.cookies.get(SESSAO_COOKIE_NOME)?.value).toBeTruthy();
+
+    // A indisponibilidade fica registrada para não passar em silêncio.
+    const eventos = erro.mock.calls.map((chamada) => JSON.parse(chamada[0] as string).evento);
+    expect(eventos).toContain("rate_limit_indisponivel");
+  });
+
+  it("store indisponível nunca concede acesso com senha errada", async () => {
+    redefinirStoreLogin({
+      ler: () => Promise.reject(new Error("banco fora")),
+      gravar: () => Promise.reject(new Error("banco fora")),
+      remover: () => Promise.reject(new Error("banco fora")),
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await tentarSenhaErrada();
+
+    expect(response.status).toBe(401);
+    expect(response.cookies.get(SESSAO_COOKIE_NOME)?.value).toBeFalsy();
+  });
+
   it("corpo inválido não consome o limite", async () => {
     for (let i = 0; i < POLITICA_LOGIN_EMAIL_IP.limiteFalhas + 3; i += 1) {
       const response = await POST(

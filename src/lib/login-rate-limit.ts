@@ -3,11 +3,11 @@ import { createHash } from "crypto";
 import {
   PoliticaRateLimit,
   RateLimitStore,
-  RateLimitStoreMemoria,
   registrarFalha,
   registrarSucesso,
   verificarBloqueio,
 } from "@/lib/rate-limit";
+import { RateLimitStorePrisma } from "@/lib/rate-limit-prisma";
 
 /**
  * Política principal: par (IP, e-mail).
@@ -172,16 +172,16 @@ export function mensagemBloqueio(retryAfterSegundos: number): string {
 let storeCompartilhado: RateLimitStore | null = null;
 
 /**
- * Store usado pela rota de login.
+ * Store usado pela rota de login: contador persistido no Postgres, portanto
+ * compartilhado entre todas as instâncias serverless.
  *
- * Hoje é o store em memória do processo — melhor esforço em serverless, ver a
- * limitação documentada em `RateLimitStoreMemoria`. Para trocar por um store
- * compartilhado (banco ou Redis), basta retornar outra implementação de
- * `RateLimitStore` aqui: política, rota e testes continuam iguais.
+ * Trocar de store (Redis, borda) é substituir o retorno daqui por outra
+ * implementação de `RateLimitStore` — política, rota e testes de política
+ * continuam iguais.
  */
 export function obterStoreLogin(): RateLimitStore {
   if (!storeCompartilhado) {
-    storeCompartilhado = new RateLimitStoreMemoria();
+    storeCompartilhado = new RateLimitStorePrisma();
   }
 
   return storeCompartilhado;

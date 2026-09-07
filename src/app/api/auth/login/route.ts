@@ -35,6 +35,37 @@ function registrarEvento(evento: EventoLogin): void {
   console.warn(JSON.stringify({ ...evento, em: new Date().toISOString() }));
 }
 
+/**
+ * Executa uma operação do limitador tolerando indisponibilidade do store.
+ *
+ * As migrations deste projeto são aplicadas manualmente, mas o deploy do
+ * código é automático: existe uma janela real em que a aplicação está no ar e
+ * a tabela `RegistroRateLimit` ainda não. Sem esta tolerância, essa janela
+ * derrubaria o login inteiro com 500 e travaria a operação do balcão.
+ *
+ * Perder o rate limiting temporariamente devolve o sistema ao estado anterior
+ * à #82; derrubar o login é muito pior. Tolerar aqui **nunca concede acesso**:
+ * apenas deixa a tentativa seguir para a verificação normal de credencial.
+ */
+async function tolerarLimitadorIndisponivel<T>(
+  operacao: () => Promise<T>,
+  padrao: T
+): Promise<T> {
+  try {
+    return await operacao();
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        evento: "rate_limit_indisponivel",
+        motivo: error instanceof Error ? error.message : "erro desconhecido",
+        em: new Date().toISOString(),
+      })
+    );
+
+    return padrao;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -55,7 +86,10 @@ export async function POST(req: NextRequest) {
 
     // Antes de autenticar: verificar credencial custa CPU de scrypt, então o
     // bloqueio precisa ser aplicado antes para não virar vetor de DoS.
-    const bloqueio = await consultarBloqueioLogin(store, chaves, agora);
+    const bloqueio = await tolerarLimitadorIndisponivel(
+      () => consultarBloqueioLogin(store, chaves, agora),
+      null
+    );
 
     if (bloqueio) {
       registrarEvento({
@@ -78,7 +112,10 @@ export async function POST(req: NextRequest) {
     const resultado = await autenticarUsuario(email, senha);
 
     if (resultado.status === "credenciais_invalidas") {
-      const { falhasEmailIp } = await registrarFalhaLogin(store, chaves, agora);
+      const { falhasEmailIp } = await tolerarLimitadorIndisponivel(
+        () => registrarFalhaLogin(store, chaves, agora),
+        { bloqueioArmado: false, falhasEmailIp: 0 }
+      );
 
       registrarEvento({
         evento: "login_falha",
@@ -104,7 +141,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await registrarSucessoLogin(store, chaves);
+    await tolerarLimitadorIndisponivel(
+      () => registrarSucessoLogin(store, chaves),
+      undefined
+    );
 
     const response = NextResponse.json(
       {
