@@ -5,15 +5,21 @@ import { obterVendaPorId } from "@/lib/vendas";
 import { formatCurrency } from "@/lib/formatters";
 import { BotaoImprimir } from "./botao-imprimir";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Detalhes da Venda | UPA do Tênis",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function VendaDetalhePage({
   params,
 }: {
   params: { id: string };
 }) {
+  await exigirSessao();
+
   const venda = await obterVendaPorId(params.id);
 
   if (!venda) {

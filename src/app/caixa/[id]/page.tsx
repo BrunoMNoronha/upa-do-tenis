@@ -1,7 +1,13 @@
 import { AppShell } from "@/components/app-shell";
 import { CaixaDetalheClient } from "./caixa-detalhe-client";
 
-export default function CaixaDetalhePage({ params }: { params: { id: string } }) {
+import { exigirSessao } from "@/lib/auth-server";
+
+export const dynamic = "force-dynamic";
+
+export default async function CaixaDetalhePage({ params }: { params: { id: string } }) {
+  await exigirSessao();
+
   return (
     <AppShell
       title="Detalhes do Caixa"

@@ -5,6 +5,8 @@ import { VendasClient } from "./vendas-client";
 import { listarVendasBalcao } from "@/lib/vendas";
 import { listarFormasPagamento } from "@/lib/formas-pagamento";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Histórico de Vendas | UPA do Tênis",
   description: "Histórico de vendas de balcão realizadas.",
@@ -17,6 +19,8 @@ export default async function VendasPage({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
+  await exigirSessao();
+
   const dataInicial = typeof searchParams.dataInicial === "string" ? searchParams.dataInicial : undefined;
   const dataFinal = typeof searchParams.dataFinal === "string" ? searchParams.dataFinal : undefined;
   const formaPagamentoId = typeof searchParams.formaPagamentoId === "string" ? searchParams.formaPagamentoId : undefined;

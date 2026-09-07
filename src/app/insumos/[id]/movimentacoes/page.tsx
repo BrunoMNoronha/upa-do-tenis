@@ -2,15 +2,21 @@ import { AppShell } from "@/components/app-shell";
 import { listarMovimentacoesInsumo } from "@/lib/insumos-movimentacoes";
 import MovimentacoesClient from "./movimentacoes-client";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Extrato de Insumo | UPA do Tênis",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function MovimentacoesInsumoPage({
   params,
 }: {
   params: { id: string };
 }) {
+  await exigirSessao();
+
   const data = await listarMovimentacoesInsumo(params.id);
 
   return (

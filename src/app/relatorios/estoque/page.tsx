@@ -2,12 +2,18 @@ import React from "react";
 import { AppShell } from "@/components/app-shell";
 import { RelatorioEstoqueClient } from "@/components/relatorios/estoque/RelatorioEstoqueClient";
 
+import { exigirSessao } from "@/lib/auth-server";
+
 export const metadata = {
   title: "Relatório de Estoque - UPA do Tênis",
   description: "Visão global e alertas gerenciais do estoque.",
 };
 
-export default function RelatorioEstoquePage() {
+export const dynamic = "force-dynamic";
+
+export default async function RelatorioEstoquePage() {
+  await exigirSessao();
+
   return (
     <AppShell
       eyebrow="Relatórios"
