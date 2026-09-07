@@ -143,26 +143,26 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
     });
 
     // 8. Criar cada item e baixar o estoque do produto correspondente.
-    // Performance optimization: Executa o processamento dos itens de forma concorrente via Promise.all
-    // reduzindo o tempo total de resposta de O(N) para O(max(T)).
-    await Promise.all(
-      linhas.map(async (linha) => {
-        const itemVenda = await tx.itemVenda.create({
-          data: {
-            vendaId: venda.id,
-            produtoId: linha.produtoId,
-            descricao: linha.descricao,
-            quantidade: linha.quantidade,
-            precoUnitario: linha.precoUnitario,
-            precoTotal: linha.precoTotal,
-          },
-        });
+    // Performance optimization: Insere todos os itens de uma vez usando createManyAndReturn
+    // reduzindo o roundtrip com o banco. O processamento da baixa de estoque também ocorre de forma concorrente.
+    const itensVenda = await tx.itemVenda.createManyAndReturn({
+      data: linhas.map((linha) => ({
+        vendaId: venda.id,
+        produtoId: linha.produtoId,
+        descricao: linha.descricao,
+        quantidade: linha.quantidade,
+        precoUnitario: linha.precoUnitario,
+        precoTotal: linha.precoTotal,
+      })),
+    });
 
+    await Promise.all(
+      itensVenda.map(async (itemVenda) => {
         try {
           await baixarEstoqueProdutoVenda(
             {
-              produtoId: linha.produtoId,
-              quantidade: linha.quantidade,
+              produtoId: itemVenda.produtoId,
+              quantidade: Number(itemVenda.quantidade),
               vendaId: venda.id,
               itemVendaId: itemVenda.id,
             },
