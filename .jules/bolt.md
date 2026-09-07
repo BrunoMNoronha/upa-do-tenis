@@ -5,3 +5,6 @@
 ## 2025-02-18 - Paralelização Massiva em Agregações do Prisma
 **Learning:** Em funções de dashboard que computam inúmeras métricas agregadas sem dependência de dados entre si (ex: totais recebidos, totais pendentes, contagens segmentadas por status e ticket médio), executar as queries de forma sequencial (11 vezes `await prisma...`) introduz um gargalo de rede clássico O(N).
 **Action:** Utilize o padrão `Promise.all()` agrupando massivamente todas as agregações independentes para resolver de forma concorrente O(max(T)), e execute os queries subsequentes que dependem destes agregados (ex: buscar entidades a partir de arrays de IDs) em um segundo bloco `Promise.all()` logo a seguir.
+## 2024-05-18 - Utilização de referências de campos do Prisma para agregações e filtros
+**Learning:** O projeto utiliza Prisma 5+, permitindo comparar duas colunas da mesma linha/tabela em cláusulas `where` através de referências de campo (ex: `prisma.insumo.fields.estoqueMinimo`). Isso permite que agregações (como `.count()`) ocorram inteiramente em nível de banco de dados, em vez de exigir que a aplicação carregue todos os registros e processe um loop O(N) na memória.
+**Action:** Sempre utilize a API nativa de referências de campos para comparações intramodel no Prisma ao otimizar agregadores ou construir queries complexas.

@@ -220,26 +220,21 @@ export async function getResumoPorTipo(filtros?: FiltrosMovimentacao): Promise<R
 }
 
 export async function getResumoAlertasEstoque() {
-  const insumos = await prisma.insumo.findMany({
-    select: {
-      quantidadeEstoque: true,
-      estoqueMinimo: true,
-    }
-  });
-
-  let totalInsumosZerados = 0;
-  let totalInsumosAbaixoMinimo = 0;
-
-  for (const insumo of insumos) {
-    const qtd = Number(insumo.quantidadeEstoque);
-    const min = Number(insumo.estoqueMinimo);
-    
-    if (qtd === 0) {
-      totalInsumosZerados++;
-    } else if (qtd > 0 && qtd < min) { // Garantindo que não considera zerado como abaixo do mínimo
-      totalInsumosAbaixoMinimo++;
-    }
-  }
+  const [totalInsumosZerados, totalInsumosAbaixoMinimo] = await Promise.all([
+    prisma.insumo.count({
+      where: {
+        quantidadeEstoque: 0
+      }
+    }),
+    prisma.insumo.count({
+      where: {
+        quantidadeEstoque: {
+          gt: 0,
+          lt: prisma.insumo.fields.estoqueMinimo
+        }
+      }
+    })
+  ]);
 
   return {
     totalInsumosZerados,
