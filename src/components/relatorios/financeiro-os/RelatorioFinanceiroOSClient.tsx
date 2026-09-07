@@ -7,6 +7,7 @@ import { RelatorioFinanceiroOSTabela } from './RelatorioFinanceiroOSTabela';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { LoadingState, ErrorState } from '@/components/ui';
 import { formatarDataLocal } from '@/lib/date-range';
+import { formatCurrency } from '@/lib/formatters';
 
 export function RelatorioFinanceiroOSClient() {
   const [inicio, setInicio] = useState('');
@@ -75,13 +76,6 @@ export function RelatorioFinanceiroOSClient() {
     }
   };
 
-  const formatarMoeda = (valor: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(valor);
-  };
-
   return (
     <div className="space-y-6">
       <RelatorioFinanceiroOSFiltros
@@ -114,15 +108,15 @@ export function RelatorioFinanceiroOSClient() {
             />
             <MetricCard
               title="Valor Total"
-              value={formatarMoeda(relatorio.resumo.valorTotal)}
+              value={formatCurrency(relatorio.resumo.valorTotal)}
             />
             <MetricCard
               title="Valor Pago"
-              value={formatarMoeda(relatorio.resumo.valorPago)}
+              value={formatCurrency(relatorio.resumo.valorPago)}
             />
             <MetricCard
               title="Saldo em Aberto"
-              value={formatarMoeda(relatorio.resumo.saldoAberto)}
+              value={formatCurrency(relatorio.resumo.saldoAberto)}
               description={`${relatorio.resumo.quantidadeComSaldoAberto} OS pendente(s)`}
             />
           </div>
