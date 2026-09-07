@@ -50,31 +50,39 @@ export interface ResumoPorTipo {
 }
 
 export async function getEstatisticasGlobaisEstoque(): Promise<RelatorioEstoqueEstatisticas> {
-  const insumos = await prisma.insumo.findMany({
-    select: {
-      quantidadeEstoque: true,
-      estoqueMinimo: true,
-      custoUnitario: true,
-    }
-  });
+  // Contagens agregadas no banco; o valor estimado exige multiplicacao linha a linha
+  // e permanece em memoria, mas so para insumos com saldo (saldo 0 contribui 0).
+  // Saldo negativo e bloqueado em criarMovimentacaoEstoque, entao qtd >= 0 sempre.
+  const [
+    totalInsumosAtivos,
+    totalInsumosZerados,
+    totalInsumosAbaixoMinimo,
+    insumosComSaldo,
+  ] = await Promise.all([
+    prisma.insumo.count(),
+    prisma.insumo.count({
+      where: { quantidadeEstoque: 0 }
+    }),
+    prisma.insumo.count({
+      where: {
+        quantidadeEstoque: {
+          gt: 0,
+          lt: prisma.insumo.fields.estoqueMinimo
+        }
+      }
+    }),
+    prisma.insumo.findMany({
+      where: { quantidadeEstoque: { gt: 0 } },
+      select: {
+        quantidadeEstoque: true,
+        custoUnitario: true,
+      }
+    }),
+  ]);
 
-  let totalInsumosAtivos = insumos.length;
-  let totalInsumosZerados = 0;
-  let totalInsumosAbaixoMinimo = 0;
   let valorTotalEstimadoDecimal = new Prisma.Decimal(0);
 
-  for (const insumo of insumos) {
-    const qtd = Number(insumo.quantidadeEstoque);
-    const min = Number(insumo.estoqueMinimo);
-    
-    // Regra: Zerado (qtd === 0), Abaixo do mínimo (qtd > 0 && qtd < min)
-    if (qtd === 0) {
-      totalInsumosZerados++;
-    } else if (qtd < min) {
-      totalInsumosAbaixoMinimo++;
-    }
-
-    // Calcula valor estimado (qtd * custo)
+  for (const insumo of insumosComSaldo) {
     const valorEstimadoItem = insumo.quantidadeEstoque.mul(insumo.custoUnitario);
     valorTotalEstimadoDecimal = valorTotalEstimadoDecimal.add(valorEstimadoItem);
   }
@@ -220,26 +228,19 @@ export async function getResumoPorTipo(filtros?: FiltrosMovimentacao): Promise<R
 }
 
 export async function getResumoAlertasEstoque() {
-  const insumos = await prisma.insumo.findMany({
-    select: {
-      quantidadeEstoque: true,
-      estoqueMinimo: true,
-    }
-  });
-
-  let totalInsumosZerados = 0;
-  let totalInsumosAbaixoMinimo = 0;
-
-  for (const insumo of insumos) {
-    const qtd = Number(insumo.quantidadeEstoque);
-    const min = Number(insumo.estoqueMinimo);
-    
-    if (qtd === 0) {
-      totalInsumosZerados++;
-    } else if (qtd > 0 && qtd < min) { // Garantindo que não considera zerado como abaixo do mínimo
-      totalInsumosAbaixoMinimo++;
-    }
-  }
+  const [totalInsumosZerados, totalInsumosAbaixoMinimo] = await Promise.all([
+    prisma.insumo.count({
+      where: { quantidadeEstoque: 0 }
+    }),
+    prisma.insumo.count({
+      where: {
+        quantidadeEstoque: {
+          gt: 0,
+          lt: prisma.insumo.fields.estoqueMinimo
+        }
+      }
+    }),
+  ]);
 
   return {
     totalInsumosZerados,

@@ -1,12 +1,15 @@
 import React from "react";
 
+const currencyFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const dateFormatter = new Intl.DateTimeFormat("pt-BR");
+
 export const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  return currencyFormatter.format(value);
 };
 
 export const formatDate = (date: Date | string) => {
   const d = new Date(date);
-  return new Intl.DateTimeFormat("pt-BR").format(d);
+  return dateFormatter.format(d);
 };
 
 export const getTipoLabel = (tipo: string) => {

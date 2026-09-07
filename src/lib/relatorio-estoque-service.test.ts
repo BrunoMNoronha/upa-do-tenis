@@ -92,6 +92,44 @@ describe('Relatório Global de Estoque', () => {
     expect(estatisticas.valorTotalEstimado).toBe(92.5);
   });
 
+  it('nao conta insumo zerado como abaixo do minimo e ignora saldo zero no valor estimado', async () => {
+    // Borda: insumo zerado com estoqueMinimo > 0 e custo > 0.
+    // Deve entrar apenas em zerados e contribuir 0 para o valor estimado.
+    await prisma.insumo.create({
+      data: {
+        nome: 'Insumo Zerado Com Custo',
+        unidadeMedida: 'UN',
+        quantidadeEstoque: 0,
+        estoqueMinimo: 20,
+        custoUnitario: 99.99,
+      }
+    });
+
+    // Borda: saldo exatamente igual ao minimo nao e critico.
+    await prisma.insumo.create({
+      data: {
+        nome: 'Insumo No Limite',
+        unidadeMedida: 'UN',
+        quantidadeEstoque: 5,
+        estoqueMinimo: 5,
+        custoUnitario: 1.00,
+      }
+    });
+
+    const estatisticas = await getEstatisticasGlobaisEstoque();
+
+    expect(estatisticas.totalInsumosAtivos).toBe(5);
+    expect(estatisticas.totalInsumosZerados).toBe(2);
+    expect(estatisticas.totalInsumosAbaixoMinimo).toBe(1);
+    // 92.50 do cenario base + 5 * 1.00 do insumo no limite; zerado nao soma nada.
+    expect(estatisticas.valorTotalEstimado).toBe(97.5);
+
+    const alertas = await getResumoAlertasEstoque();
+    expect(alertas.totalInsumosZerados).toBe(2);
+    expect(alertas.totalInsumosAbaixoMinimo).toBe(1);
+    expect(alertas.totalCriticos).toBe(3);
+  });
+
   it('deve retornar alertas para o dashboard', async () => {
     const alertas = await getResumoAlertasEstoque();
 
