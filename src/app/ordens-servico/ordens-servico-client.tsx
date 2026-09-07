@@ -102,7 +102,6 @@ function getStatusTone(
 
 const criarDefaultValues = (): OrdemServicoFormValues => ({
   clienteId: "",
-  numeroSufixo: "",
   itemRecebido: "",
   servicoId: "",
   servicos: [],
@@ -732,38 +731,6 @@ function OrdemServicoForm({
             </div>
           ) : null}
 
-          <div className="grid gap-2">
-            <Label htmlFor="numeroSufixo">
-              Número da OS (4 dígitos finais)
-            </Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-slate-500 font-semibold uppercase">
-                OS-
-                {new Date()
-                  .toLocaleDateString("pt-BR", {
-                    timeZone: "America/Sao_Paulo",
-                  })
-                  .replace(/\//g, "")}
-                -
-              </span>
-              <Input
-                id="numeroSufixo"
-                {...register("numeroSufixo")}
-                onChange={(e) => {
-                  e.target.value = e.target.value.replace(/\D/g, "");
-                  register("numeroSufixo").onChange(e);
-                }}
-                placeholder="Ex.: 0001"
-                maxLength={4}
-                className="w-32"
-              />
-            </div>
-            {errors.numeroSufixo ? (
-              <p className="text-sm text-red-600">
-                {errors.numeroSufixo.message}
-              </p>
-            ) : null}
-          </div>
 
           <div className="grid gap-2">
             <Label htmlFor="itemRecebido">Item recebido</Label>
