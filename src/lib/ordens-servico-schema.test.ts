@@ -6,7 +6,6 @@ describe("ordens-servico-schema", () => {
   it("aceita múltiplos serviços com valores individuais", () => {
     const resultado = ordemServicoFormSchema.safeParse({
       clienteId: "cliente-1",
-      numeroSufixo: "0001",
       itemRecebido: "Tênis preto",
       prazoPrevisto: "2026-09-10",
       valorEstimado: 175.5,
@@ -28,7 +27,6 @@ describe("ordens-servico-schema", () => {
   it("rejeita criar uma OS sem serviços", () => {
     const resultado = ordemServicoFormSchema.safeParse({
       clienteId: "cliente-1",
-      numeroSufixo: "0001",
       itemRecebido: "Tênis preto",
       prazoPrevisto: "2026-09-10",
       valorEstimado: 0,
@@ -58,7 +56,6 @@ describe("ordens-servico-schema", () => {
   describe("data operacional (dataEntrada)", () => {
     const base = {
       clienteId: "cliente-1",
-      numeroSufixo: "0001",
       itemRecebido: "Tênis preto",
       prazoPrevisto: "2026-09-10",
       valorEstimado: 100,
