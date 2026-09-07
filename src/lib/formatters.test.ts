@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency } from '../lib/formatters';
-import { sanitizeCurrency } from '../lib/sanitizers';
+import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency, formatDateBr } from './formatters';
+import { sanitizeCurrency } from './sanitizers';
 
 describe('Formatters', () => {
   it('should format 11-digit phone', () => {
@@ -21,6 +21,20 @@ describe('Formatters', () => {
 
   it('should format CEP', () => {
     expect(formatCEP('76800000')).toBe('76800-000');
+  });
+
+  it('should handle edge cases for formatting', () => {
+    expect(formatPhone('')).toBe('');
+    expect(formatPhone(null)).toBe('');
+    expect(formatPhone(undefined)).toBe('');
+
+    expect(formatCPFCNPJ('')).toBe('');
+    expect(formatCPFCNPJ(null)).toBe('');
+    expect(formatCPFCNPJ(undefined)).toBe('');
+
+    expect(formatCEP('')).toBe('');
+    expect(formatCEP(null)).toBe('');
+    expect(formatCEP(undefined)).toBe('');
   });
 
   it('should format Currency', () => {
@@ -45,6 +59,16 @@ describe('Formatters', () => {
     expect(whatsappLink('')).toBe('');
     expect(whatsappLink(null)).toBe('');
     expect(whatsappLink('123')).toBe('');
+  });
+
+  it('should format Date BR', () => {
+    expect(formatDateBr('2023-10-05T00:00:00Z')).toBe('05/10/2023');
+    const date = new Date(2023, 9, 5); // Month is 0-indexed
+    expect(formatDateBr(String(date))).toBe('05/10/2023');
+    expect(formatDateBr('')).toBe('');
+    expect(formatDateBr(null)).toBe('');
+    expect(formatDateBr(undefined)).toBe('');
+    expect(formatDateBr('invalid-date')).toBe('');
   });
 });
 
