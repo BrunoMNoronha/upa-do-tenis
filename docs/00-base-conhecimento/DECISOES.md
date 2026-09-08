@@ -6,6 +6,7 @@
 - Usar Prisma com SQLite para acelerar a primeira versão local do MVP.
 - Manter o saldo como valor calculado no backend.
 - Manter a entrega no nível da OS inteira, sem entrega parcial por item.
+- Login protegido por rate limiting persistido (#82) e reCAPTCHA v3 invisível (#123), nesta ordem, antes da verificação de senha. Recusa de captcha é `403` uniforme e não consome o rate limit; indisponibilidade do Google falha aberto (nunca concede acesso); chaves ausentes desligam o captcha. A site key chega ao cliente como prop da página, sem `NEXT_PUBLIC_*`.
 
 ## Decisões de negócio já consolidadas
 
