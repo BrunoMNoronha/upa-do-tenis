@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { loginSchema } from "@/lib/auth-schema";
+import { loginRequestSchema } from "@/lib/auth-schema";
 import { autenticarUsuario } from "@/lib/auth-service";
+import {
+  MENSAGEM_CAPTCHA_RECUSADO,
+  obterConfigCaptcha,
+  verificarCaptcha,
+} from "@/lib/captcha";
 import {
   consultarBloqueioLogin,
   derivarChavesLogin,
@@ -18,12 +23,14 @@ import {
 } from "@/lib/auth-session";
 
 type EventoLogin = {
-  evento: "login_bloqueado" | "login_falha" | "login_inativo";
+  evento: "login_bloqueado" | "login_falha" | "login_inativo" | "login_captcha_recusado";
   email: string;
   ip: string;
   politica?: string;
   falhasConsecutivas?: number;
   retryAfterSegundos?: number;
+  motivo?: string;
+  score?: number;
 };
 
 /**
@@ -69,7 +76,7 @@ async function tolerarLimitadorIndisponivel<T>(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const result = loginSchema.safeParse(body);
+    const result = loginRequestSchema.safeParse(body);
 
     if (!result.success) {
       return NextResponse.json(
@@ -78,7 +85,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, senha } = result.data;
+    const { email, senha, captchaToken } = result.data;
     const store = obterStoreLogin();
     const ip = extrairIpCliente(req.headers);
     const chaves = derivarChavesLogin(email, ip);
@@ -107,6 +114,41 @@ export async function POST(req: NextRequest) {
           headers: { "Retry-After": String(bloqueio.retryAfterSegundos) },
         }
       );
+    }
+
+    // Depois do bloqueio (leitura barata) e antes da senha (scrypt): o captcha
+    // barra automação distribuída em muitos IPs, cenário que as políticas por
+    // IP da #82 não enxergam. Recusa é 403 uniforme e não consome o contador
+    // do rate limit — nada aqui revela se o e-mail existe.
+    const configCaptcha = obterConfigCaptcha();
+
+    if (configCaptcha.ativo) {
+      const captcha = await verificarCaptcha(captchaToken, { ip, config: configCaptcha });
+
+      if (captcha.status === "recusado") {
+        registrarEvento({
+          evento: "login_captcha_recusado",
+          email,
+          ip,
+          motivo: captcha.motivo,
+          score: captcha.score,
+        });
+
+        return NextResponse.json({ message: MENSAGEM_CAPTCHA_RECUSADO }, { status: 403 });
+      }
+
+      if (captcha.status === "indisponivel") {
+        // Mesma filosofia de `tolerarLimitadorIndisponivel`: sem resposta útil
+        // do Google, a tentativa segue para a verificação normal de senha,
+        // ainda coberta pelo rate limiting. Nunca concede acesso por si só.
+        console.error(
+          JSON.stringify({
+            evento: "captcha_indisponivel",
+            motivo: captcha.motivo,
+            em: new Date().toISOString(),
+          })
+        );
+      }
     }
 
     const resultado = await autenticarUsuario(email, senha);

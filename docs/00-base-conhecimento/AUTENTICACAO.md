@@ -19,6 +19,15 @@ Regra vigente desde a Fatia Segurança 01 (2026-07-06).
 
 Páginas que renderizam dados no servidor dependem do middleware; `/usuarios` adicionalmente chama `exigirSessao()` (redirect server-side).
 
+## Proteções do login
+
+`POST /api/auth/login` avalia, nesta ordem, antes de verificar a senha:
+
+1. **Rate limiting** (#82) — políticas por par (IP, e-mail) e por IP, persistidas em `RegistroRateLimit`. Bloqueio responde `429` + `Retry-After` sem consultar o Google nem o banco de usuários. Runbook: [`RUNBOOK_RATE_LIMIT_LOGIN.md`](../04-producao/RUNBOOK_RATE_LIMIT_LOGIN.md).
+2. **reCAPTCHA v3** (#123) — token da ação `login` enviado pelo formulário em `captchaToken` e validado em `src/lib/captcha.ts`. Recusa (token ausente/inválido, ação errada, score abaixo de `RECAPTCHA_SCORE_MINIMO`) responde `403` uniforme e **não** consome o contador do rate limit. Google indisponível registra `captcha_indisponivel` e deixa a tentativa seguir (fail-open; nunca concede acesso). Sem `RECAPTCHA_SITE_KEY` + `RECAPTCHA_SECRET_KEY` o captcha fica desligado — estado de dev/test/CI. Runbook: [`RUNBOOK_RECAPTCHA_LOGIN.md`](../04-producao/RUNBOOK_RECAPTCHA_LOGIN.md).
+
+Só depois disso roda `autenticarUsuario` (scrypt), que é o custo mais alto da rota.
+
 ## Rotas públicas
 
 - `/login` (a página redireciona para `/dashboard` se já houver sessão);
@@ -48,6 +57,8 @@ Qualquer rota nova é **privada por padrão** (o middleware bloqueia tudo que n�
 | `src/lib/auth-session.ts` | Criação/verificação do token (Node, usado no login) |
 | `src/lib/auth-edge.ts` | Verificação do token via Web Crypto (usada no middleware) |
 | `src/lib/auth-server.ts` | `obterUsuarioSessao`, `exigirSessao` (páginas), `exigirSessaoApi` (APIs) |
+| `src/lib/login-rate-limit.ts` | Políticas e chaves do rate limiting do login |
+| `src/lib/captcha.ts` | Configuração e verificação do reCAPTCHA v3 |
 | `src/middleware.ts` | Enforcement central de páginas e APIs |
 
 ## Testes
@@ -55,7 +66,9 @@ Qualquer rota nova é **privada por padrão** (o middleware bloqueia tudo que n�
 - `src/middleware.test.ts` — redirect, 401 e rotas públicas;
 - `src/lib/auth-edge.test.ts` — equivalência do verificador Edge com o assinador Node;
 - `src/__tests__/api-auth-enforcement.test.ts` — toda API privada responde 401 sem sessão, sem tocar o banco;
-- `src/app/api/usuarios/usuarios-api-auth.test.ts` — sessão válida, token adulterado e usuário inativado.
+- `src/app/api/usuarios/usuarios-api-auth.test.ts` — sessão válida, token adulterado e usuário inativado;
+- `src/app/api/auth/login/login-rate-limit-api.test.ts` — limite, bloqueio, expiração e reset após sucesso;
+- `src/app/api/auth/login/login-captcha-api.test.ts` e `src/lib/captcha.test.ts` — token válido/ausente/inválido, score, ação, Google indisponível e precedência do `429`.
 
 ## Fora do escopo desta fatia
 

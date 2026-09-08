@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { obterUsuarioSessao } from "@/lib/auth-server";
+import { obterConfigCaptcha } from "@/lib/captcha";
 import { LoginForm } from "./login-form";
 
 export const metadata = {
@@ -17,6 +18,11 @@ export default async function LoginPage() {
     redirect("/dashboard");
   }
 
+  // A site key é pública por natureza, mas chega como prop desta página
+  // (force-dynamic) em vez de NEXT_PUBLIC_*: Preview e Production podem usar
+  // chaves diferentes sem rebuild, e o projeto segue sem variáveis inlinadas.
+  const { ativo, siteKey } = obterConfigCaptcha();
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-[color:var(--background)] p-4">
       <div className="w-full max-w-md">
@@ -32,7 +38,7 @@ export default async function LoginPage() {
           </p>
         </div>
 
-        <LoginForm />
+        <LoginForm captchaSiteKey={ativo ? siteKey : null} />
       </div>
     </main>
   );

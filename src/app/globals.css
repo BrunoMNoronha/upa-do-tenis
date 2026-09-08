@@ -27,6 +27,12 @@ body {
   background: var(--background);
 }
 
+/* Badge flutuante do reCAPTCHA v3 oculto; o aviso textual obrigatório fica
+   no formulário de login (issue #123). */
+.grecaptcha-badge {
+  visibility: hidden;
+}
+
 body {
   margin: 0;
   background:

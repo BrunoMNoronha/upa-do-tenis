@@ -9,6 +9,9 @@ Referência: `.env.production.example` (já existe no repositório, versionado, 
 | `NODE_ENV` | Sim | Define o modo de execução do Next.js | Deve ser `production` no servidor de produção |
 | `DATABASE_URL` | Sim | String de conexão PostgreSQL | Deve apontar para o **banco de produção**, nunca para o banco de desenvolvimento/teste. Recomendado `sslmode=require` quando o host não for local |
 | `AUTH_SESSION_SECRET` | Sim | Chave HMAC que assina o cookie de sessão | Mínimo 16 caracteres (recomendado 32 bytes). Sem ela, o servidor **recusa iniciar sessões** em produção (`src/lib/auth-constants.ts` lança erro) — comportamento intencional, não é bug |
+| `RECAPTCHA_SITE_KEY` | Recomendada | Chave pública do reCAPTCHA v3 do login | Entregue ao formulário como prop da página, não como `NEXT_PUBLIC_*`. Sem ela (ou sem a secret) o captcha fica **desligado** — ver [RUNBOOK_RECAPTCHA_LOGIN.md](RUNBOOK_RECAPTCHA_LOGIN.md) |
+| `RECAPTCHA_SECRET_KEY` | Recomendada | Chave secreta usada no `siteverify` | Nunca chega ao cliente. Um par por escopo (Production ≠ Preview) |
+| `RECAPTCHA_SCORE_MINIMO` | Não | Score mínimo do v3 em `[0, 1]` | Padrão `0.5`; valor inválido cai no padrão |
 
 Não existem variáveis `NEXT_PUBLIC_*` no projeto atualmente (`grep -r "NEXT_PUBLIC_" src` não retorna resultados). Nenhum segredo é ou deve ser exposto ao cliente. Caso uma variável `NEXT_PUBLIC_*` seja introduzida no futuro, ela é embutida no bundle do navegador — **nunca** usar para segredos.
 
@@ -31,6 +34,7 @@ Definir as variáveis diretamente no provedor de hospedagem (painel de variávei
 - [ ] `AUTH_SESSION_SECRET` gerado com `openssl rand -hex 32` (ou equivalente), único para produção, com pelo menos 16 caracteres.
 - [ ] Nenhum arquivo `.env`, `.env.local`, `.env.production` com valores reais foi commitado (`git ls-files | grep '^\.env'` deve listar apenas `.env.example` e `.env.production.example`).
 - [ ] Nenhuma variável `NEXT_PUBLIC_*` contém segredo.
+- [ ] `RECAPTCHA_SITE_KEY` e `RECAPTCHA_SECRET_KEY` configuradas para o domínio de produção (ou ausência registrada como aceitação de risco: login só com rate limiting).
 
 ---
 
@@ -45,6 +49,8 @@ Escopos e regras da [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_
 | `DATABASE_URL` | Neon `production` **pooled** | Neon `preview` **pooled** | **não definir** | — | — |
 | `DATABASE_URL_DIRECT` | **nunca** | **nunca** | **nunca** | Neon `production` **direct** | Neon `preview` **direct** |
 | `AUTH_SESSION_SECRET` | hex de 32 bytes exclusivo | hex de 32 bytes **diferente** | não definir | — | — |
+| `RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY` | par do domínio de produção | par **diferente**, domínio `vercel.app` | não definir | — | — |
+| `RECAPTCHA_SCORE_MINIMO` | opcional | opcional | não definir | — | — |
 | `BOOTSTRAP_ADMIN_NOME` / `_EMAIL` / `_SENHA` | **nunca** | **nunca** | **nunca** | **nunca** | **nunca** |
 
 `NODE_ENV` não é configurado manualmente na Vercel — a plataforma define `production` inclusive nos deployments de **Preview**.
