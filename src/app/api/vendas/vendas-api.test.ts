@@ -165,7 +165,7 @@ describe("GET /api/vendas/[id]", () => {
   it("retorna detalhes da venda", async () => {
     obterVendaPorIdMock.mockResolvedValueOnce({ id: "v1", numero: "001" });
     const req = new NextRequest("http://localhost/api/vendas/v1");
-    const response = await GET_VENDA_ID(req, { params: { id: "v1" } });
+    const response = await GET_VENDA_ID(req, { params: Promise.resolve({ id: "v1" }) });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ id: "v1", numero: "001" });
     expect(obterVendaPorIdMock).toHaveBeenCalledWith("v1");
@@ -174,7 +174,7 @@ describe("GET /api/vendas/[id]", () => {
   it("retorna 404 para venda inexistente", async () => {
     obterVendaPorIdMock.mockResolvedValueOnce(null);
     const req = new NextRequest("http://localhost/api/vendas/v99");
-    const response = await GET_VENDA_ID(req, { params: { id: "v99" } });
+    const response = await GET_VENDA_ID(req, { params: Promise.resolve({ id: "v99" }) });
     expect(response.status).toBe(404);
   });
 });

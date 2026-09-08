@@ -3,7 +3,8 @@ import { exigirSessaoApi } from "@/lib/auth-server";
 import { insumoAtualizarSchema } from "@/lib/insumos-schema";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const insumoAtualizado = await prisma.insumo.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -72,12 +73,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const insumoId = params.id;
+    const insumoId = id;
 
     // Ambas as relações são onDelete: Restrict no schema. Contar as duas evita
     // que um insumo consumido em OS sem movimentação estoure P2003 e vire 500.

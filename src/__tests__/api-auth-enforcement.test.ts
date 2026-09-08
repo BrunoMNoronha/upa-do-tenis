@@ -74,7 +74,7 @@ function criarRequest(path: string, method = "GET") {
   });
 }
 
-const params = { params: { id: "abc" } };
+const params = { params: Promise.resolve({ id: "abc" }) };
 
 const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/dashboard", () => dashboardGet(criarRequest("/api/dashboard"))],

@@ -33,6 +33,8 @@ function criarRequest(id: string, method: string, body?: unknown) {
   });
 }
 
+const wrapParams = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe("PATCH /api/servicos/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -41,9 +43,7 @@ describe("PATCH /api/servicos/[id]", () => {
   it("atualiza os campos informados (200)", async () => {
     prismaMock.servico.update.mockResolvedValueOnce({ id: "srv-1", nome: "Troca de sola" });
 
-    const response = await PATCH(criarRequest("srv-1", "PATCH", { nome: "Troca de sola" }), {
-      params: { id: "srv-1" },
-    });
+    const response = await PATCH(criarRequest("srv-1", "PATCH", { nome: "Troca de sola" }), wrapParams("srv-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.servico.update).toHaveBeenCalledWith({
@@ -68,7 +68,7 @@ describe("PATCH /api/servicos/[id]", () => {
         precoBase: "R$ 125,50",
         ativo: false,
       }),
-      { params: { id: "srv-1" } },
+      wrapParams("srv-1"),
     );
 
     expect(response.status).toBe(200);
@@ -86,9 +86,7 @@ describe("PATCH /api/servicos/[id]", () => {
   it("inativa o serviço sem alterar os demais campos (200)", async () => {
     prismaMock.servico.update.mockResolvedValueOnce({ id: "srv-1", ativo: false });
 
-    const response = await PATCH(criarRequest("srv-1", "PATCH", { ativo: false }), {
-      params: { id: "srv-1" },
-    });
+    const response = await PATCH(criarRequest("srv-1", "PATCH", { ativo: false }), wrapParams("srv-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.servico.update).toHaveBeenCalledWith({
@@ -98,9 +96,7 @@ describe("PATCH /api/servicos/[id]", () => {
   });
 
   it("rejeita payload inválido (400)", async () => {
-    const response = await PATCH(criarRequest("srv-1", "PATCH", { nome: "a" }), {
-      params: { id: "srv-1" },
-    });
+    const response = await PATCH(criarRequest("srv-1", "PATCH", { nome: "a" }), wrapParams("srv-1"));
 
     expect(response.status).toBe(400);
     expect(prismaMock.servico.update).not.toHaveBeenCalled();
@@ -109,9 +105,7 @@ describe("PATCH /api/servicos/[id]", () => {
   it("retorna 404 quando o serviço não existe", async () => {
     prismaMock.servico.update.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), {
-      params: { id: "inexistente" },
-    });
+    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });
@@ -125,7 +119,7 @@ describe("DELETE /api/servicos/[id]", () => {
   it("bloqueia exclusão de serviço vinculado a ordem de serviço (409)", async () => {
     prismaMock.servicoItemOrdem.count.mockResolvedValueOnce(3);
 
-    const response = await DELETE(criarRequest("srv-1", "DELETE"), { params: { id: "srv-1" } });
+    const response = await DELETE(criarRequest("srv-1", "DELETE"), wrapParams("srv-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.servico.delete).not.toHaveBeenCalled();
@@ -135,7 +129,7 @@ describe("DELETE /api/servicos/[id]", () => {
     prismaMock.servicoItemOrdem.count.mockResolvedValueOnce(0);
     prismaMock.servico.delete.mockResolvedValueOnce({ id: "srv-1" });
 
-    const response = await DELETE(criarRequest("srv-1", "DELETE"), { params: { id: "srv-1" } });
+    const response = await DELETE(criarRequest("srv-1", "DELETE"), wrapParams("srv-1"));
 
     expect(response.status).toBe(204);
     expect(prismaMock.servico.delete).toHaveBeenCalledWith({ where: { id: "srv-1" } });
@@ -145,9 +139,7 @@ describe("DELETE /api/servicos/[id]", () => {
     prismaMock.servicoItemOrdem.count.mockResolvedValueOnce(0);
     prismaMock.servico.delete.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await DELETE(criarRequest("inexistente", "DELETE"), {
-      params: { id: "inexistente" },
-    });
+    const response = await DELETE(criarRequest("inexistente", "DELETE"), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

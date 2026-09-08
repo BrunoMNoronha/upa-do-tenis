@@ -4,13 +4,14 @@ import { obterVendaPorId } from "@/lib/vendas";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const venda = await obterVendaPorId(params.id);
+    const venda = await obterVendaPorId(id);
 
     if (!venda) {
       return NextResponse.json(

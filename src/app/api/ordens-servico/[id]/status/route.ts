@@ -6,13 +6,12 @@ import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
-
-    const { id } = params;
 
     if (!id) {
       return NextResponse.json({ message: "ID da Ordem de Serviço não informado." }, { status: 400 });

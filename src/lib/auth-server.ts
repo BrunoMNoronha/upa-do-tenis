@@ -20,7 +20,8 @@ async function resolverSessao(token: string | undefined): Promise<UsuarioAutenti
 }
 
 export async function obterUsuarioSessao(): Promise<UsuarioAutenticado | null> {
-  return resolverSessao(cookies().get(SESSAO_COOKIE_NOME)?.value);
+  const cookieStore = await cookies();
+  return resolverSessao(cookieStore.get(SESSAO_COOKIE_NOME)?.value);
 }
 
 export async function exigirSessao(): Promise<UsuarioAutenticado> {

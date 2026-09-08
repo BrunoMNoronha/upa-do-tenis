@@ -4,13 +4,14 @@ import { obterDetalhesCaixa } from "@/lib/caixa";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const caixa = await obterDetalhesCaixa(params.id);
+    const caixa = await obterDetalhesCaixa(id);
     if (!caixa) {
       return NextResponse.json({ message: "Caixa não encontrado" }, { status: 404 });
     }

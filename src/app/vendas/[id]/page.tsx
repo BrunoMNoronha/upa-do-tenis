@@ -13,14 +13,13 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function VendaDetalhePage({
-  params,
-}: {
-  params: { id: string };
+export default async function VendaDetalhePage(props: {
+  params: Promise<{ id: string }>;
 }) {
   await exigirSessao();
+  const { id } = await props.params;
 
-  const venda = await obterVendaPorId(params.id);
+  const venda = await obterVendaPorId(id);
 
   if (!venda) {
     notFound();
