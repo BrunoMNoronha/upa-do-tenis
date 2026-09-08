@@ -4,7 +4,8 @@ import { atualizarCliente } from "@/lib/clientes";
 import { clienteAtualizarSchema } from "@/lib/clientes-schema";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -19,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       );
     }
 
-    const clienteAtualizado = await atualizarCliente(params.id, result.data);
+    const clienteAtualizado = await atualizarCliente(id, result.data);
 
     return NextResponse.json(clienteAtualizado, { status: 200 });
   } catch (error) {
@@ -35,12 +36,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const clienteId = params.id;
+    const clienteId = id;
 
     // OrdemServico é onDelete: Restrict; Venda é onDelete: SetNull — sem esta
     // contagem, excluir um cliente com vendas apagaria o vínculo silenciosamente

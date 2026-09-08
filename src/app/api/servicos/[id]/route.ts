@@ -3,7 +3,8 @@ import { exigirSessaoApi } from "@/lib/auth-server";
 import { servicoAtualizarSchema } from "@/lib/servicos-schema";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -37,7 +38,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const servicoAtualizado = await prisma.servico.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -55,12 +56,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const servicoId = params.id;
+    const servicoId = id;
 
     const count = await prisma.servicoItemOrdem.count({
       where: { servicoId }

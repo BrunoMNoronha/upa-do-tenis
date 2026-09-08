@@ -53,7 +53,7 @@ describe("proteção das APIs de usuários", () => {
 
   it("rejeita PATCH /api/usuarios/[id] sem sessão", async () => {
     const response = await PATCH(criarRequest("/api/usuarios/usr-1", "PATCH"), {
-      params: { id: "usr-1" },
+      params: Promise.resolve({ id: "usr-1" }),
     });
 
     expect(response.status).toBe(401);

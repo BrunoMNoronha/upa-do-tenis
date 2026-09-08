@@ -5,8 +5,9 @@ import { movimentacaoCaixaSchema } from "@/lib/caixa-schema";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -21,7 +22,7 @@ export async function POST(
       );
     }
 
-    const movimentacao = await registrarMovimentacaoCaixa(params.id, parsed.data);
+    const movimentacao = await registrarMovimentacaoCaixa(id, parsed.data);
     return NextResponse.json(movimentacao, { status: 201 });
   } catch (error) {
     if (error instanceof CaixaError) {

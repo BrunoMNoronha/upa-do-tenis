@@ -6,7 +6,8 @@ import { hashPassword } from "@/lib/passwords";
 import { usuarioAtualizarSchema } from "@/lib/usuarios-schema";
 import { usuarioPublicoSelect } from "@/lib/usuarios";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const sessao = await obterUsuarioSessaoDaRequest(req);
 
@@ -24,7 +25,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       );
     }
 
-    const usuarioId = params.id;
+    const usuarioId = id;
     const data: {
       nome?: string;
       email?: string;

@@ -17,7 +17,8 @@ async function contarMovimento(formaPagamentoId: string) {
   return pagamentos + vendas + movimentacoesCaixa;
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -33,7 +34,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const formaAtual = await prisma.formaPagamento.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { tipo: true },
     });
 
@@ -46,7 +47,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // movimento reescreveria retroativamente o caixa de dias fechados.
     const alterandoTipo = result.data.tipo !== undefined && result.data.tipo !== formaAtual.tipo;
 
-    if (alterandoTipo && (await contarMovimento(params.id)) > 0) {
+    if (alterandoTipo && (await contarMovimento(id)) > 0) {
       return NextResponse.json(
         {
           message:
@@ -71,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const formaAtualizada = await prisma.formaPagamento.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -89,12 +90,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    if ((await contarMovimento(params.id)) > 0) {
+    if ((await contarMovimento(id)) > 0) {
       return NextResponse.json(
         {
           message:
@@ -105,7 +107,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await prisma.formaPagamento.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return new NextResponse(null, { status: 204 });

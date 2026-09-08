@@ -8,9 +8,9 @@ import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
 import { exigirSessao } from "@/lib/auth-server";
 
 type OrdemServicoDetalhePageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 export const metadata = {
@@ -20,8 +20,9 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDetalhePageProps) {
+export default async function OrdemServicoDetalhePage(props: OrdemServicoDetalhePageProps) {
   await exigirSessao();
+  const { id } = await props.params;
 
   const formasPagamento = await listarFormasPagamento();
   // listarInsumos() traz também os inativos (a tela de cadastro precisa deles
@@ -47,7 +48,7 @@ export default async function OrdemServicoDetalhePage({ params }: OrdemServicoDe
       action={{ href: "/ordens-servico", label: "Voltar para Ordens" }}
     >
       <OrdemServicoDetalheClient
-        ordemServicoId={params.id}
+        ordemServicoId={id}
         formasPagamento={formasPagamento}
         insumosDisponiveis={insumosDisponiveis}
         servicosDisponiveis={servicosDisponiveis}

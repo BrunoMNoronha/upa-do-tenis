@@ -31,6 +31,8 @@ function criarRequest(id: string) {
   return new NextRequest(`http://localhost/api/produtos/${id}`, { method: "DELETE" });
 }
 
+const wrapParams = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe("DELETE /api/produtos/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -40,7 +42,7 @@ describe("DELETE /api/produtos/[id]", () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(2);
     prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
 
-    const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.produto.delete).not.toHaveBeenCalled();
@@ -50,7 +52,7 @@ describe("DELETE /api/produtos/[id]", () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(0);
     prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(1);
 
-    const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.produto.delete).not.toHaveBeenCalled();
@@ -61,7 +63,7 @@ describe("DELETE /api/produtos/[id]", () => {
     prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
     prismaMock.produto.delete.mockResolvedValueOnce({ id: "prod-1" });
 
-    const response = await DELETE(criarRequest("prod-1"), { params: { id: "prod-1" } });
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
 
     expect(response.status).toBe(204);
     expect(prismaMock.produto.delete).toHaveBeenCalledWith({ where: { id: "prod-1" } });
@@ -72,7 +74,7 @@ describe("DELETE /api/produtos/[id]", () => {
     prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
     prismaMock.produto.delete.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await DELETE(criarRequest("inexistente"), { params: { id: "inexistente" } });
+    const response = await DELETE(criarRequest("inexistente"), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

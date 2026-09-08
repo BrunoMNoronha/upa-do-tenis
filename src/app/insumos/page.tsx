@@ -12,12 +12,11 @@ export const metadata = {
   description: "Cadastro e consulta de insumos e produtos da sapataria.",
 };
 
-export default async function InsumosPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function InsumosPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await exigirSessao();
+  const searchParams = await props.searchParams;
 
   const insumos = (await listarInsumos()).map((insumo) => ({
     id: insumo.id,

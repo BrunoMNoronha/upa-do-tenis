@@ -3,7 +3,8 @@ import { exigirSessaoApi } from "@/lib/auth-server";
 import { produtoAtualizarSchema } from "@/lib/produtos-schema";
 import { prisma } from "@/lib/prisma";
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -42,7 +43,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const produtoAtualizado = await prisma.produto.update({
-      where: { id: params.id },
+      where: { id },
       data,
     });
 
@@ -63,7 +64,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -71,8 +73,8 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Ambas as relações são onDelete: Restrict no schema. Contar as duas evita
     // que um produto só com movimentação de estoque estoure P2003 e vire 500.
     const [itensVenda, movimentacoes] = await Promise.all([
-      prisma.itemVenda.count({ where: { produtoId: params.id } }),
-      prisma.movimentacaoEstoqueProduto.count({ where: { produtoId: params.id } }),
+      prisma.itemVenda.count({ where: { produtoId: id } }),
+      prisma.movimentacaoEstoqueProduto.count({ where: { produtoId: id } }),
     ]);
 
     if (itensVenda > 0 || movimentacoes > 0) {
@@ -86,7 +88,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     }
 
     await prisma.produto.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return new NextResponse(null, { status: 204 });

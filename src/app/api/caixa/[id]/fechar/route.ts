@@ -5,8 +5,9 @@ import { fecharCaixaSchema } from "@/lib/caixa-schema";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await props.params;
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
@@ -21,7 +22,7 @@ export async function POST(
       );
     }
 
-    const caixa = await fecharCaixa(params.id, parsed.data);
+    const caixa = await fecharCaixa(id, parsed.data);
     return NextResponse.json(caixa);
   } catch (error) {
     if (error instanceof CaixaError) {
