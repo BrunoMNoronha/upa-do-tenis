@@ -100,11 +100,16 @@ Aplica-se ao ambiente descrito em [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODU
 O Neon oferece *branch restore* e *point-in-time restore* (PITR) sobre a janela de history do plano contratado.
 
 > [!IMPORTANT]
-> A retenção real depende do plano e deve ser **lida no console do Neon**, nunca estimada. Registrar aqui:
+> A retenção real depende do plano e deve ser **lida no console do Neon**, nunca estimada. Verificado via API do Neon em 2026-09-08:
 >
-> - Plano contratado: `____________`
-> - Janela de history/PITR: `____________`
-> - Data da verificação: `____-__-__`
+> - Plano contratado: `launch_v3`
+> - Janela de history/PITR: **24 h** (`history_retention_seconds = 86400`)
+> - Snapshots: **1 manual** (`production` em 2026-09-07 01:34 UTC). Nenhum agendamento de snapshot configurado (`get_snapshot_schedule` retorna vazio).
+> - Data da verificação: 2026-09-08
+
+A janela de 24 h é o limite duro do PITR nativo: um dano detectado depois desse
+prazo não é mais recuperável por branch restore. Isso torna a camada offsite
+obrigatória, não opcional.
 
 Recursos nativos **não substituem backup**: eles não protegem contra exclusão do projeto Neon, perda de acesso à conta ou incidente do provedor.
 
@@ -156,7 +161,134 @@ Os passos 1 a 4 validam apenas o **PITR nativo**. O drill só está completo qua
 
 Registrar o resultado em [HOMOLOGACAO_FATIA_PRODUCAO_04.md](HOMOLOGACAO_FATIA_PRODUCAO_04.md), seção 10.
 
+### Extensão `pg_session_jwt` — tratamento obrigatório no restore
+
+O dump de `production` inclui `CREATE EXTENSION IF NOT EXISTS pg_session_jwt`,
+extensão **exclusiva do Neon** (usada pelo Neon Auth / Data API, hoje
+desativado no projeto). Um `pg_restore --exit-on-error` contra PostgreSQL
+padrão **falha na primeira instrução**:
+
+```text
+pg_restore: error: extension "pg_session_jwt" is not available
+```
+
+Este é exatamente o cenário de desastre em que a camada offsite existe: o Neon
+indisponível. O restore só funciona filtrando a extensão do TOC:
+
+```bash
+pg_restore -l <arquivo>.dump | grep -vE '(EXTENSION|COMMENT - EXTENSION)' > toc.list
+pg_restore --no-owner --no-privileges --exit-on-error -L toc.list -d "<url alvo>" <arquivo>.dump
+```
+
+Nenhuma tabela, índice, constraint ou dado da aplicação depende dessa extensão:
+o diff de schema entre origem e restaurado acusa apenas a própria linha do
+`CREATE EXTENSION`.
+
+### Procedimento offsite validado ponta a ponta (2026-09-08)
+
+Executado contra `production` real, somente leitura. Cadeia completa provada:
+Production → dump → criptografia → Google Drive → download → checksum →
+descriptografia → restore isolado → integridade.
+
+```bash
+# 1. dump pelo endpoint DIRECT (nunca o -pooler), sem instalar pg_dump no host
+mkdir -p backups/database
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+docker run --rm -e PGURL="$PGURL_DIRECT" postgres:18-alpine   sh -c 'pg_dump --no-owner --no-privileges --format=custom "$PGURL"'   > backups/database/neon_prod_$TS.dump
+
+# 2. validar o archive e gerar o checksum do dump
+docker run --rm -i postgres:18-alpine pg_restore --list < backups/database/neon_prod_$TS.dump
+sha256sum backups/database/neon_prod_$TS.dump | awk '{print $1}' > backups/database/neon_prod_$TS.dump.sha256
+
+# 3. criptografar (a senha vive fora do repositório, nunca em log ou doc)
+gpg --batch --pinentry-mode loopback --passphrase-file "$PASSFILE"   --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --s2k-count 65011712   --output backups/database/neon_prod_$TS.dump.gpg backups/database/neon_prod_$TS.dump
+sha256sum backups/database/neon_prod_$TS.dump.gpg | awk '{print $1}' > backups/database/neon_prod_$TS.dump.gpg.sha256
+
+# 4. enviar SÓ o .gpg ao Drive; conferir tamanho e checksum no destino
+# 5. baixar de volta, conferir o SHA-256 e só então descriptografar
+# 6. restaurar em ambiente descartável, com o TOC filtrado (ver seção acima)
+```
+
+O dump bruto (`.dump` em claro) é removido após a criptografia; o que persiste
+localmente é o `.gpg` mais o `.sha256` e o `.manifest.json`.
+
+> [!CAUTION]
+> **A senha de criptografia é o backup.** Sem ela o artefato é irrecuperável.
+> Ela não entra em repositório, Issue, PR, documento ou log — deve ficar no
+> gerenciador de senhas da loja e numa segunda cópia física separada.
+
+#### Política de retenção — Neon offsite
+
+| Item | Definição |
+|---|---|
+| Frequência | Semanal, mais um dump imediatamente antes de cada `migrate deploy` em Production |
+| Retenção | 8 semanais + 6 mensais no Drive |
+| Cópias | 1 offsite (Google Drive) + PITR nativo de 24 h como camada independente |
+| Expiração | Remoção manual só depois de confirmar que o backup seguinte foi validado |
+| Responsável | Operador do repositório (hoje: mantenedor único) |
+| Falha | Backup não gerado, checksum divergente ou upload não confirmado ⇒ **nada é apagado** e a execução é repetida antes de qualquer migration |
+
+#### Tempos medidos, RPO e RTO
+
+> [!IMPORTANT]
+> Os números abaixo são de **uma execução manual comprovada**, não de um
+> processo em regime. Enquanto a rotina semanal não estiver automatizada ou
+> formalmente operacionalizada, o que existe é **capacidade técnica provada**,
+> não garantia de recorrência — e sem recorrência não há RPO offsite.
+
+Medido em 2026-09-08 contra a base real (9 MB lógicos, 20 tabelas, 6 migrations):
+
+| Etapa | Duração |
+|---|---|
+| `pg_dump` (Neon → host, endpoint direct) | 5 s |
+| Criptografia GPG | 1 s |
+| Upload ao Google Drive | < 5 s |
+| Download + verificação de checksum | < 5 s |
+| Descriptografia | < 1 s |
+| `pg_restore` em ambiente isolado | 1 s |
+| Validação estrutural e de contagens | 1 s |
+
+**RPO nativo — operacional: até 24 h.** É a janela de PITR do Neon, que existe
+sem depender de ninguém executar nada. É o único RPO hoje garantido.
+
+**RPO offsite — alvo: até 7 dias, ainda não garantido.** O número decorre da
+cadência semanal *proposta* na política de retenção acima. A cadeia foi
+validada de ponta a ponta uma vez, manualmente. Enquanto a execução semanal não
+for automatizada ou formalmente operacionalizada, não há garantia de que o
+backup offsite mais recente tenha no máximo sete dias — e este é justamente o
+RPO que vale num desastre que atinja o próprio Neon.
+
+**RTO técnico do restore — medido: menos de 1 minuto.** Cobre descriptografar,
+restaurar e validar contra um PostgreSQL já disponível, para o dataset atual de
+9 MB. Não extrapolar para bases de centenas de MB ou GB.
+
+**RTO de desastre — ainda não medido.** Uma recuperação real acrescenta etapas
+que não entraram nesta medição: decisão operacional, provisionamento de projeto
+Neon novo, criação de roles, atualização de secrets no GitHub e na Vercel,
+conferência de migrations e compatibilidade, promoção da aplicação e smoke
+test. Medir esse número exige um exercício de desastre completo, que continua
+pendente.
+
 ### Pendências específicas do Neon
 
-- Automatizar o dump semanal offsite (hoje é manual).
-- Confirmar a retenção real do plano e reavaliá-la se o plano mudar.
+Ordenadas por risco.
+
+1. **Passphrase fora de cofre (alto).** Hoje ela vive apenas no disco de uma
+   máquina. Isso cria dois riscos simétricos: perdê-la torna todo backup
+   irrecuperável, e comprometer a máquina pode comprometer artefato e segredo
+   ao mesmo tempo. Enquanto isso não for resolvido, a estratégia de DR não pode
+   ser considerada madura.
+2. **Execução manual (médio).** Automatizar o dump semanal offsite, com falha
+   visível — workflow vermelho, não erro silencioso. É o que converte o RPO
+   offsite de alvo em garantia.
+3. **Dependências específicas do Neon no dump (médio).** O caso de
+   `pg_session_jwt` mostra que objetos exclusivos do provedor podem entrar no
+   artefato e reprovar um restore de emergência. O drill de restore precisa ser
+   reexecutado periodicamente, não apenas uma vez.
+4. **RTO de desastre não medido.** Exige um exercício completo, incluindo
+   provisionamento e reconfiguração.
+5. **Rotina `rclone` do runbook local não é executável neste ambiente.** O
+   upload validado usou outro caminho; a rotina descrita para a loja continua
+   sem prova de execução aqui.
+6. Confirmar a retenção real do plano e reavaliá-la se o plano mudar.
+7. Avaliar agendamento de snapshots no Neon, hoje inexistente.
