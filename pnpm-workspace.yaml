@@ -5,3 +5,6 @@ allowBuilds:
   prisma: true
   unrs-resolver: true
 nodeLinker: hoisted
+
+overrides:
+  postcss: ^8.5.28
