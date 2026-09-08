@@ -46,6 +46,8 @@ function comMovimento(pagamentos: number, vendas: number, movimentacoesCaixa: nu
   prismaMock.movimentacaoCaixa.count.mockResolvedValueOnce(movimentacoesCaixa);
 }
 
+const wrapParams = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe("PATCH /api/formas-pagamento/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -56,9 +58,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     comMovimento(0, 0, 0);
     prismaMock.formaPagamento.update.mockResolvedValueOnce({ id: "fp-1", tipo: "DINHEIRO" });
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.formaPagamento.update).toHaveBeenCalledWith({
@@ -71,9 +71,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce({ tipo: "PIX" });
     comMovimento(1, 0, 0);
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.formaPagamento.update).not.toHaveBeenCalled();
@@ -83,9 +81,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce({ tipo: "PIX" });
     comMovimento(0, 2, 0);
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.formaPagamento.update).not.toHaveBeenCalled();
@@ -95,9 +91,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce({ tipo: "PIX" });
     comMovimento(0, 0, 4);
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "DINHEIRO" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.formaPagamento.update).not.toHaveBeenCalled();
@@ -107,9 +101,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce({ tipo: "PIX" });
     prismaMock.formaPagamento.update.mockResolvedValueOnce({ id: "fp-1", nome: "PIX Loja" });
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { nome: "PIX Loja", tipo: "PIX" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { nome: "PIX Loja", tipo: "PIX" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.pagamento.count).not.toHaveBeenCalled();
@@ -123,9 +115,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce({ tipo: "DINHEIRO" });
     prismaMock.formaPagamento.update.mockResolvedValueOnce({ id: "fp-1", ativo: false });
 
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { nome: "Dinheiro", ativo: false }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { nome: "Dinheiro", ativo: false }), wrapParams("fp-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.pagamento.count).not.toHaveBeenCalled();
@@ -136,9 +126,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
   });
 
   it("rejeita tipo fora do enum (400)", async () => {
-    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "BOLETO" }), {
-      params: { id: "fp-1" },
-    });
+    const response = await PATCH(criarRequest("fp-1", "PATCH", { tipo: "BOLETO" }), wrapParams("fp-1"));
 
     expect(response.status).toBe(400);
     expect(prismaMock.formaPagamento.update).not.toHaveBeenCalled();
@@ -147,9 +135,7 @@ describe("PATCH /api/formas-pagamento/[id]", () => {
   it("retorna 404 quando a forma de pagamento não existe", async () => {
     prismaMock.formaPagamento.findUnique.mockResolvedValueOnce(null);
 
-    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), {
-      params: { id: "inexistente" },
-    });
+    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
     expect(prismaMock.formaPagamento.update).not.toHaveBeenCalled();
@@ -164,7 +150,7 @@ describe("DELETE /api/formas-pagamento/[id]", () => {
   it("bloqueia exclusão de forma com movimento financeiro (409)", async () => {
     comMovimento(0, 1, 0);
 
-    const response = await DELETE(criarRequest("fp-1", "DELETE"), { params: { id: "fp-1" } });
+    const response = await DELETE(criarRequest("fp-1", "DELETE"), wrapParams("fp-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.formaPagamento.delete).not.toHaveBeenCalled();
@@ -174,7 +160,7 @@ describe("DELETE /api/formas-pagamento/[id]", () => {
     comMovimento(0, 0, 0);
     prismaMock.formaPagamento.delete.mockResolvedValueOnce({ id: "fp-1" });
 
-    const response = await DELETE(criarRequest("fp-1", "DELETE"), { params: { id: "fp-1" } });
+    const response = await DELETE(criarRequest("fp-1", "DELETE"), wrapParams("fp-1"));
 
     expect(response.status).toBe(204);
     expect(prismaMock.formaPagamento.delete).toHaveBeenCalledWith({ where: { id: "fp-1" } });
@@ -184,9 +170,7 @@ describe("DELETE /api/formas-pagamento/[id]", () => {
     comMovimento(0, 0, 0);
     prismaMock.formaPagamento.delete.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await DELETE(criarRequest("inexistente", "DELETE"), {
-      params: { id: "inexistente" },
-    });
+    const response = await DELETE(criarRequest("inexistente", "DELETE"), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

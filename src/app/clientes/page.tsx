@@ -13,9 +13,10 @@ export const metadata = {
   description: "Cadastro e consulta de clientes da sapataria.",
 };
 
-export default async function ClientesPage({ searchParams }: { searchParams: { busca?: string } }) {
+export default async function ClientesPage(props: { searchParams: Promise<{ busca?: string }> }) {
   await exigirSessao();
 
+  const searchParams = await props.searchParams;
   const busca = searchParams.busca || "";
   const clientes = await listarClientes(busca);
 

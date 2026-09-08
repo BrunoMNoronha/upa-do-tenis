@@ -14,12 +14,11 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function VendasPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function VendasPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   await exigirSessao();
+  const searchParams = await props.searchParams;
 
   const dataInicial = typeof searchParams.dataInicial === "string" ? searchParams.dataInicial : undefined;
   const dataFinal = typeof searchParams.dataFinal === "string" ? searchParams.dataFinal : undefined;

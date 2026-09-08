@@ -10,14 +10,13 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function MovimentacoesInsumoPage({
-  params,
-}: {
-  params: { id: string };
+export default async function MovimentacoesInsumoPage(props: {
+  params: Promise<{ id: string }>;
 }) {
   await exigirSessao();
+  const { id } = await props.params;
 
-  const data = await listarMovimentacoesInsumo(params.id);
+  const data = await listarMovimentacoesInsumo(id);
 
   return (
     <AppShell
@@ -27,7 +26,7 @@ export default async function MovimentacoesInsumoPage({
       action={{ href: "/insumos", label: "Voltar para Insumos" }}
     >
       <MovimentacoesClient 
-        insumoId={params.id} 
+        insumoId={id} 
         initialData={data} 
       />
     </AppShell>

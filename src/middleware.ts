@@ -14,7 +14,10 @@ function ehRotaPublica(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const country = req.geo?.country || req.headers.get("x-vercel-ip-country") || req.headers.get("cf-ipcountry");
+  const country =
+    req.headers.get("x-vercel-ip-country") ||
+    req.headers.get("cf-ipcountry") ||
+    (req as unknown as { geo?: { country?: string } }).geo?.country;
   if (country && country !== "BR") {
     return NextResponse.json({ message: "Access Denied" }, { status: 403 });
   }

@@ -36,6 +36,8 @@ function criarRequest(id: string, method: string, body?: unknown) {
   });
 }
 
+const wrapParams = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe("PATCH /api/insumos/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +48,7 @@ describe("PATCH /api/insumos/[id]", () => {
 
     const response = await PATCH(
       criarRequest("ins-1", "PATCH", { nome: "Cola de contato", estoqueMinimo: 5 }),
-      { params: { id: "ins-1" } }
+      wrapParams("ins-1")
     );
 
     expect(response.status).toBe(200);
@@ -61,7 +63,7 @@ describe("PATCH /api/insumos/[id]", () => {
 
     const response = await PATCH(
       criarRequest("ins-1", "PATCH", { nome: "Cola de contato", quantidadeEstoque: 999 }),
-      { params: { id: "ins-1" } }
+      wrapParams("ins-1")
     );
 
     expect(response.status).toBe(200);
@@ -72,9 +74,7 @@ describe("PATCH /api/insumos/[id]", () => {
   });
 
   it("rejeita payload inválido (400)", async () => {
-    const response = await PATCH(criarRequest("ins-1", "PATCH", { unidadeMedida: "" }), {
-      params: { id: "ins-1" },
-    });
+    const response = await PATCH(criarRequest("ins-1", "PATCH", { unidadeMedida: "" }), wrapParams("ins-1"));
 
     expect(response.status).toBe(400);
     expect(prismaMock.insumo.update).not.toHaveBeenCalled();
@@ -83,9 +83,7 @@ describe("PATCH /api/insumos/[id]", () => {
   it("retorna 404 quando o insumo não existe", async () => {
     prismaMock.insumo.update.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), {
-      params: { id: "inexistente" },
-    });
+    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Qualquer" }), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });
@@ -100,7 +98,7 @@ describe("DELETE /api/insumos/[id]", () => {
     prismaMock.movimentacaoEstoqueInsumo.count.mockResolvedValueOnce(2);
     prismaMock.insumoItemOrdem.count.mockResolvedValueOnce(0);
 
-    const response = await DELETE(criarRequest("ins-1", "DELETE"), { params: { id: "ins-1" } });
+    const response = await DELETE(criarRequest("ins-1", "DELETE"), wrapParams("ins-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.insumo.delete).not.toHaveBeenCalled();
@@ -110,7 +108,7 @@ describe("DELETE /api/insumos/[id]", () => {
     prismaMock.movimentacaoEstoqueInsumo.count.mockResolvedValueOnce(0);
     prismaMock.insumoItemOrdem.count.mockResolvedValueOnce(1);
 
-    const response = await DELETE(criarRequest("ins-1", "DELETE"), { params: { id: "ins-1" } });
+    const response = await DELETE(criarRequest("ins-1", "DELETE"), wrapParams("ins-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.insumo.delete).not.toHaveBeenCalled();
@@ -121,7 +119,7 @@ describe("DELETE /api/insumos/[id]", () => {
     prismaMock.insumoItemOrdem.count.mockResolvedValueOnce(0);
     prismaMock.insumo.delete.mockResolvedValueOnce({ id: "ins-1" });
 
-    const response = await DELETE(criarRequest("ins-1", "DELETE"), { params: { id: "ins-1" } });
+    const response = await DELETE(criarRequest("ins-1", "DELETE"), wrapParams("ins-1"));
 
     expect(response.status).toBe(204);
     expect(prismaMock.insumo.delete).toHaveBeenCalledWith({ where: { id: "ins-1" } });
@@ -132,9 +130,7 @@ describe("DELETE /api/insumos/[id]", () => {
     prismaMock.insumoItemOrdem.count.mockResolvedValueOnce(0);
     prismaMock.insumo.delete.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await DELETE(criarRequest("inexistente", "DELETE"), {
-      params: { id: "inexistente" },
-    });
+    const response = await DELETE(criarRequest("inexistente", "DELETE"), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

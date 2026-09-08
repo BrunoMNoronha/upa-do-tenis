@@ -36,6 +36,8 @@ function criarRequest(id: string, method: string, body?: unknown) {
   });
 }
 
+const wrapParams = (id: string) => ({ params: Promise.resolve({ id }) });
+
 describe("PATCH /api/clientes/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -46,7 +48,7 @@ describe("PATCH /api/clientes/[id]", () => {
 
     const response = await PATCH(
       criarRequest("cli-1", "PATCH", { nome: "Maria", telefone: "(11) 98888-7777" }),
-      { params: { id: "cli-1" } }
+      wrapParams("cli-1")
     );
 
     expect(response.status).toBe(200);
@@ -59,9 +61,7 @@ describe("PATCH /api/clientes/[id]", () => {
   it("inativa o cliente sem alterar os demais campos (200)", async () => {
     prismaMock.cliente.update.mockResolvedValueOnce({ id: "cli-1", ativo: false });
 
-    const response = await PATCH(criarRequest("cli-1", "PATCH", { ativo: false }), {
-      params: { id: "cli-1" },
-    });
+    const response = await PATCH(criarRequest("cli-1", "PATCH", { ativo: false }), wrapParams("cli-1"));
 
     expect(response.status).toBe(200);
     expect(prismaMock.cliente.update).toHaveBeenCalledWith({
@@ -71,9 +71,7 @@ describe("PATCH /api/clientes/[id]", () => {
   });
 
   it("rejeita telefone inválido (400)", async () => {
-    const response = await PATCH(criarRequest("cli-1", "PATCH", { telefone: "123" }), {
-      params: { id: "cli-1" },
-    });
+    const response = await PATCH(criarRequest("cli-1", "PATCH", { telefone: "123" }), wrapParams("cli-1"));
 
     expect(response.status).toBe(400);
     expect(prismaMock.cliente.update).not.toHaveBeenCalled();
@@ -82,9 +80,7 @@ describe("PATCH /api/clientes/[id]", () => {
   it("retorna 404 quando o cliente não existe", async () => {
     prismaMock.cliente.update.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Maria" }), {
-      params: { id: "inexistente" },
-    });
+    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Maria" }), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });
@@ -99,7 +95,7 @@ describe("DELETE /api/clientes/[id]", () => {
     prismaMock.ordemServico.count.mockResolvedValueOnce(1);
     prismaMock.venda.count.mockResolvedValueOnce(0);
 
-    const response = await DELETE(criarRequest("cli-1", "DELETE"), { params: { id: "cli-1" } });
+    const response = await DELETE(criarRequest("cli-1", "DELETE"), wrapParams("cli-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.cliente.delete).not.toHaveBeenCalled();
@@ -109,7 +105,7 @@ describe("DELETE /api/clientes/[id]", () => {
     prismaMock.ordemServico.count.mockResolvedValueOnce(0);
     prismaMock.venda.count.mockResolvedValueOnce(3);
 
-    const response = await DELETE(criarRequest("cli-1", "DELETE"), { params: { id: "cli-1" } });
+    const response = await DELETE(criarRequest("cli-1", "DELETE"), wrapParams("cli-1"));
 
     expect(response.status).toBe(409);
     expect(prismaMock.cliente.delete).not.toHaveBeenCalled();
@@ -120,7 +116,7 @@ describe("DELETE /api/clientes/[id]", () => {
     prismaMock.venda.count.mockResolvedValueOnce(0);
     prismaMock.cliente.delete.mockResolvedValueOnce({ id: "cli-1" });
 
-    const response = await DELETE(criarRequest("cli-1", "DELETE"), { params: { id: "cli-1" } });
+    const response = await DELETE(criarRequest("cli-1", "DELETE"), wrapParams("cli-1"));
 
     expect(response.status).toBe(204);
     expect(prismaMock.cliente.delete).toHaveBeenCalledWith({ where: { id: "cli-1" } });
@@ -131,9 +127,7 @@ describe("DELETE /api/clientes/[id]", () => {
     prismaMock.venda.count.mockResolvedValueOnce(0);
     prismaMock.cliente.delete.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await DELETE(criarRequest("inexistente", "DELETE"), {
-      params: { id: "inexistente" },
-    });
+    const response = await DELETE(criarRequest("inexistente", "DELETE"), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

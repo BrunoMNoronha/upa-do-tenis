@@ -5,8 +5,9 @@ import { exigirSessao } from "@/lib/auth-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function CaixaDetalhePage({ params }: { params: { id: string } }) {
+export default async function CaixaDetalhePage(props: { params: Promise<{ id: string }> }) {
   await exigirSessao();
+  const { id } = await props.params;
 
   return (
     <AppShell
@@ -15,7 +16,7 @@ export default async function CaixaDetalhePage({ params }: { params: { id: strin
       eyebrow="Caixa"
       action={{ label: "Voltar ao Histórico", href: "/caixa/historico" }}
     >
-      <CaixaDetalheClient caixaId={params.id} />
+      <CaixaDetalheClient caixaId={id} />
     </AppShell>
   );
 }
