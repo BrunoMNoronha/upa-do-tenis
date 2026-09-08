@@ -30,7 +30,7 @@ export type OrdemServicoFinanceiroInput = {
   itens?: ItemOrdemServicoFinanceiroInput[] | null;
 };
 
-function arredondarMoeda(valor: number): number {
+export function arredondarMoeda(valor: number): number {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
 }
 

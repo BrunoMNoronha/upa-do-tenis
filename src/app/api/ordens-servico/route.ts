@@ -4,7 +4,7 @@ import { dataOperacionalHoje } from "@/lib/date-range";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
 import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastreabilidade";
 import { prisma } from "@/lib/prisma";
-import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
+import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { listarOrdensServico } from "@/lib/ordens-servico";
 
 export async function GET(req: NextRequest) {
@@ -86,8 +86,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const valorTotalServicos = servicosInformados.reduce((total, servico) => total + servico.valor, 0);
-    const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : data.valorEstimado;
+    const valorTotalServicos = arredondarMoeda(
+      servicosInformados.reduce((total, servico) => total + servico.valor, 0),
+    );
+    const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : arredondarMoeda(data.valorEstimado);
 
 
     // Generate a unique number OS-DDMMAAAA-XXXX
