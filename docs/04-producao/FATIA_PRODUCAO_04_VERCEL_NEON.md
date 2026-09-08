@@ -73,6 +73,18 @@ Reavaliar a integração automática somente quando existir uma etapa de mascara
 - `vercel env pull` é **proibido** neste projeto: grava secrets em texto plano no disco.
 - `src/lib/prisma.ts` não tem URL de fallback: `DATABASE_URL` ausente falha ruidosamente, nunca cai em produção por acidente. Propriedade de segurança — manter.
 
+### Política de dados do Preview
+
+Regras fixas, validadas em 2026-09-08 após a desconexão da integração Neon Postgres Previews:
+
+- Preview **nunca** é clonado de Production. A única branch Neon de Preview é a fixa `preview`, e a `DATABASE_URL` do escopo Vercel Preview aponta exclusivamente para ela.
+- Dados pessoais ou operacionais reais (usuários, clientes, OS, pagamentos, caixa, estoque) **não** são copiados para Preview. Catálogos sem dado pessoal (serviços, produtos, insumos, formas de pagamento) podem existir.
+- Usuários de Preview são **sintéticos**, criados por `scripts/bootstrap-admin.ts` com um `.env.neon.preview` temporário (ignorado pelo git) que aponta para a URL **direct** da branch `preview` e é apagado logo após a execução.
+- Credenciais de homologação **não são versionadas** nem registradas em issue, PR, documentação ou relatório; para redefinir, apagar o usuário sintético em `preview` e repetir o bootstrap.
+- Branches Neon automáticas por PR (`preview/<branch>`) e variáveis com escopo de branch Git **não fazem parte da arquitetura**. Se reaparecerem, a integração Vercel foi reconectada no console Neon (projeto → Integrations) e deve ser desconectada.
+- Prova de isolamento após qualquer mudança de infra: um push de branch descartável deve gerar deployment READY **sem** nova branch Neon e **sem** nova variável na Vercel.
+
+
 ---
 
 ## Matriz de variáveis de ambiente
