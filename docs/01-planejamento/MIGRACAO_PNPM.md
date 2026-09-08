@@ -1,6 +1,6 @@
 # Padronização do gerenciador de pacotes
 
-O projeto utiliza pnpm 11.25.0, fixado em package.json, com Node.js >=22.13.
+O projeto utiliza pnpm 11.25.0, fixado em package.json, com Node.js 24 (fixado em `engines` e `.nvmrc`).
 O Docker utiliza Node.js 24 e instalação com lockfile congelado. O layout
 hoisted foi configurado em pnpm-workspace.yaml para manter os caminhos
 usados na cópia do Prisma para a imagem de produção.

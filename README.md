@@ -4,7 +4,7 @@ Sistema web para gestão operacional de sapataria.
 
 ## Instalação
 
-Use Node.js 22.13 ou superior e pnpm 11.25.0 (versão fixada em `package.json`).
+Use Node.js 24 (LTS) e pnpm 11.25.0 (ambos fixados em `package.json`; `.nvmrc` aponta para 24).
 
 ```bash
 corepack enable

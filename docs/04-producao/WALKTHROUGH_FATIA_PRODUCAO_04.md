@@ -111,7 +111,7 @@ Em **Settings → Environments** do repositório:
    - `AUTH_SESSION_SECRET` = `openssl rand -hex 32`.
 6. Conferir que **nenhuma** variável ficou em "All Environments" e que o escopo **Development está vazio**.
 
-- [ ] Projeto criado, Production Branch `main`, Node 22.x
+- [ ] Projeto criado, Production Branch `main`, Node 24.x
 - [ ] Região das Functions: `____________`
 - [ ] Variáveis de Production cadastradas, nenhuma em "All Environments"
 
