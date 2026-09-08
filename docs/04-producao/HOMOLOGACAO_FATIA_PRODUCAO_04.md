@@ -184,12 +184,74 @@ Saída de `vercel env ls` (valores mascarados):
 
 ## 10. Backup e rollback
 
-- [ ] Retenção/PITR real registrada em [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md)
-- [ ] `pg_dump` da branch `production` executado com sucesso — arquivo: `____________`
-- [ ] Drill de PITR executado em branch `restore-test-________`
-- [ ] Drill do **dump lógico** executado: `pg_restore` do arquivo offsite em branch vazia `restore-dump-________`, com contagens conferidas e `migrate status` coerente
-- [ ] As duas branches de teste foram removidas
-- [ ] Procedimento de Instant Rollback da Vercel conferido em [PLANO_ROLLBACK.md](PLANO_ROLLBACK.md)
+- [x] Retenção/PITR real registrada em [PLANO_BACKUP_RESTORE.md](PLANO_BACKUP_RESTORE.md) — plano `launch_v3`, janela de 24 h (`history_retention_seconds = 86400`), **sem** agendamento de snapshots; lido via API do Neon em 2026-09-08
+- [x] `pg_dump` da branch `production` executado com sucesso — arquivo: `neon_prod_20260908T030627Z.dump` (formato custom, 63.042 bytes, endpoint **direct**), validado com `pg_restore --list`
+- [ ] Drill de PITR executado em branch `restore-test-________` — **não executado** (ver ressalva abaixo)
+- [x] Drill do **dump lógico** executado a partir do artefato **recuperado do armazenamento offsite**, não do dump local
+- [x] Ambiente de restore descartável destruído após a coleta de evidências
+- [x] Procedimento de Instant Rollback da Vercel conferido em [PLANO_ROLLBACK.md](PLANO_ROLLBACK.md)
+
+### 10.1 Execução de 2026-09-08 — backup offsite e restore
+
+Cadeia exercitada de ponta a ponta, com Production em **somente leitura**
+(`written_data_bytes = 0` na branch ao fim da execução):
+
+```text
+production → pg_dump (direct) → GPG AES256 → Google Drive
+          → download do Drive → SHA-256 → decrypt → restore isolado → conferência
+```
+
+| Item | Valor |
+|---|---|
+| Origem | Neon, branch `production`, database `upa-do-tenis`, PostgreSQL 18.6, `aws-sa-east-1` |
+| Artefato offsite | `neon_prod_20260908T030627Z.dump.gpg`, 14.598 bytes, Google Drive |
+| Integridade | SHA-256 do cifrado idêntico antes do upload e após o download; SHA-256 do dump decifrado idêntico ao original |
+| Ambiente de restore | container PostgreSQL 18 descartável, **isolado do Neon** — nunca `production` nem `preview` |
+| `pg_restore` | concluído com `--exit-on-error`, sem erros e sem warnings, após filtrar `pg_session_jwt` do TOC |
+
+Conferência contra o baseline colhido antes do dump:
+
+| Entidade | Production | Restore |
+|---|---:|---:|
+| Usuario | 2 | 2 |
+| Cliente | 1 | 1 |
+| Servico | 35 | 35 |
+| Produto | 35 | 35 |
+| Insumo | 35 | 35 |
+| OrdemServico, ItemOrdemServico, Pagamento | 0 | 0 |
+| Venda, ItemVenda | 0 | 0 |
+| Caixa, MovimentacaoCaixa | 0 | 0 |
+| FormaPagamento | 4 | 4 |
+| RegistroRateLimit | 2 | 2 |
+| migrations | 6 | 6 |
+
+Estrutura: 20 tabelas, 75 índices, 23 chaves estrangeiras e 20 chaves
+primárias nos dois lados. O hash conjunto de nomes e checksums das seis
+migrations é idêntico. O diff de schema entre origem e restaurado acusa
+**apenas** a linha do `CREATE EXTENSION pg_session_jwt`.
+
+Constraints foram exercitadas ativamente, não só contadas: inserções
+propositais foram rejeitadas por chave estrangeira em `Pagamento` e em
+`MovimentacaoCaixa`, e por unicidade em `Usuario`. Nenhuma escrita de teste
+permaneceu no banco restaurado.
+
+Limpeza: dump em claro, artefato baixado e arquivo com a connection string
+removidos; container de restore destruído. Preservados o artefato offsite e as
+evidências não sensíveis.
+
+### 10.2 Ressalvas desta homologação
+
+1. **Passphrase fora de cofre.** Vive apenas no disco da máquina de operação.
+   Perdê-la torna o backup irrecuperável; comprometer a máquina pode expor
+   artefato e segredo juntos. **Bloqueia** considerar a estratégia de DR madura.
+2. **Execução manual, sem recorrência.** O que está provado é capacidade
+   técnica. Sem automação semanal não existe RPO offsite garantido.
+3. **Drill de PITR nativo não executado** nesta rodada. Foi validada a camada
+   offsite, que é a que protege contra indisponibilidade do próprio Neon.
+4. **RTO de desastre não medido.** O tempo apurado cobre apenas o restore
+   técnico contra um PostgreSQL já disponível.
+5. **Rotina `rclone` do runbook local não é executável** na máquina atual; o
+   upload validado usou outro caminho.
 
 ---
 

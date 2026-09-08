@@ -176,9 +176,23 @@ Este é exatamente o cenário de desastre em que a camada offsite existe: o Neon
 indisponível. O restore só funciona filtrando a extensão do TOC:
 
 ```bash
-pg_restore -l <arquivo>.dump | grep -vE '(EXTENSION|COMMENT - EXTENSION)' > toc.list
+# filtra SOMENTE pg_session_jwt; qualquer outra extensão continua no TOC
+pg_restore -l <arquivo>.dump   | grep -vE '(EXTENSION - pg_session_jwt|COMMENT - EXTENSION pg_session_jwt)' > toc.list
 pg_restore --no-owner --no-privileges --exit-on-error -L toc.list -d "<url alvo>" <arquivo>.dump
 ```
+
+> [!WARNING]
+> Não use um filtro genérico por `EXTENSION`. Ele removeria **todas** as
+> extensões do TOC, e não apenas a incompatível — um restore assim pode falhar
+> em objetos dependentes ou, pior, concluir sem funcionalidade que a aplicação
+> espera. Confira antes o que o dump traz:
+>
+> ```bash
+> pg_restore -l <arquivo>.dump | grep 'EXTENSION'
+> ```
+>
+> Se aparecer alguma extensão além de `pg_session_jwt`, decida caso a caso e
+> atualize esta seção.
 
 Nenhuma tabela, índice, constraint ou dado da aplicação depende dessa extensão:
 o diff de schema entre origem e restaurado acusa apenas a própria linha do
@@ -204,13 +218,47 @@ sha256sum backups/database/neon_prod_$TS.dump | awk '{print $1}' > backups/datab
 gpg --batch --pinentry-mode loopback --passphrase-file "$PASSFILE"   --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --s2k-count 65011712   --output backups/database/neon_prod_$TS.dump.gpg backups/database/neon_prod_$TS.dump
 sha256sum backups/database/neon_prod_$TS.dump.gpg | awk '{print $1}' > backups/database/neon_prod_$TS.dump.gpg.sha256
 
-# 4. enviar SÓ o .gpg ao Drive; conferir tamanho e checksum no destino
-# 5. baixar de volta, conferir o SHA-256 e só então descriptografar
-# 6. restaurar em ambiente descartável, com o TOC filtrado (ver seção acima)
+# 4. manifesto: metadados que permitem validar o restore sem consultar a origem
+cat > backups/database/neon_prod_$TS.dump.manifest.json <<JSON
+{
+  "gerado_utc": "$(date -u +%FT%TZ)",
+  "origem": {"provedor": "neon", "branch": "production", "endpoint": "direct"},
+  "dump":    {"formato": "custom", "bytes": $(stat -c%s backups/database/neon_prod_$TS.dump),
+              "sha256": "$(cat backups/database/neon_prod_$TS.dump.sha256)"},
+  "cifrado": {"bytes": $(stat -c%s backups/database/neon_prod_$TS.dump.gpg),
+              "sha256": "$(cat backups/database/neon_prod_$TS.dump.gpg.sha256)"},
+  "contagens": $(CONTAGENS_JSON)
+}
+JSON
+
+# 5. REMOVER o dump em claro — só depois de confirmar que o .gpg existe e é íntegro
+if [ -s backups/database/neon_prod_$TS.dump.gpg ]    && gpg --batch --pinentry-mode loopback --passphrase-file "$PASSFILE"           --decrypt backups/database/neon_prod_$TS.dump.gpg       | sha256sum -c <(echo "$(cat backups/database/neon_prod_$TS.dump.sha256)  -"); then
+  shred -u backups/database/neon_prod_$TS.dump 2>/dev/null     || rm -f backups/database/neon_prod_$TS.dump
+else
+  echo "ARTEFATO CIFRADO INVÁLIDO — o dump em claro foi mantido para nova tentativa" >&2
+  exit 1
+fi
+
+# 6. enviar ao Drive o TRIO: .gpg + .gpg.sha256 + .manifest.json
+#    (nunca o .dump em claro)
+# 7. baixar de volta, conferir o SHA-256 contra o .gpg.sha256 do próprio destino,
+#    e só então descriptografar
+# 8. restaurar em ambiente descartável, com o TOC filtrado (ver seção acima)
 ```
 
-O dump bruto (`.dump` em claro) é removido após a criptografia; o que persiste
-localmente é o `.gpg` mais o `.sha256` e o `.manifest.json`.
+> [!IMPORTANT]
+> **Suba o trio, não só o artefato.** Num desastre que leve a máquina de
+> operação junto com o Neon, um Drive contendo apenas o `.gpg` é insuficiente:
+> não haveria checksum confiável para validar o download nem contagens de
+> referência para conferir o restore, já que a origem está indisponível. O
+> `.gpg.sha256` e o `.manifest.json` precisam viver ao lado do artefato.
+
+> [!CAUTION]
+> **O dump em claro é uma cópia sem proteção dos dados de produção.** Ele só
+> pode ser removido depois que o `.gpg` estiver criado e verificado, e nunca
+> pode ser enviado ao armazenamento offsite. Se a verificação falhar, mantenha
+> o `.dump` e repita a criptografia — apagar antes de ter artefato válido
+> destrói o backup daquela execução.
 
 > [!CAUTION]
 > **A senha de criptografia é o backup.** Sem ela o artefato é irrecuperável.
@@ -248,10 +296,24 @@ Medido em 2026-09-08 contra a base real (9 MB lógicos, 20 tabelas, 6 migrations
 | `pg_restore` em ambiente isolado | 1 s |
 | Validação estrutural e de contagens | 1 s |
 
-**RPO nativo — operacional: até 24 h.** É a janela de PITR do Neon, que existe
-sem depender de ninguém executar nada. É o único RPO hoje garantido.
+**PITR do Neon — não confundir retenção com RPO.** São duas grandezas
+diferentes, e tratá-las como uma só cria expectativa errada na hora do
+incidente:
 
-**RPO offsite — alvo: até 7 dias, ainda não garantido.** O número decorre da
+| Grandeza | Valor | O que significa |
+|---|---|---|
+| Granularidade de recuperação (RPO alcançável) | segundos | Dentro da janela, restaura-se um ponto imediatamente anterior ao dano. A perda tende a zero, não a 24 h. |
+| Horizonte de recuperação (retenção) | 24 h | Por quanto tempo esse ponto continua disponível. |
+
+A consequência prática é abrupta, não gradual: um dano **detectado dentro de
+24 h** é recuperado com perda de segundos; um dano **detectado depois** não é
+recuperável por PITR de forma alguma — o recurso deixa de existir, em vez de
+impor uma perda limitada a 24 h. O que a janela mede é o **tempo máximo para
+detectar**, e é por isso que a camada offsite não é opcional.
+
+**RPO offsite — alvo: até 7 dias de perda, ainda não garantido.** Aqui a
+grandeza é mesmo perda de dados: o artefato é um instantâneo semanal, então
+restaurar a partir dele descarta tudo que foi gravado desde o último dump. O número decorre da
 cadência semanal *proposta* na política de retenção acima. A cadeia foi
 validada de ponta a ponta uma vez, manualmente. Enquanto a execução semanal não
 for automatizada ou formalmente operacionalizada, não há garantia de que o
