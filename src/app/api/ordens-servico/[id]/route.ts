@@ -7,7 +7,7 @@ import {
   obterDetalheOrdemServico,
   OrdemServicoDetalheError,
 } from "@/lib/ordens-servico";
-import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
+import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { ordemServicoServicosAtualizarSchema } from "@/lib/ordens-servico-schema";
 
 export async function GET(
@@ -158,7 +158,9 @@ export async function PATCH(
         });
       }
 
-      const valorTotalItem = servicos.reduce((total, servico) => total + servico.valor, 0);
+      const valorTotalItem = arredondarMoeda(
+        servicos.reduce((total, servico) => total + servico.valor, 0),
+      );
       await tx.itemOrdemServico.update({
         where: { id: item.id },
         data: { valor: valorTotalItem },

@@ -31,7 +31,7 @@ import {
   DELETE as servicosDelete,
 } from "@/app/api/servicos/[id]/route";
 import { GET as osGet, POST as osPost } from "@/app/api/ordens-servico/route";
-import { GET as osIdGet, DELETE as osIdDelete } from "@/app/api/ordens-servico/[id]/route";
+import { GET as osIdGet, DELETE as osIdDelete, PATCH as osIdPatch } from "@/app/api/ordens-servico/[id]/route";
 import { PATCH as osStatusPatch } from "@/app/api/ordens-servico/[id]/status/route";
 import {
   GET as osPagamentosGet,
@@ -116,6 +116,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "DELETE /api/ordens-servico/[id]",
     () => osIdDelete(criarRequest("/api/ordens-servico/abc", "DELETE"), params),
+  ],
+  [
+    "PATCH /api/ordens-servico/[id]",
+    () => osIdPatch(criarRequest("/api/ordens-servico/abc", "PATCH"), params),
   ],
   [
     "PATCH /api/ordens-servico/[id]/status",
