@@ -85,20 +85,21 @@ export function Combobox({ options, value, onChange, placeholder = "Selecione...
             <div className="p-3 text-sm text-slate-500">{emptyText}</div>
           ) : (
             filteredOptions.map((option) => (
-              <div
+              <button
+                type="button"
                 key={option.value}
                 onClick={() => {
                   onChange(option.value);
                   setQuery(option.label);
                   setOpen(false);
                 }}
-                className={`flex cursor-pointer flex-col rounded-lg px-3 py-2 text-sm hover:bg-[color:var(--accent-soft)] ${
+                className={`flex w-full cursor-pointer flex-col rounded-lg px-3 py-2 text-left text-sm hover:bg-[color:var(--accent-soft)] focus:bg-[color:var(--accent-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)] ${
                   value === option.value ? "bg-[color:var(--accent-soft)] font-medium text-[color:var(--accent-strong)]" : "text-slate-700"
                 }`}
               >
                 <span>{option.label}</span>
                 {option.subLabel && <span className="text-xs text-slate-500">{option.subLabel}</span>}
-              </div>
+              </button>
             ))
           )}
         </div>
