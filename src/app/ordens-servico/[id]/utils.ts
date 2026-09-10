@@ -1,9 +1,7 @@
 import { ResumoFinanceiro } from "./types";
 
-export const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+import { formatCurrency } from "@/lib/formatters";
+export const currencyFormatter = { format: formatCurrency };
 
 export const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",

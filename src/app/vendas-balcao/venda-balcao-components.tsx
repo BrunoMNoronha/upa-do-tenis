@@ -25,9 +25,9 @@ export type EstadoVenda =
 
 // ── Funções Auxiliares ────────────────────────────────────────────────────────
 
-const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+import { formatCurrency } from "@/lib/formatters";
 export function formatarMoeda(valor: number) {
-  return brl.format(valor);
+  return formatCurrency(valor);
 }
 
 // ── Subcomponentes ────────────────────────────────────────────────────────────
