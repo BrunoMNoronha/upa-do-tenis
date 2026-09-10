@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { Button, Input, Label } from "@/components/ui";
 import { calcularIntervaloPreset, formatarDataLocal, parseDataLocal, type PresetIntervalo } from "@/lib/date-range";
 
@@ -32,6 +32,7 @@ export function DateRangePicker({
   applying = false,
   className = "",
 }: DateRangePickerProps) {
+  const idPrefix = useId();
   const [from, setFrom] = useState<string>(
     value?.from ? formatarDataLocal(value.from) : ""
   );
@@ -67,20 +68,25 @@ export function DateRangePicker({
     ? `${periodoFormatter.format(parseDataLocal(from))} – ${periodoFormatter.format(parseDataLocal(to))}`
     : "Nenhum período selecionado";
 
+  const presetClasses = "rounded-full px-3 py-1 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
+  const skyClasses = `${presetClasses} bg-sky-100 text-sky-700 hover:bg-sky-200 focus-visible:ring-sky-500`;
+  const roseClasses = `${presetClasses} bg-rose-100 text-rose-700 hover:bg-rose-200 focus-visible:ring-rose-500`;
+
   return (
     <div className={`flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 ${className}`}>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => handlePreset("hoje")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Hoje</button>
-        <button type="button" onClick={() => handlePreset("semana")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Última semana</button>
-        <button type="button" onClick={() => handlePreset("mes")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Último mês</button>
-        <button type="button" onClick={() => handlePreset("mesAtual")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 hover:bg-sky-200">Mês atual</button>
-        <button type="button" onClick={handleLimpar} className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-200">Limpar</button>
+        <button type="button" onClick={() => handlePreset("hoje")} className={skyClasses}>Hoje</button>
+        <button type="button" onClick={() => handlePreset("semana")} className={skyClasses}>Última semana</button>
+        <button type="button" onClick={() => handlePreset("mes")} className={skyClasses}>Último mês</button>
+        <button type="button" onClick={() => handlePreset("mesAtual")} className={skyClasses}>Mês atual</button>
+        <button type="button" onClick={handleLimpar} className={roseClasses}>Limpar</button>
       </div>
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid gap-1.5">
-          <Label className="text-xs">Data inicial</Label>
+          <Label htmlFor={`${idPrefix}-inicio`} className="text-xs">Data inicial</Label>
           <Input
+            id={`${idPrefix}-inicio`}
             type="date"
             value={from}
             onChange={(e) => applyRange(e.target.value, to)}
@@ -88,8 +94,9 @@ export function DateRangePicker({
           />
         </div>
         <div className="grid gap-1.5">
-          <Label className="text-xs">Data final</Label>
+          <Label htmlFor={`${idPrefix}-fim`} className="text-xs">Data final</Label>
           <Input
+            id={`${idPrefix}-fim`}
             type="date"
             value={to}
             onChange={(e) => applyRange(from, e.target.value)}

@@ -1,3 +1,6 @@
 ## 2024-05-18 - Added loading state to Button component
 **Learning:** Adding a native loading state (`isLoading`) to a core UI component (`Button`) improves feedback across the entire application simultaneously. This is highly effective as it prevents multiple manual, inconsistent loading implementations. Wait, I should make this entry according to the guidelines.
 **Action:** Always verify if a core UI component supports native loading states. If not, implementing it centrally adds immense value and consistency, specifically by rendering an SVG spinner while retaining the disabled state.
+## 2024-05-18 - Added focus-visible states and linked labels to DateRangePicker
+**Learning:** Even custom date pickers and range pickers often miss simple keyboard accessibility (focus states) and screen reader associations (linking `<Label>` to `<Input>` via `htmlFor` and `id`). Utilizing `useId()` allows generating stable, unique IDs without breaking SSR or duplicating IDs on the same page.
+**Action:** Always verify if inputs are correctly associated with their labels, especially when the component may be instantiated multiple times. In addition, ensure all interactive elements (like custom preset buttons) have explicit `:focus-visible` styles so keyboard navigation works predictably.
