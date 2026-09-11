@@ -1,3 +1,9 @@
+## 2025-02-18 — reduce vs for...of in Node.js
+
+**Learning:** No Node.js (V8), a criação dinâmica de callbacks com `reduce()` para agregações matemáticas simples e frequentes (como soma de arrays de pagamentos e serviços numa OS) possui sobrecarga de alocação se comparada com `for...of` em loop explícito, que é mais performático.
+
+**Action:** Usar estruturas baseadas em loops explicitos com variáveis mutáveis para melhoria de alocação de memória ao realizar soma e redução local (cálculos matemáticos) na camada de serviço onde a velocidade de processamento crítico justifica (ex: totalizadores repetidos do financeiro).
+
 ## 2025-02-18 - Evite `reduce` para criação dinâmica de mapas em pequenos arrays
 **Learning:** Em otimizações no V8/Node.js, substituir repetidas chamadas `Array.prototype.find()` por um único `Array.prototype.reduce()` construindo um objeto mapa dinâmico nem sempre melhora a performance real se o array for muito pequeno. A sobrecarga de alocação de propriedades dinâmicas e o garbage collection do `reduce` pode deixá-lo mais lento que a busca O(N*M) com M pequeno.
 **Action:** Para transformar processamento O(K*N) em O(N) com máxima performance, declare as variáveis de saída fora do escopo e utilize um `for...of` com mutação local (`let`) em vez de construir novos objetos usando callbacks funcionais e reduções.

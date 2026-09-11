@@ -65,6 +65,7 @@ function somarPagamentos(pagamentos: PagamentoFinanceiroInput[] | null | undefin
     total += normalizarDecimalParaNumero(pagamento?.valor, 0);
   }
 
+
   return arredondarMoeda(total);
 }
 
@@ -73,14 +74,13 @@ function somarValorServicos(item: ItemOrdemServicoFinanceiroInput): number {
     return 0;
   }
 
-  let totalServicos = 0;
-  for (const servicoItem of item.servicos) {
+  const totalServicos = item.servicos.reduce((acc, servicoItem) => {
     const valorInformado = servicoItem?.valor;
     const valorServicoItem = normalizarDecimalParaNumero(valorInformado, 0);
     const precoBaseServico = normalizarDecimalParaNumero(servicoItem?.servico?.precoBase, 0);
 
-    totalServicos += (valorInformado === null || valorInformado === undefined ? precoBaseServico : valorServicoItem);
-  }
+    return acc + (valorInformado === null || valorInformado === undefined ? precoBaseServico : valorServicoItem);
+  }, 0);
 
   return arredondarMoeda(totalServicos);
 }
@@ -90,10 +90,9 @@ function somarItens(itens: ItemOrdemServicoFinanceiroInput[] | null | undefined)
     return 0;
   }
 
-  let totalItens = 0;
-  for (const item of itens) {
-    totalItens += normalizarDecimalParaNumero(item?.valor, 0);
-  }
+  const totalItens = itens.reduce((acc, item) => {
+    return acc + normalizarDecimalParaNumero(item?.valor, 0);
+  }, 0);
 
   return arredondarMoeda(totalItens);
 }
@@ -103,10 +102,9 @@ function somarServicosDosItens(itens: ItemOrdemServicoFinanceiroInput[] | null |
     return 0;
   }
 
-  let totalServicos = 0;
-  for (const item of itens) {
-    totalServicos += somarValorServicos(item);
-  }
+  const totalServicos = itens.reduce((acc, item) => {
+    return acc + somarValorServicos(item);
+  }, 0);
 
   return arredondarMoeda(totalServicos);
 }
