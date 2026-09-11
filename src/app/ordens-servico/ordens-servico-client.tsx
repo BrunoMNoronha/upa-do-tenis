@@ -978,15 +978,17 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
     return prev < new Date();
   };
 
-  const totalAbertas = ordens.filter(
-    (ordem) => ordem.status === "ABERTA",
-  ).length;
-  const totalEmAndamento = ordens.filter(
-    (ordem) => ordem.status === "EM_ANDAMENTO",
-  ).length;
-  const totalComSaldo = ordens.filter(
-    (ordem) => Number(ordem.saldo || 0) > 0,
-  ).length;
+  // Otimização: Iteração única sobre o array para evitar 3 chamadas .filter() (O(N) vs O(3N)) e alocações de arrays intermediários
+  let totalAbertas = 0;
+  let totalEmAndamento = 0;
+  let totalComSaldo = 0;
+
+  for (const ordem of ordens) {
+    if (ordem.status === "ABERTA") totalAbertas++;
+    else if (ordem.status === "EM_ANDAMENTO") totalEmAndamento++;
+
+    if (Number(ordem.saldo || 0) > 0) totalComSaldo++;
+  }
 
   return (
     <Card className="overflow-hidden">

@@ -8,3 +8,6 @@
 ## 2026-09-07 - Bulk Insert com createManyAndReturn
 **Learning:** A função `createManyAndReturn` nativa do Prisma 5+ é suportada tanto em PostgreSQL quanto SQLite e é a abordagem ideal e mais limpa para converter inserções independentes `Promise.all(linhas.map(x => tx.x.create(...)))` em bulk inserts quando o ID gerado é necessário para passos subsequentes (ex: baixas de estoque associadas).
 **Action:** Utilizar `createManyAndReturn` (ou `createMany` se os dados retornados não forem necessários) em vez de N inserções independentes agrupadas via `Promise.all()` na camada de transação do backend, reduzindo roundtrips com o banco e melhorando significativamente o tempo total de resposta de O(N) para O(1) na inserção.
+## 2024-05-18 - Avoid chained .filter().length calls for simple array counting
+**Learning:** Using multiple `.filter().length` expressions on the same array to extract statistics causes multiple passes over the array (O(k*N)) and allocates new arrays in memory that are immediately discarded.
+**Action:** Use a single `for...of` loop with accumulator variables to compute multiple statistical counts over an array simultaneously (reducing to O(N) and eliminating intermediate array allocations).
