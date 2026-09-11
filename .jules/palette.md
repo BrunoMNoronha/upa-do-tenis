@@ -1,3 +1,6 @@
 ## 2024-05-18 - Added loading state to Button component
 **Learning:** Adding a native loading state (`isLoading`) to a core UI component (`Button`) improves feedback across the entire application simultaneously. This is highly effective as it prevents multiple manual, inconsistent loading implementations. Wait, I should make this entry according to the guidelines.
 **Action:** Always verify if a core UI component supports native loading states. If not, implementing it centrally adds immense value and consistency, specifically by rendering an SVG spinner while retaining the disabled state.
+## 2024-05-18 - Substituição de div por button em opções interativas
+**Learning:** Usar `<button type="button">` com classes de layout (como `w-full text-left`) em vez de `<div onClick>` em opções de listas customizadas (como Combobox) garante interatividade nativa via teclado e melhora imediatamente o reconhecimento por leitores de tela sem causar regressões visuais.
+**Action:** Sempre verificar opções e itens de lista customizados (Dropdown, Combobox) para garantir que estão utilizando tags semânticas interativas (`<button>` ou `<a>`) ao invés de wrappers não-semânticos com event listeners manuais.
