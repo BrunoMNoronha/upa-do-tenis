@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("Erro ao gerar relatório de estoque:", error);
     return NextResponse.json(
-      { error: "Erro ao gerar o relatório. Detalhes: " + error.message },
+      { error: "Erro ao gerar o relatório." },
       { status: 500 }
     );
   }
