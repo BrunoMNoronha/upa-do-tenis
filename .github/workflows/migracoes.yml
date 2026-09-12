@@ -231,9 +231,10 @@ jobs:
           alvo_producao=""
           subestado=""
           for tentativa in $(seq 1 24); do
+            nonce=$(date +%s%N)
             projeto_atual=$(curl --fail-with-body --silent --show-error \
-              -H "$auth" \
-              "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")
+              -H "$auth" -H "Cache-Control: no-cache" \
+              "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}&nonce=${nonce}")
             alvo_producao=$(jq -r '.targets.production.id // ""' <<<"$projeto_atual")
             subestado=$(jq -r '.targets.production.readySubstate // ""' <<<"$projeto_atual")
             if [ "$alvo_producao" = "$deployment_id" ] && [ "$subestado" = "PROMOTED" ]; then
