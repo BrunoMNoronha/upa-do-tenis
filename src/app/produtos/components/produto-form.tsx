@@ -14,6 +14,7 @@ type ProdutoListado = {
   nome: string;
   descricao: string | null;
   precoVenda: number;
+  quantidadeEstoque: number;
   ativo: boolean;
   criadoEm: string;
 };
@@ -28,6 +29,7 @@ const defaultValues: ProdutoFormValues = {
   nome: "",
   descricao: "",
   precoVenda: 0,
+  quantidadeInicial: undefined,
 };
 
 export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps) {
@@ -64,13 +66,20 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
     setSubmitError(null);
 
     const url = editando ? `/api/produtos/${editando.id}` : "/api/produtos";
+    const payload = editando
+      ? {
+          nome: values.nome,
+          descricao: values.descricao,
+          precoVenda: values.precoVenda,
+        }
+      : values;
 
     const response = await fetch(url, {
       method: editando ? "PATCH" : "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(values),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -130,6 +139,26 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
           />
           {errors.precoVenda ? <p className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
         </div>
+
+        {!editando ? (
+          <div className="grid gap-2">
+            <Label htmlFor="quantidadeInicial">Estoque Inicial (unidades)</Label>
+            <Input
+              id="quantidadeInicial"
+              type="number"
+              min="0"
+              step="1"
+              {...register("quantidadeInicial")}
+              placeholder="0 (opcional)"
+            />
+            <p className="text-xs text-slate-400">
+              Opcional. Se informado, registrará uma entrada manual rastreável no estoque.
+            </p>
+            {errors.quantidadeInicial ? (
+              <p className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="grid gap-2">
           <Label htmlFor="descricao">Descrição</Label>
