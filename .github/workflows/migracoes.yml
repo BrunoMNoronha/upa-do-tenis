@@ -228,22 +228,24 @@ jobs:
             -X POST -H "$auth" -H "Content-Type: application/json" --data '{}' \
             "${api}/v10/projects/${VERCEL_PROJECT_ID}/promote/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
 
-          alvo_producao=""
+          alvo_sha=""
+          alvo_ref=""
           subestado=""
           for tentativa in $(seq 1 24); do
             nonce=$(date +%s%N)
             projeto_atual=$(curl --fail-with-body --silent --show-error \
               -H "$auth" -H "Cache-Control: no-cache" \
               "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}&nonce=${nonce}")
-            alvo_producao=$(jq -r '.targets.production.id // ""' <<<"$projeto_atual")
+            alvo_sha=$(jq -r '.targets.production.meta.githubCommitSha // ""' <<<"$projeto_atual")
+            alvo_ref=$(jq -r '.targets.production.meta.githubCommitRef // ""' <<<"$projeto_atual")
             subestado=$(jq -r '.targets.production.readySubstate // ""' <<<"$projeto_atual")
-            if [ "$alvo_producao" = "$deployment_id" ] && [ "$subestado" = "PROMOTED" ]; then
+            if [ "$alvo_sha" = "$TARGET_SHA" ] && [ "$alvo_ref" = "main" ] && [ "$subestado" = "PROMOTED" ]; then
               break
             fi
             sleep 5
           done
-          if [ "$alvo_producao" != "$deployment_id" ] || [ "$subestado" != "PROMOTED" ]; then
-            echo "Deployment READY, mas não foi confirmado como alvo de produção promovido." >&2; exit 1
+          if [ "$alvo_sha" != "$TARGET_SHA" ] || [ "$alvo_ref" != "main" ] || [ "$subestado" != "PROMOTED" ]; then
+            echo "Deployment READY, mas main@${TARGET_SHA} não foi confirmado como produção promovida." >&2; exit 1
           fi
 
           echo "Deployment ${deployment_id} promovido a partir de main@${TARGET_SHA}."
