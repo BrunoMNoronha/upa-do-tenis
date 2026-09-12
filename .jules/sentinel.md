@@ -1,3 +1,4 @@
-## 2024-05-24 - Testing Intl.DateTimeFormat
-**Learning:** Using `Intl.DateTimeFormat` with Vitest can yield different formats across CI environments or local timezones, leading to flaky tests if strict string matching is used.
-**Action:** When testing locale-specific output like dates in unit tests without forcing timezone configs, use Regex to match the exact format structure (e.g. `^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$`) rather than specific values to ensure cross-environment reliability.
+## 2025-02-06 - Enforce server-side access control uniformly
+**Vulnerability:** Acesso inadequado (ou não uniforme) ao session em `src/app/api/ordens-servico/route.ts` (POST), `src/app/api/usuarios/route.ts` e `src/app/api/usuarios/[id]/route.ts`. Estas rotas usavam `obterUsuarioSessaoDaRequest` e checagens manuais de autenticação em vez de utilizar o helper padronizado `exigirSessaoApi`. Embora não explorável imediatamente (devido ao middleware global e validações manuais), representava uma inconsistência com os padrões de segurança da aplicação.
+**Learning:** A falta de aplicação do helper `exigirSessaoApi` pode, no futuro, criar pontos cegos onde uma rota desprotegida por middleware possa se tornar vulnerável caso o padrão manual também falhe.
+**Prevention:** Sempre assegurar que novas rotas e rotas existentes façam uso de `exigirSessaoApi` antes de qualquer lógica para padronizar e unificar o access control na API.

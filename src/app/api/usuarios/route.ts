@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { obterUsuarioSessaoDaRequest, exigirSessaoApi } from "@/lib/auth-server";
 import { hashPassword } from "@/lib/passwords";
 import { usuarioCriarSchema } from "@/lib/usuarios-schema";
 import { usuarioPublicoSelect } from "@/lib/usuarios";
 
 export async function POST(req: NextRequest) {
   try {
-    const sessao = await obterUsuarioSessaoDaRequest(req);
-
-    if (!sessao) {
-      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
-    }
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
 
     const body = await req.json();
     const result = usuarioCriarSchema.safeParse(body);
