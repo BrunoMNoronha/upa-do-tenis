@@ -8,6 +8,9 @@
 ## 2026-09-07 - Bulk Insert com createManyAndReturn
 **Learning:** A função `createManyAndReturn` nativa do Prisma 5+ é suportada tanto em PostgreSQL quanto SQLite e é a abordagem ideal e mais limpa para converter inserções independentes `Promise.all(linhas.map(x => tx.x.create(...)))` em bulk inserts quando o ID gerado é necessário para passos subsequentes (ex: baixas de estoque associadas).
 **Action:** Utilizar `createManyAndReturn` (ou `createMany` se os dados retornados não forem necessários) em vez de N inserções independentes agrupadas via `Promise.all()` na camada de transação do backend, reduzindo roundtrips com o banco e melhorando significativamente o tempo total de resposta de O(N) para O(1) na inserção.
+## 2025-02-18 - Paralelização massiva de agregações independentes
+**Learning:** Agregações massivas do banco de dados (ex: `count`, `aggregate`, `sum`, etc) executadas iterativamente usando `await` são ofensoras clássicas de performance (Gargalo O(N)) por manter o I/O bloqueado.
+**Action:** Agrupar sempre operações independentes em um único bloco `Promise.all()` em rotas da API, para que as requisições atinjam o banco concorrentemente. Em otimizações (Bolt), pesquise globalmente por blocos sequenciais `await prisma.<model>.count` usando o bash em todo o repositório.
 
 ## 2026-09-12 - Otimização de múltiplas agregações no frontend
 **Learning:** O uso de múltiplas chamadas consecutivas de `.filter(...).length` sobre o mesmo array no frontend (ex: calculando totais de ordens por status) causa iterações O(k*N) redundantes.

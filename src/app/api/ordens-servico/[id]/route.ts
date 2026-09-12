@@ -63,16 +63,17 @@ export async function DELETE(
 
     const osId = parsedParams.data.id;
 
-    const countPagamentos = await prisma.pagamento.count({ where: { ordemServicoId: osId } });
-    const countMovEstoque = await prisma.movimentacaoEstoqueInsumo.count({ where: { ordemServicoId: osId } });
-    const countMovCaixa = await prisma.movimentacaoCaixa.count({ where: { ordemServicoId: osId } });
-
-    const countHistory = await prisma.historicoStatus.count({
-      where: {
-        ordemServicoId: osId,
-        statusAnterior: { not: null }
-      }
-    });
+    const [countPagamentos, countMovEstoque, countMovCaixa, countHistory] = await Promise.all([
+      prisma.pagamento.count({ where: { ordemServicoId: osId } }),
+      prisma.movimentacaoEstoqueInsumo.count({ where: { ordemServicoId: osId } }),
+      prisma.movimentacaoCaixa.count({ where: { ordemServicoId: osId } }),
+      prisma.historicoStatus.count({
+        where: {
+          ordemServicoId: osId,
+          statusAnterior: { not: null }
+        }
+      })
+    ]);
 
     if (countPagamentos > 0 || countMovEstoque > 0 || countMovCaixa > 0 || countHistory > 0) {
       return NextResponse.json(
