@@ -30,6 +30,7 @@ export default async function ProdutosPage() {
           nome: produto.nome,
           descricao: produto.descricao,
           precoVenda: Number(produto.precoVenda),
+          quantidadeEstoque: Number(produto.quantidadeEstoque),
           ativo: produto.ativo,
           criadoEm: produto.criadoEm.toISOString(),
         }))}
