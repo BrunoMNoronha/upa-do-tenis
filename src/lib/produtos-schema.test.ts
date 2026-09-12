@@ -57,6 +57,79 @@ describe("produtoFormSchema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  describe("quantidadeInicial (Issue #5)", () => {
+    it("aceita valor omitido resultando em undefined", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.quantidadeInicial).toBeUndefined();
+      }
+    });
+
+    it("aceita string vazia como undefined", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: "",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.quantidadeInicial).toBeUndefined();
+      }
+    });
+
+    it("aceita zero como quantidade inicial", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: 0,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.quantidadeInicial).toBe(0);
+      }
+    });
+
+    it("aceita número inteiro positivo", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: 25,
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.quantidadeInicial).toBe(25);
+      }
+    });
+
+    it("rejeita quantidade inicial negativa", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: -5,
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("rejeita número não inteiro (fracionário)", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: 3.5,
+      });
+
+      expect(result.success).toBe(false);
+    });
+  });
 });
 
 describe("produtoAtualizarSchema", () => {
@@ -83,5 +156,17 @@ describe("produtoAtualizarSchema", () => {
     const result = produtoAtualizarSchema.safeParse({ nome: "X" });
 
     expect(result.success).toBe(false);
+  });
+
+  it("ignora quantidadeInicial na atualização (não permite reescrever estoque)", () => {
+    const result = produtoAtualizarSchema.safeParse({
+      nome: "Novo Nome",
+      quantidadeInicial: 50,
+    } as any);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect((result.data as any).quantidadeInicial).toBeUndefined();
+    }
   });
 });

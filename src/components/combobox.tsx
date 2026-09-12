@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId } from "react";
 import { Input } from "@/components/ui";
 
 export type ComboboxOption = {
@@ -21,7 +21,11 @@ type ComboboxProps = {
 export function Combobox({ options, value, onChange, placeholder = "Selecione...", emptyText = "Nenhum resultado", id }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
+  const autoId = useId();
+  const comboboxId = id || `combobox-${autoId}`;
+  const listboxId = `${comboboxId}-listbox`;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -61,13 +65,55 @@ export function Combobox({ options, value, onChange, placeholder = "Selecione...
         return isMatchLabel || !!isMatchSub;
       });
 
+  useEffect(() => {
+    setActiveIndex(-1);
+  }, [query, open]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!open) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        setOpen(true);
+        e.preventDefault();
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      setOpen(false);
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev < filteredOptions.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex(prev => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIndex >= 0 && activeIndex < filteredOptions.length) {
+        const option = filteredOptions[activeIndex];
+        onChange(option.value);
+        setQuery(option.label);
+        setOpen(false);
+      }
+    }
+  };
+
   return (
     <div className="relative w-full" ref={ref}>
       <Input 
-        id={id}
+        id={comboboxId}
         type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={open ? listboxId : undefined}
+        aria-haspopup="listbox"
+        aria-autocomplete="list"
+        aria-activedescendant={activeIndex >= 0 ? `${comboboxId}-option-${activeIndex}` : undefined}
         placeholder={placeholder}
         value={query}
+        onKeyDown={handleKeyDown}
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
@@ -80,20 +126,28 @@ export function Combobox({ options, value, onChange, placeholder = "Selecione...
       />
       
       {open && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg">
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label={placeholder}
+          className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+        >
           {filteredOptions.length === 0 ? (
             <div className="p-3 text-sm text-slate-500">{emptyText}</div>
           ) : (
-            filteredOptions.map((option) => (
+            filteredOptions.map((option, index) => (
               <div
                 key={option.value}
+                id={`${comboboxId}-option-${index}`}
+                role="option"
+                aria-selected={value === option.value || activeIndex === index}
                 onClick={() => {
                   onChange(option.value);
                   setQuery(option.label);
                   setOpen(false);
                 }}
                 className={`flex cursor-pointer flex-col rounded-lg px-3 py-2 text-sm hover:bg-[color:var(--accent-soft)] ${
-                  value === option.value ? "bg-[color:var(--accent-soft)] font-medium text-[color:var(--accent-strong)]" : "text-slate-700"
+                  value === option.value || activeIndex === index ? "bg-[color:var(--accent-soft)] font-medium text-[color:var(--accent-strong)]" : "text-slate-700"
                 }`}
               >
                 <span>{option.label}</span>

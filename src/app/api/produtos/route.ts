@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { produtoFormSchema } from "@/lib/produtos-schema";
 import { listarProdutos } from "@/lib/produtos";
-import { prisma } from "@/lib/prisma";
+import {
+  criarProdutoComEstoqueInicial,
+  MovimentacaoEstoqueProdutoError,
+} from "@/lib/movimentacao-estoque-produto-service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -35,19 +38,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const data = result.data;
-
-    const novoProduto = await prisma.produto.create({
-      data: {
-        nome: data.nome,
-        descricao: data.descricao,
-        precoVenda: data.precoVenda,
-        ativo: true,
-      },
-    });
+    const novoProduto = await criarProdutoComEstoqueInicial(result.data);
 
     return NextResponse.json(novoProduto, { status: 201 });
   } catch (error) {
+    if (error instanceof MovimentacaoEstoqueProdutoError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+
     console.error("Erro ao criar produto:", error);
     return NextResponse.json(
       { message: "Ocorreu um erro interno ao criar o produto." },
