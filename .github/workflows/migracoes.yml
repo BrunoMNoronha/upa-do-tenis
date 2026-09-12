@@ -1,5 +1,5 @@
 # Aplicação controlada de migrations do Prisma em ambiente cloud (Neon) e,
-# em Production, promoção do SHA validado para a branch `release`.
+# em Production, publicação do SHA validado de `main` na Vercel.
 #
 # Disparo MANUAL apenas (workflow_dispatch). Não roda em push nem em
 # pull_request — portanto é inalcançável a partir de forks.
@@ -17,12 +17,12 @@
 #   1. o operador informa o SHA exato de `main` a promover (nunca o HEAD do
 #      momento da aprovação);
 #   2. o SHA é validado: existe, é alcançável a partir de `main`, passou no
-#      check obrigatório da CI e é fast-forward em relação a `release`;
+#      check obrigatório da CI e continua sendo o HEAD de `main`;
 #   3. migrate status -> migrate deploy -> migrate status (gate);
-#   4. só então o SHA é empurrado para `release` com a Deploy Key
-#      (secret RELEASE_DEPLOY_KEY do Environment `production`), sem force.
-#   A Production Branch da Vercel é `release`; merges em `main` geram apenas
-#   Preview. Nada chega a Production antes do schema correspondente.
+#   4. só então a Vercel cria um deployment de Production a partir desse SHA;
+#   5. o workflow aguarda READY e promove o mesmo artefato para os domínios.
+#   A Production Branch da Vercel é `main`, mas a autoatribuição de domínios
+#   fica desativada. Nada chega aos aliases de Production antes do gate.
 #
 # Migrations continuam precisando ser compatíveis com deploy progressivo
 # (expand -> código compatível -> contract depois): entre os passos 3 e 4 a
@@ -48,8 +48,8 @@ on:
         type: string
       sha:
         description: >-
-          SHA completo (40 hex) de `main` a promover para `release` após as
-          migrations. Obrigatório em production; ignorado em preview.
+          SHA completo (40 hex) do HEAD de `main` a publicar após as migrations.
+          Obrigatório em production; ignorado em preview.
         required: false
         type: string
         default: ""
@@ -72,6 +72,8 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL_DIRECT }}
       TARGET_SHA: ${{ inputs.sha }}
       CHECK_OBRIGATORIO: Lint, typecheck, testes e build
+      VERCEL_PROJECT_ID: prj_R05rQMQmFPVzZmBXnQDCvoUK9jQ2
+      VERCEL_TEAM_ID: team_ICY1aaLTQI5BmxlyrSjpRTJC
 
     steps:
       - name: Conferir confirmação explícita
@@ -96,14 +98,13 @@ jobs:
           ref: ${{ inputs.ambiente == 'production' && inputs.sha || github.ref }}
           fetch-depth: 0
 
-      - name: Validar SHA alvo (existe, vem de main, CI verde, fast-forward)
+      - name: Validar SHA alvo (HEAD de main e CI verde)
         if: inputs.ambiente == 'production'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin main
-          git fetch --no-tags origin release || true
 
           if [ "$(git rev-parse HEAD)" != "$TARGET_SHA" ]; then
             echo "Checkout não está no SHA alvo." >&2; exit 1
@@ -114,18 +115,17 @@ jobs:
             echo "SHA $TARGET_SHA não é alcançável a partir de origin/main." >&2; exit 1
           fi
 
+          if [ "$(git rev-parse origin/main)" != "$TARGET_SHA" ]; then
+            echo "SHA $TARGET_SHA não é mais o HEAD de main ($(git rev-parse origin/main))." >&2; exit 1
+          fi
+
           conclusao=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${TARGET_SHA}/check-runs?per_page=100" \
             --jq "[.check_runs[] | select(.name == \"${CHECK_OBRIGATORIO}\")] | sort_by(.completed_at) | last | .conclusion // \"ausente\"")
           if [ "$conclusao" != "success" ]; then
             echo "Check obrigatório '${CHECK_OBRIGATORIO}' não está verde para ${TARGET_SHA} (estado: ${conclusao})." >&2; exit 1
           fi
 
-          if git rev-parse --verify -q origin/release >/dev/null; then
-            if ! git merge-base --is-ancestor origin/release "$TARGET_SHA"; then
-              echo "Promoção recusada: origin/release ($(git rev-parse --short origin/release)) não é ancestral de ${TARGET_SHA}. Não é fast-forward." >&2; exit 1
-            fi
-          fi
-          echo "SHA ${TARGET_SHA} validado: em main, CI verde, fast-forward para release."
+          echo "SHA ${TARGET_SHA} validado: HEAD de main e CI verde."
 
       - uses: pnpm/action-setup@v4
         with:
@@ -161,40 +161,88 @@ jobs:
         run: pnpm exec prisma migrate status
 
       # Só executa se todos os passos anteriores passaram (schema confirmado).
-      # Push sem --force: a regra non_fast_forward de `release` e a re-checagem
-      # abaixo impedem que uma execução antiga rebaixe Production.
-      - name: Promover SHA validado para release
+      # A autoatribuição de domínios deve permanecer desativada no projeto. O
+      # workflow cria um build novo com env de Production e promove exatamente
+      # esse artefato depois de READY.
+      - name: Publicar e promover SHA validado na Vercel
         if: inputs.ambiente == 'production'
         env:
-          RELEASE_DEPLOY_KEY: ${{ secrets.RELEASE_DEPLOY_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -z "$RELEASE_DEPLOY_KEY" ]; then
-            echo "RELEASE_DEPLOY_KEY não configurado no Environment 'production'." >&2; exit 1
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "VERCEL_TOKEN não configurado no Environment 'production'." >&2; exit 1
           fi
-          mkdir -p "$HOME/.ssh"; chmod 700 "$HOME/.ssh"
-          printf '%s\n' "$RELEASE_DEPLOY_KEY" > "$HOME/.ssh/release_key"
-          chmod 600 "$HOME/.ssh/release_key"
-          # Host key oficial do GitHub (ed25519), fixada para evitar TOFU.
-          echo "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl" > "$HOME/.ssh/known_hosts"
-          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/release_key -o IdentitiesOnly=yes -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes"
 
-          git fetch --no-tags origin release || true
-          if git rev-parse --verify -q origin/release >/dev/null; then
-            if ! git merge-base --is-ancestor origin/release "$TARGET_SHA"; then
-              echo "Promoção recusada na re-checagem: release avançou e ${TARGET_SHA} não é fast-forward." >&2; exit 1
+          api="https://api.vercel.com"
+          auth="Authorization: Bearer ${VERCEL_TOKEN}"
+          projeto=$(curl --fail-with-body --silent --show-error \
+            -H "$auth" \
+            "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")
+
+          branch=$(jq -r '.link.productionBranch // ""' <<<"$projeto")
+          auto_alias=$(jq -r '.autoAssignCustomDomains' <<<"$projeto")
+          if [ "$branch" != "main" ] || [ "$auto_alias" != "false" ]; then
+            echo "Configuração insegura na Vercel: branch=${branch}, autoAssignCustomDomains=${auto_alias}." >&2
+            exit 1
+          fi
+
+          payload=$(jq -nc --arg sha "$TARGET_SHA" '{
+            name: "upa-do-tenis",
+            gitSource: {
+              type: "github",
+              repoId: 1287580683,
+              ref: "main",
+              sha: $sha
+            },
+            target: "production"
+          }')
+          criado=$(curl --fail-with-body --silent --show-error \
+            -X POST -H "$auth" -H "Content-Type: application/json" \
+            --data "$payload" \
+            "${api}/v13/deployments?teamId=${VERCEL_TEAM_ID}&forceNew=1")
+          deployment_id=$(jq -r '.id // empty' <<<"$criado")
+          deployment_url=$(jq -r '.url // empty' <<<"$criado")
+          if [ -z "$deployment_id" ] || [ -z "$deployment_url" ]; then
+            echo "A Vercel não retornou o deployment criado." >&2; exit 1
+          fi
+
+          estado=""
+          for tentativa in $(seq 1 60); do
+            consulta=$(curl --fail-with-body --silent --show-error \
+              -H "$auth" \
+              "${api}/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=20")
+            estado=$(jq -r --arg id "$deployment_id" \
+              '.deployments[] | select(.uid == $id) | .readyState' <<<"$consulta")
+            case "$estado" in
+              READY) break ;;
+              ERROR|CANCELED) echo "Deployment ${deployment_id} terminou em ${estado}." >&2; exit 1 ;;
+            esac
+            sleep 5
+          done
+          if [ "$estado" != "READY" ]; then
+            echo "Timeout aguardando READY para ${deployment_id}." >&2; exit 1
+          fi
+
+          curl --fail-with-body --silent --show-error \
+            -X POST -H "$auth" -H "Content-Type: application/json" --data '{}' \
+            "${api}/v10/projects/${VERCEL_PROJECT_ID}/promote/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
+
+          promovido="false"
+          for tentativa in $(seq 1 24); do
+            detalhe=$(curl --fail-with-body --silent --show-error \
+              -H "$auth" \
+              "${api}/v13/deployments/${deployment_id}?teamId=${VERCEL_TEAM_ID}")
+            promovido=$(jq -r '.aliasAssigned // false' <<<"$detalhe")
+            subestado=$(jq -r '.readySubstate // ""' <<<"$detalhe")
+            if [ "$promovido" = "true" ] && [ "$subestado" = "PROMOTED" ]; then
+              break
             fi
+            sleep 5
+          done
+          if [ "$promovido" != "true" ] || [ "$subestado" != "PROMOTED" ]; then
+            echo "Deployment READY, mas promoção de aliases não foi confirmada." >&2; exit 1
           fi
 
-          git push "git@github.com:${GITHUB_REPOSITORY}.git" "${TARGET_SHA}:refs/heads/release"
-          rm -f "$HOME/.ssh/release_key"
-
-      - name: Confirmar release remota
-        if: inputs.ambiente == 'production'
-        run: |
-          git fetch --no-tags origin release
-          atual=$(git rev-parse origin/release)
-          if [ "$atual" != "$TARGET_SHA" ]; then
-            echo "origin/release está em ${atual}, esperado ${TARGET_SHA}." >&2; exit 1
-          fi
-          echo "release promovida para ${TARGET_SHA}. A Vercel fará o deploy de Production a partir deste SHA."
+          echo "Deployment ${deployment_id} promovido a partir de main@${TARGET_SHA}."
+          echo "URL imutável: https://${deployment_url}"
