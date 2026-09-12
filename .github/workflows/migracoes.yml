@@ -176,7 +176,7 @@ jobs:
 
           api="https://api.vercel.com"
           auth="Authorization: Bearer ${VERCEL_TOKEN}"
-          projeto=$(curl --fail-with-body --silent --show-error \
+          projeto=$(curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
             -H "$auth" \
             "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")
 
@@ -197,7 +197,7 @@ jobs:
             },
             target: "production"
           }')
-          criado=$(curl --fail-with-body --silent --show-error \
+          criado=$(curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
             -X POST -H "$auth" -H "Content-Type: application/json" \
             --data "$payload" \
             "${api}/v13/deployments?teamId=${VERCEL_TEAM_ID}&forceNew=1")
@@ -209,7 +209,7 @@ jobs:
 
           estado=""
           for tentativa in $(seq 1 60); do
-            consulta=$(curl --fail-with-body --silent --show-error \
+            consulta=$(curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
               -H "$auth" \
               "${api}/v6/deployments?projectId=${VERCEL_PROJECT_ID}&teamId=${VERCEL_TEAM_ID}&limit=20")
             estado=$(jq -r --arg id "$deployment_id" \
@@ -224,7 +224,7 @@ jobs:
             echo "Timeout aguardando READY para ${deployment_id}." >&2; exit 1
           fi
 
-          curl --fail-with-body --silent --show-error \
+          curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
             -X POST -H "$auth" -H "Content-Type: application/json" --data '{}' \
             "${api}/v10/projects/${VERCEL_PROJECT_ID}/promote/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
 
@@ -235,7 +235,7 @@ jobs:
           # A janela de 10 minutos cobre a progressão e a atualização do alvo.
           for tentativa in $(seq 1 120); do
             nonce=$(date +%s%N)
-            projeto_atual=$(curl --fail-with-body --silent --show-error \
+            projeto_atual=$(curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
               -H "$auth" -H "Cache-Control: no-cache" \
               "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}&nonce=${nonce}")
             alvo_sha=$(jq -r '.targets.production.meta.githubCommitSha // ""' <<<"$projeto_atual")
