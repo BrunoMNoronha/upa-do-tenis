@@ -5,3 +5,7 @@
 ## 2025-03-08 - Accessible Combobox Keyboard Support
 **Learning:** Comboboxes require specific ARIA attributes (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-activedescendant`) and full keyboard support (Up, Down, Enter, Esc) to be accessible. Standard `<div>` wrapping an input lacks this capability by default.
 **Action:** When creating or modifying complex interactive components like Combobox, always implement standard keyboard navigation and ARIA roles for screen reader and keyboard-only users.
+
+## 2026-09-12 - Rótulos associados no seletor de datas
+**Aprendizado:** useId permite associar rótulos e campos sem duplicar IDs entre instâncias.
+**Ação:** Preservar o indicador de foco vigente e vincular cada Label ao Input correspondente.

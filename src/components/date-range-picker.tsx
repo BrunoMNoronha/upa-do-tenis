@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { Button, Input, Label } from "@/components/ui";
 import { calcularIntervaloPreset, formatarDataLocal, parseDataLocal, type PresetIntervalo } from "@/lib/date-range";
 
@@ -32,6 +32,7 @@ export function DateRangePicker({
   applying = false,
   className = "",
 }: DateRangePickerProps) {
+  const idPrefix = useId();
   const [from, setFrom] = useState<string>(
     value?.from ? formatarDataLocal(value.from) : ""
   );
@@ -79,8 +80,9 @@ export function DateRangePicker({
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid gap-1.5">
-          <Label className="text-xs">Data inicial</Label>
+          <Label htmlFor={`${idPrefix}-inicio`} className="text-xs">Data inicial</Label>
           <Input
+            id={`${idPrefix}-inicio`}
             type="date"
             value={from}
             onChange={(e) => applyRange(e.target.value, to)}
@@ -88,8 +90,9 @@ export function DateRangePicker({
           />
         </div>
         <div className="grid gap-1.5">
-          <Label className="text-xs">Data final</Label>
+          <Label htmlFor={`${idPrefix}-fim`} className="text-xs">Data final</Label>
           <Input
+            id={`${idPrefix}-fim`}
             type="date"
             value={to}
             onChange={(e) => applyRange(from, e.target.value)}
