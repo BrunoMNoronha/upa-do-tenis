@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 export enum TipoMovimentacaoProduto {
   VENDA = "VENDA",
@@ -109,4 +110,130 @@ export async function baixarEstoqueProdutoVenda(
   });
 
   return movimentacao;
+}
+
+export interface CriarProdutoComEstoqueParams {
+  nome: string;
+  descricao?: string | null;
+  precoVenda: number;
+  quantidadeInicial?: number;
+}
+
+/**
+ * Criação de produto com registro de estoque inicial rastreável (Issue #5).
+ *
+ * Se quantidadeInicial for positiva:
+ * - O produto é persistido com quantidadeEstoque = quantidadeInicial.
+ * - É criada a movimentação ENTRADA_MANUAL com saldoAnterior = 0 e saldoPosterior = quantidadeInicial.
+ *
+ * Se quantidadeInicial for 0 ou omitida:
+ * - O produto é persistido com quantidadeEstoque = 0.
+ * - Nenhuma movimentação artificial é criada.
+ *
+ * Toda a operação é executada na mesma transação para garantir atomicidade.
+ */
+export async function criarProdutoComEstoqueInicial(
+  params: CriarProdutoComEstoqueParams,
+  txClient?: Prisma.TransactionClient,
+) {
+  const executar = async (tx: Prisma.TransactionClient) => {
+    const qtdInicial = params.quantidadeInicial ?? 0;
+
+    if (qtdInicial < 0) {
+      throw new MovimentacaoEstoqueProdutoError(
+        "A quantidade inicial não pode ser negativa.",
+        400,
+      );
+    }
+
+    if (!Number.isInteger(qtdInicial)) {
+      throw new MovimentacaoEstoqueProdutoError(
+        "A quantidade inicial deve ser um número inteiro.",
+        400,
+      );
+    }
+
+    const produto = await tx.produto.create({
+      data: {
+        nome: params.nome,
+        descricao: params.descricao,
+        precoVenda: params.precoVenda,
+        quantidadeEstoque: qtdInicial,
+        ativo: true,
+      },
+    });
+
+    if (qtdInicial > 0) {
+      await tx.movimentacaoEstoqueProduto.create({
+        data: {
+          produtoId: produto.id,
+          tipo: TipoMovimentacaoProduto.ENTRADA_MANUAL,
+          quantidade: qtdInicial,
+          saldoAnterior: 0,
+          saldoPosterior: qtdInicial,
+          origem: OrigemMovimentacaoProduto.MANUAL,
+          observacao: "Estoque inicial no cadastro do produto",
+        },
+      });
+    }
+
+    return produto;
+  };
+
+  if (txClient) {
+    return executar(txClient);
+  }
+
+  return prisma.$transaction(async (tx) => executar(tx));
+}
+
+/**
+ * Lista o produto e todas as suas movimentações de estoque em ordem cronológica reversa.
+ */
+export async function listarMovimentacoesProduto(produtoId: string) {
+  const produto = await prisma.produto.findUnique({
+    where: { id: produtoId },
+  });
+
+  if (!produto) {
+    throw new MovimentacaoEstoqueProdutoError("Produto não encontrado.", 404);
+  }
+
+  const movimentacoes = await prisma.movimentacaoEstoqueProduto.findMany({
+    where: { produtoId },
+    orderBy: { criadoEm: "desc" },
+    include: {
+      venda: {
+        select: { numero: true },
+      },
+    },
+  });
+
+  return {
+    produto: {
+      id: produto.id,
+      nome: produto.nome,
+      descricao: produto.descricao,
+      precoVenda: Number(produto.precoVenda),
+      quantidadeEstoque: Number(produto.quantidadeEstoque),
+      ativo: produto.ativo,
+      criadoEm: produto.criadoEm ? new Date(produto.criadoEm).toISOString() : new Date().toISOString(),
+      atualizadoEm: produto.atualizadoEm ? new Date(produto.atualizadoEm).toISOString() : new Date().toISOString(),
+    },
+    movimentacoes: movimentacoes.map((m) => ({
+      id: m.id,
+      produtoId: m.produtoId,
+      tipo: m.tipo,
+      quantidade: Number(m.quantidade),
+      saldoAnterior: Number(m.saldoAnterior),
+      saldoPosterior: Number(m.saldoPosterior),
+      origem: m.origem,
+      vendaId: m.vendaId,
+      itemVendaId: m.itemVendaId,
+      observacao: m.observacao,
+      motivo: m.motivo,
+      venda: m.venda,
+      criadoEm: m.criadoEm ? new Date(m.criadoEm).toISOString() : new Date().toISOString(),
+    })),
+  };
 }

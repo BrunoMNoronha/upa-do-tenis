@@ -63,6 +63,7 @@ import {
   PATCH as produtosPatch,
   DELETE as produtosDelete,
 } from "@/app/api/produtos/[id]/route";
+import { GET as produtosMovimentacoesGet } from "@/app/api/produtos/[id]/movimentacoes/route";
 import { GET as vendasGet, POST as vendasPost } from "@/app/api/vendas/route";
 import { GET as vendasIdGet } from "@/app/api/vendas/[id]/route";
 
@@ -189,6 +190,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "DELETE /api/produtos/[id]",
     () => produtosDelete(criarRequest("/api/produtos/abc", "DELETE"), params),
+  ],
+  [
+    "GET /api/produtos/[id]/movimentacoes",
+    () => produtosMovimentacoesGet(criarRequest("/api/produtos/abc/movimentacoes"), params),
   ],
   ["GET /api/vendas", () => vendasGet(criarRequest("/api/vendas"))],
   ["POST /api/vendas", () => vendasPost(criarRequest("/api/vendas", "POST"))],

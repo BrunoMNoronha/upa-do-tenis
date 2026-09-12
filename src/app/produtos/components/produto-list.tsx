@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
@@ -9,6 +10,7 @@ type ProdutoListado = {
   nome: string;
   descricao: string | null;
   precoVenda: number;
+  quantidadeEstoque: number;
   ativo: boolean;
   criadoEm: string;
 };
@@ -79,7 +81,12 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <Badge tone="neutral">{currencyFormatter.format(produto.precoVenda)}</Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge tone="neutral">{currencyFormatter.format(produto.precoVenda)}</Badge>
+                    <Badge tone={produto.quantidadeEstoque > 0 ? "accent" : "neutral"}>
+                      Estoque: {produto.quantidadeEstoque} un
+                    </Badge>
+                  </div>
                   <Badge tone={produto.ativo ? "success" : "danger"}>
                     {produto.ativo ? "Ativo" : "Inativo"}
                   </Badge>
@@ -87,6 +94,12 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
               </div>
 
               <div className="mt-4 flex flex-wrap gap-3">
+                <Link
+                  href={`/produtos/${produto.id}/movimentacoes`}
+                  className="rounded-full border border-sky-400/40 px-4 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-950/40"
+                >
+                  Extrato
+                </Link>
                 <button
                   type="button"
                   onClick={() => onEdit(produto)}
