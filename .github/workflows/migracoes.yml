@@ -231,7 +231,9 @@ jobs:
           alvo_sha=""
           alvo_ref=""
           subestado=""
-          for tentativa in $(seq 1 24); do
+          # O projeto usa rolling release de 10% por 5 minutos antes de 100%.
+          # A janela de 10 minutos cobre a progressão e a atualização do alvo.
+          for tentativa in $(seq 1 120); do
             nonce=$(date +%s%N)
             projeto_atual=$(curl --fail-with-body --silent --show-error \
               -H "$auth" -H "Cache-Control: no-cache" \
