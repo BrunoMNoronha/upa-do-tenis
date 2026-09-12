@@ -80,10 +80,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
+
 
 function getStatusTone(
   status: string,
@@ -315,7 +312,7 @@ function OrdemServicoCard({
             Valor Total
           </p>
           <p className="mt-1 text-[color:var(--text)]">
-            {currencyFormatter.format(Number(ordem.valorTotal))}
+            {formatCurrency(Number(ordem.valorTotal))}
           </p>
         </div>
         <div>
@@ -323,7 +320,7 @@ function OrdemServicoCard({
             Valor Pago
           </p>
           <p className="mt-1 text-[color:var(--text)]">
-            {currencyFormatter.format(Number(ordem.valorPago || 0))}
+            {formatCurrency(Number(ordem.valorPago || 0))}
           </p>
         </div>
         <div>
@@ -331,7 +328,7 @@ function OrdemServicoCard({
             Saldo
           </p>
           <p className="mt-1 font-semibold text-[color:var(--text)]">
-            {currencyFormatter.format(Number(ordem.saldo || 0))}
+            {formatCurrency(Number(ordem.saldo || 0))}
           </p>
         </div>
         <div className="sm:col-span-2 lg:col-span-2">
