@@ -228,20 +228,21 @@ jobs:
             -X POST -H "$auth" -H "Content-Type: application/json" --data '{}' \
             "${api}/v10/projects/${VERCEL_PROJECT_ID}/promote/${deployment_id}?teamId=${VERCEL_TEAM_ID}" >/dev/null
 
-          promovido="false"
+          alvo_producao=""
+          subestado=""
           for tentativa in $(seq 1 24); do
-            detalhe=$(curl --fail-with-body --silent --show-error \
+            projeto_atual=$(curl --fail-with-body --silent --show-error \
               -H "$auth" \
-              "${api}/v13/deployments/${deployment_id}?teamId=${VERCEL_TEAM_ID}")
-            promovido=$(jq -r '.aliasAssigned // false' <<<"$detalhe")
-            subestado=$(jq -r '.readySubstate // ""' <<<"$detalhe")
-            if [ "$promovido" = "true" ] && [ "$subestado" = "PROMOTED" ]; then
+              "${api}/v9/projects/${VERCEL_PROJECT_ID}?teamId=${VERCEL_TEAM_ID}")
+            alvo_producao=$(jq -r '.targets.production.id // ""' <<<"$projeto_atual")
+            subestado=$(jq -r '.targets.production.readySubstate // ""' <<<"$projeto_atual")
+            if [ "$alvo_producao" = "$deployment_id" ] && [ "$subestado" = "PROMOTED" ]; then
               break
             fi
             sleep 5
           done
-          if [ "$promovido" != "true" ] || [ "$subestado" != "PROMOTED" ]; then
-            echo "Deployment READY, mas promoção de aliases não foi confirmada." >&2; exit 1
+          if [ "$alvo_producao" != "$deployment_id" ] || [ "$subestado" != "PROMOTED" ]; then
+            echo "Deployment READY, mas não foi confirmado como alvo de produção promovido." >&2; exit 1
           fi
 
           echo "Deployment ${deployment_id} promovido a partir de main@${TARGET_SHA}."
