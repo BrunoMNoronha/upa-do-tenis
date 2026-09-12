@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
 
     response.cookies.set(SESSAO_COOKIE_NOME, criarTokenSessao(resultado.usuario.id), {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: SESSAO_DURACAO_SEGUNDOS,
