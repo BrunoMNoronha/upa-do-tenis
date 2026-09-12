@@ -6,3 +6,7 @@
 **Vulnerability:** Weak `sameSite` configuration for authentication cookies
 **Learning:** The session cookie for Next.js was configured to use `sameSite: "lax"`, which is less restrictive and could potentially be a minor weakness in scenarios where cross-site requests are involved, though mitigated by other strategies.
 **Prevention:** Always enforce `sameSite: "strict"` on authentication and session cookies unless cross-site usage is strictly required for the feature (e.g. SSO).
+
+## 2026-09-12 - Respostas seguras na API de clientes
+**Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
+**Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
