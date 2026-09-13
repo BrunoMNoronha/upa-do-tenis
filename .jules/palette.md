@@ -9,3 +9,7 @@
 ## 2026-09-12 - Rótulos associados no seletor de datas
 **Aprendizado:** useId permite associar rótulos e campos sem duplicar IDs entre instâncias.
 **Ação:** Preservar o indicador de foco vigente e vincular cada Label ao Input correspondente.
+
+## 2025-03-09 - Accessible Combobox Options Keyboard Support
+**Learning:** Comboboxes are complex interactive components. While `role="combobox"` and `role="listbox"` define the structure, individual options rendered as `<div>` tags fail native keyboard interaction (like Enter/Space activation when focused) and screen reader expectations even with `onClick` and `role="option"`.
+**Action:** When implementing interactive options in custom select components like Combobox, always use `<button type="button">` instead of `<div>` for the `role="option"` elements. Combine this with `w-full text-left` to visually mimic block-level elements while preserving native accessibility.
