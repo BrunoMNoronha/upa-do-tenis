@@ -10,3 +10,8 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2024-05-25 - Secure Token Generation
+**Vulnerability:** Weak PRNG used for business tokens/identifiers
+**Learning:** `Math.random()` was used to generate Order of Service tokens. This function is not cryptographically secure, allowing potential token prediction.
+**Prevention:** Always use Node's `crypto.randomInt` or `crypto.randomBytes` instead of `Math.random()` when generating business tokens or identifiers.
