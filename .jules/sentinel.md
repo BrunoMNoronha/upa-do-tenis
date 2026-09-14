@@ -10,3 +10,8 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2024-09-14 - Predictable Order Suffixes
+**Vulnerability:** Insecure Math.random() usage for generating order service suffix IDs.
+**Learning:** Using Math.random() for generating business identifiers allows predictability and enumeration (IDOR) attacks.
+**Prevention:** Always use cryptographically secure random number generators like crypto.randomInt() or crypto.randomBytes() for IDs and tokens.
