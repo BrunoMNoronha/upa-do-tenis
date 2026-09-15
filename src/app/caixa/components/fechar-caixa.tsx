@@ -112,8 +112,8 @@ export function FecharCaixa({
             />
           </div>
           <div className="flex gap-2 mt-2">
-            <Button type="submit" disabled={fecharLoading} className="flex-1 bg-rose-600 hover:bg-rose-700">
-              {fecharLoading ? "Fechando..." : "Confirmar Fechamento"}
+            <Button type="submit" isLoading={fecharLoading} className="flex-1 bg-rose-600 hover:bg-rose-700">
+              Confirmar Fechamento
             </Button>
             <Button type="button" variant="secondary" onClick={() => setFecharFormVisible(false)}>Cancelar</Button>
           </div>

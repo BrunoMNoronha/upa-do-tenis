@@ -37,8 +37,8 @@ export function NenhumCaixaAberto({
             required
           />
         </div>
-        <Button type="submit" disabled={abrirLoading}>
-          {abrirLoading ? "Abrindo..." : "Abrir Caixa"}
+        <Button type="submit" isLoading={abrirLoading}>
+          Abrir Caixa
         </Button>
       </form>
     </Card>

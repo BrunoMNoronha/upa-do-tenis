@@ -139,8 +139,8 @@ export default function MovimentacoesClient({ insumoId, initialData }: { insumoI
               {errors.motivo && <span className="text-xs text-red-500">{errors.motivo.message}</span>}
             </div>
 
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
-              {isSubmitting ? "Registrando..." : "Registrar"}
+            <Button type="submit" className="w-full" isLoading={isSubmitting}>
+              Registrar
             </Button>
           </form>
         </Card>

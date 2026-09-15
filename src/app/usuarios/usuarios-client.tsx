@@ -161,12 +161,8 @@ export function UsuariosClient({ usuarios }: UsuariosClientProps) {
           {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={isSubmitting || isPending}>
-              {isSubmitting || isPending
-                ? "Salvando..."
-                : editando
-                  ? "Salvar alterações"
-                  : "Cadastrar usuário"}
+            <Button type="submit" isLoading={isSubmitting || isPending}>
+              {editando ? "Salvar alterações" : "Cadastrar usuário"}
             </Button>
             {editando ? (
               <Button type="button" variant="secondary" onClick={cancelarEdicao}>
