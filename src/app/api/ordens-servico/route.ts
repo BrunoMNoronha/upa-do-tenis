@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { obterUsuarioSessaoDaRequest, exigirSessaoApi } from "@/lib/auth-server";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const randomSuffix = crypto.randomInt(0, 10000).toString().padStart(4, '0');
       numeroStr = `${datePrefix}-${randomSuffix}`;
       const existingOs = await prisma.ordemServico.findUnique({
         where: { numero: numeroStr },
