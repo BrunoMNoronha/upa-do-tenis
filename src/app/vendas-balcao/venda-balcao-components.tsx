@@ -518,10 +518,11 @@ export function PagamentoForm({
         <Button
           id="btn-finalizar-venda"
           onClick={onFinalizar}
-          disabled={enviando || itens.length === 0 || !formaPagamentoId}
+          isLoading={enviando}
+          disabled={itens.length === 0 || !formaPagamentoId}
           className="w-full"
         >
-          {enviando ? "Registrando venda..." : `Finalizar Venda — ${formatarMoeda(total)}`}
+          {`Finalizar Venda — ${formatarMoeda(total)}`}
         </Button>
       </div>
     </Card>

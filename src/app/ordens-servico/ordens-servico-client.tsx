@@ -205,9 +205,9 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("EM_ANDAMENTO")}
-        disabled={isPending}
+        isLoading={isPending}
       >
-        {isPending ? "Processando..." : "Iniciar Serviço"}
+        Iniciar Serviço
       </Button>
     );
   } else if (ordem.status === "EM_ANDAMENTO") {
@@ -215,9 +215,9 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("CONCLUIDA")}
-        disabled={isPending}
+        isLoading={isPending}
       >
-        {isPending ? "Processando..." : "Marcar como Concluída"}
+        Marcar como Concluída
       </Button>
     );
   } else if (ordem.status === "CONCLUIDA") {
@@ -225,9 +225,9 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("ENTREGUE")}
-        disabled={isPending}
+        isLoading={isPending}
       >
-        {isPending ? "Processando..." : "Entregar ao Cliente"}
+        Entregar ao Cliente
       </Button>
     );
   }
@@ -712,10 +712,10 @@ function OrdemServicoForm({
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  disabled={clienteSubmitting}
+                  isLoading={clienteSubmitting}
                   onClick={onSubmitCliente}
                 >
-                  {clienteSubmitting ? "Salvando cliente..." : "Salvar cliente"}
+                  Salvar cliente
                 </Button>
                 <Button
                   type="button"
@@ -895,8 +895,8 @@ function OrdemServicoForm({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Salvando..." : "Cadastrar ordem"}
+            <Button type="submit" isLoading={isPending}>
+              Cadastrar ordem
             </Button>
           </div>
         </form>

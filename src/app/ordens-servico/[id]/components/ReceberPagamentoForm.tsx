@@ -169,8 +169,8 @@ export function ReceberPagamentoForm({
           {pagamentoSucesso ? <p className="text-sm text-emerald-700">{pagamentoSucesso}</p> : null}
 
           <div>
-            <Button type="submit" disabled={enviandoPagamento}>
-              {enviandoPagamento ? "Registrando..." : "Registrar pagamento"}
+            <Button type="submit" isLoading={enviandoPagamento}>
+              Registrar pagamento
             </Button>
           </div>
         </form>

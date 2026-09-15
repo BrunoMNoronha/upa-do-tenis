@@ -1,11 +1,5 @@
-## 2024-05-18 - Added loading state to Button component
-**Learning:** Adding a native loading state (`isLoading`) to a core UI component (`Button`) improves feedback across the entire application simultaneously. This is highly effective as it prevents multiple manual, inconsistent loading implementations. Wait, I should make this entry according to the guidelines.
-**Action:** Always verify if a core UI component supports native loading states. If not, implementing it centrally adds immense value and consistency, specifically by rendering an SVG spinner while retaining the disabled state.
+## 2024-05-25 — Estado de carregamento inconsistente
 
-## 2025-03-08 - Accessible Combobox Keyboard Support
-**Learning:** Comboboxes require specific ARIA attributes (`role="combobox"`, `role="listbox"`, `role="option"`, `aria-activedescendant`) and full keyboard support (Up, Down, Enter, Esc) to be accessible. Standard `<div>` wrapping an input lacks this capability by default.
-**Action:** When creating or modifying complex interactive components like Combobox, always implement standard keyboard navigation and ARIA roles for screen reader and keyboard-only users.
+**Learning:** Componentes interativos de ação possuíam manipulação manual de texto em conjunto com a propriedade \`disabled\` para expressar estado de submissão (ex: \`"Salvando..."\` ou \`"Carregando..."\`), causando saltos visuais na UI e feedback divergente no sistema, embora a base ofereça a propriedade nativa \`isLoading\` no próprio componente \`<Button>\`.
 
-## 2026-09-12 - Rótulos associados no seletor de datas
-**Aprendizado:** useId permite associar rótulos e campos sem duplicar IDs entre instâncias.
-**Ação:** Preservar o indicador de foco vigente e vincular cada Label ao Input correspondente.
+**Action:** Sempre verificar e utilizar a propriedade nativa \`isLoading\` do design system para padronizar o UX com um spinner claro e manter o \`aria-disabled\`/\`disabled\` corretamente isolado das checagens semânticas ou de regras de negócio adicionais, priorizando consistência (consistency) em componentes repetitivos.
