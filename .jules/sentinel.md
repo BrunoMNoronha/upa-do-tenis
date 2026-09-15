@@ -10,3 +10,8 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2024-05-27 - Predictable Business IDs
+**Vulnerability:** Business identifiers (like OS numbers) were generated using `Math.random()`, which is not cryptographically secure and can lead to predictability and potential IDOR/enumeration attacks.
+**Learning:** Even internal ID numbers need cryptographically secure randomness to prevent enumeration. `Math.random()` is insufficient for generating IDs, tokens or suffixes.
+**Prevention:** Always use Node.js `crypto` module (e.g., `crypto.randomInt()`) when generating random numbers for application logic, IDs, or security-sensitive contexts.
