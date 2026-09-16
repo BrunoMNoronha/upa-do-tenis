@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { RelatorioFinanceiroOSResponse } from '@/lib/relatorio-financeiro-os-service';
 import { RelatorioFinanceiroOSFiltros } from './RelatorioFinanceiroOSFiltros';
 import { RelatorioFinanceiroOSTabela } from './RelatorioFinanceiroOSTabela';
+import { RelatorioFinanceiroOSGraficos } from './RelatorioFinanceiroOSGraficos';
 import { MetricCard } from '@/components/dashboard/MetricCard';
 import { LoadingState, ErrorState } from '@/components/ui';
 import { formatarDataLocal } from '@/lib/date-range';
@@ -20,6 +21,9 @@ export function RelatorioFinanceiroOSClient() {
   const [relatorio, setRelatorio] = useState<RelatorioFinanceiroOSResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Contador de requisições: garante que uma resposta antiga (filtro anterior)
+  // nunca sobrescreva o resultado de uma requisição mais recente.
+  const requisicaoAtual = useRef(0);
 
   useEffect(() => {
     const hoje = new Date();
@@ -32,6 +36,7 @@ export function RelatorioFinanceiroOSClient() {
   const fetchRelatorio = useCallback(async () => {
     if (!inicio || !fim) return;
 
+    const idRequisicao = ++requisicaoAtual.current;
     setLoading(true);
     setError(null);
     try {
@@ -51,11 +56,15 @@ export function RelatorioFinanceiroOSClient() {
       }
       
       const data: RelatorioFinanceiroOSResponse = await res.json();
+      if (idRequisicao !== requisicaoAtual.current) return;
       setRelatorio(data);
     } catch (err: any) {
+      if (idRequisicao !== requisicaoAtual.current) return;
       setError(err.message || 'Erro desconhecido.');
     } finally {
-      setLoading(false);
+      if (idRequisicao === requisicaoAtual.current) {
+        setLoading(false);
+      }
     }
   }, [inicio, fim, statusFinanceiro, statusOperacional, cliente, saldoAberto]);
 
@@ -99,8 +108,14 @@ export function RelatorioFinanceiroOSClient() {
       )}
 
       {relatorio && (
-        <div className="space-y-6 animate-in fade-in duration-500">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-6 animate-in fade-in duration-500" aria-busy={loading}>
+          {relatorio.agregacaoTruncada && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+              O conjunto filtrado ultrapassou o limite de agregação. Resumo e gráficos consideram apenas as OS mais recentes dentro desse limite; restrinja o período para obter números completos.
+            </div>
+          )}
+
+          <div className={`grid gap-4 md:grid-cols-2 lg:grid-cols-4 transition-opacity ${loading ? 'opacity-50' : ''}`}>
             <MetricCard
               title="Qtd. de OS Filtradas"
               value={relatorio.resumo.quantidadeOS}
@@ -121,7 +136,21 @@ export function RelatorioFinanceiroOSClient() {
             />
           </div>
 
-          <RelatorioFinanceiroOSTabela itens={relatorio.itens} />
+          <RelatorioFinanceiroOSGraficos
+            agregados={relatorio.agregados}
+            quantidadeOS={relatorio.resumo.quantidadeOS}
+            atualizando={loading}
+          />
+
+          {relatorio.tabela?.limitada && (
+            <p className="text-xs text-slate-500" role="status">
+              A tabela exibe as {relatorio.tabela.limite} OS mais recentes de {relatorio.tabela.totalItens} encontradas. Os cards e os gráficos consideram todas as {relatorio.tabela.totalItens} OS filtradas.
+            </p>
+          )}
+
+          <div className={`transition-opacity ${loading ? 'opacity-50' : ''}`}>
+            <RelatorioFinanceiroOSTabela itens={relatorio.itens} />
+          </div>
         </div>
       )}
     </div>
