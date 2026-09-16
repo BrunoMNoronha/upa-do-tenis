@@ -19,10 +19,12 @@ export const metadata = {
 export default async function OrdensServicoPage() {
   await exigirSessao();
 
-  const ordens = await listarOrdensServico();
-  // Tela operacional: só clientes ativos podem receber uma nova OS.
-  const clientes = await listarClientes(undefined, { apenasAtivos: true });
-  const servicos = await listarServicos();
+  // Executa consultas independentes em paralelo para evitar N+1/waterfall
+  const [ordens, clientes, servicos] = await Promise.all([
+    listarOrdensServico(),
+    listarClientes(undefined, { apenasAtivos: true }),
+    listarServicos()
+  ]);
 
   return (
     <AppShell

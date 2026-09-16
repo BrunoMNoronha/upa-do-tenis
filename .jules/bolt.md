@@ -15,3 +15,7 @@
 ## 2026-09-12 - Otimização de múltiplas agregações no frontend
 **Learning:** O uso de múltiplas chamadas consecutivas de `.filter(...).length` sobre o mesmo array no frontend (ex: calculando totais de ordens por status) causa iterações O(k*N) redundantes.
 **Action:** Utilize um único loop `for...of` com variáveis contadoras independentes para consolidar o processamento em O(N), evitando o garbage collection excessivo associado à criação de arrays intermediários no `.filter()`.
+
+## 2026-09-15 - Paralelização de I/O em Server Components
+**Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
+**Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
