@@ -46,6 +46,7 @@ import {
 import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
+import { calcularPrazoPrevistoPadrao } from "@/lib/ordens-servico-prazo";
 import { alterarStatusOS, type DadosSugestaoConclusao } from "@/lib/os-conclusao-whatsapp";
 import {
   ordemServicoEstaAtrasada,
@@ -116,18 +117,22 @@ function getStatusTone(
   }
 }
 
-const criarDefaultValues = (): OrdemServicoFormValues => ({
-  clienteId: "",
-  itemRecebido: "",
-  servicoId: "",
-  servicos: [],
-  dataEntrada: dataOperacionalHoje(),
-  numeroOS: "",
-  justificativaDataEntrada: "",
-  prazoPrevisto: "",
-  valorEstimado: 0,
-  observacoes: "",
-});
+const criarDefaultValues = (): OrdemServicoFormValues => {
+  const hoje = dataOperacionalHoje();
+  return {
+    clienteId: "",
+    itemRecebido: "",
+    servicoId: "",
+    servicos: [],
+    dataEntrada: hoje,
+    numeroOS: "",
+    justificativaDataEntrada: "",
+    // Sugestão inicial: 5 dias sem contar domingos. O operador pode alterar.
+    prazoPrevisto: calcularPrazoPrevistoPadrao(hoje),
+    valorEstimado: 0,
+    observacoes: "",
+  };
+};
 
 const defaultClienteValues: ClienteFormValues = {
   nome: "",
@@ -534,6 +539,61 @@ function OrdemServicoCard({
   );
 }
 
+/**
+ * Blocos de apresentação do formulário de cadastro de OS. Apenas layout:
+ * não alteram bindings, validação nem payload.
+ */
+function FormSection({
+  titulo,
+  descricao,
+  obrigatorio = false,
+  children,
+}: {
+  titulo: string;
+  descricao?: string;
+  /** Marca a seção cujo campo principal é obrigatório (o label fica só para leitores de tela). */
+  obrigatorio?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="grid gap-4">
+      <div className="border-b border-[color:var(--border)] pb-2">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">
+          {titulo}
+          {obrigatorio ? (
+            <>
+              {" "}
+              <span aria-hidden="true" className="text-red-600">*</span>
+            </>
+          ) : null}
+        </h3>
+        {descricao ? (
+          <p className="mt-1 text-xs leading-5 text-slate-500">{descricao}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function CampoObrigatorio() {
+  return (
+    <>
+      <span aria-hidden="true" className="text-red-600">*</span>
+      <span className="sr-only"> (obrigatório)</span>
+    </>
+  );
+}
+
+function ErroCampo({ mensagem }: { mensagem?: string | null }) {
+  if (!mensagem) return null;
+  return (
+    <p role="alert" className="text-sm text-red-600">
+      {mensagem}
+    </p>
+  );
+}
+
 function OrdemServicoForm({
   clientes,
   servicos,
@@ -803,21 +863,11 @@ function OrdemServicoForm({
   return (
     <section id="nova-ordem">
       <Card className="p-6 shadow-none">
-        <div className="sticky -mx-6 -mt-6 mb-6 flex flex-wrap items-start justify-between gap-4 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-              Nova ordem
-            </p>
-            <SectionTitle className="mt-2 text-2xl">
-              Cadastro de OS
-            </SectionTitle>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-700">
-              Selecione o cliente e os dados do serviço para registrar no banco
-              de dados.
-            </p>
-          </div>
+        <div className="-mx-6 -mt-6 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5">
+          <SectionTitle className="text-2xl">
+            Cadastro de OS
+          </SectionTitle>
           <div className="flex items-start gap-2">
-            <Badge tone="accent">Banco Real</Badge>
             <button
               type="button"
               onClick={onClose}
@@ -829,348 +879,442 @@ function OrdemServicoForm({
           </div>
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="clienteId">Cliente</Label>
-            <Combobox
-              id="clienteId"
-              options={clientesDisponiveis.map((c) => ({
-                value: c.id,
-                label: c.nome,
-                subLabel: c.telefone,
-              }))}
-              value={watch("clienteId")}
-              onChange={(val) =>
-                setValue("clienteId", val, { shouldValidate: true })
-              }
-              placeholder="Selecione um cliente..."
-              emptyText="Cliente não encontrado"
-            />
-            <div className="flex justify-start">
-              <Button
-                type="button"
-                variant="ghost"
-                className="px-0 py-1 text-sm text-[color:var(--accent-strong)]"
-                onClick={() => {
-                  setClienteError(null);
-                  setMostrarNovoCliente((atual) => !atual);
-                }}
-              >
-                {mostrarNovoCliente
-                  ? "Fechar cadastro rápido"
-                  : "+ Cadastrar novo cliente"}
-              </Button>
-            </div>
-            {errors.clienteId ? (
-              <p className="text-sm text-red-600">{errors.clienteId.message}</p>
-            ) : null}
-          </div>
-
-          {mostrarNovoCliente ? (
-            <div className="grid gap-4 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--surface-muted)] p-4">
-              <div>
-                <p className="text-sm font-semibold text-[color:var(--text)]">
-                  Cadastro rápido de cliente
-                </p>
-                <p className="mt-1 text-xs text-slate-600">
-                  O cliente será selecionado automaticamente após o cadastro.
-                </p>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="novoClienteNome">Nome</Label>
-                  <Input
-                    id="novoClienteNome"
-                    {...registerCliente("nome")}
-                    placeholder="Nome do cliente"
-                  />
-                  {clienteErrors.nome ? (
-                    <p className="text-sm text-red-600">
-                      {clienteErrors.nome.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="novoClienteTelefone">Telefone</Label>
-                  <Input
-                    id="novoClienteTelefone"
-                    {...registerCliente("telefone")}
-                    onChange={(e) => {
-                      e.target.value = maskPhone(e.target.value);
-                      registerCliente("telefone").onChange(e);
-                    }}
-                    placeholder="(11) 99999-9999"
-                  />
-                  {clienteErrors.telefone ? (
-                    <p className="text-sm text-red-600">
-                      {clienteErrors.telefone.message}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="grid gap-2">
-                  <Label htmlFor="novoClienteEmail">E-mail (opcional)</Label>
-                  <Input
-                    id="novoClienteEmail"
-                    {...registerCliente("email")}
-                    placeholder="cliente@exemplo.com"
-                  />
-                  {clienteErrors.email ? (
-                    <p className="text-sm text-red-600">
-                      {clienteErrors.email.message}
-                    </p>
-                  ) : null}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="novoClienteCpfCnpj">
-                    CPF ou CNPJ (opcional)
-                  </Label>
-                  <Input
-                    id="novoClienteCpfCnpj"
-                    {...registerCliente("cpfCnpj")}
-                    onChange={(e) => {
-                      e.target.value = maskCPFCNPJ(e.target.value);
-                      registerCliente("cpfCnpj").onChange(e);
-                    }}
-                    placeholder="Opcional"
-                  />
-                  {clienteErrors.cpfCnpj ? (
-                    <p className="text-sm text-red-600">
-                      {clienteErrors.cpfCnpj.message}
-                    </p>
-                  ) : null}
-                </div>
-              </div>
-
-              {clienteError ? (
-                <p className="text-sm text-red-600">{clienteError}</p>
-              ) : null}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  isLoading={clienteSubmitting}
-                  onClick={onSubmitCliente}
-                >
-                  Salvar cliente
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={cancelarNovoCliente}
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-
-          <div className="grid gap-2">
-            <Label htmlFor="itemRecebido">Item recebido</Label>
-            <Input
-              id="itemRecebido"
-              {...register("itemRecebido")}
-              placeholder="Ex.: tênis preto"
-            />
-            {errors.itemRecebido ? (
-              <p className="text-sm text-red-600">
-                {errors.itemRecebido.message}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="fotoRecebimento">Foto no recebimento (opcional)</Label>
-            <Input
-              id="fotoRecebimento"
-              ref={fotoInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              capture="environment"
-              disabled={Boolean(ordemPendenteFoto)}
-              onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
-            />
-            <p className="text-xs text-slate-500">JPEG, PNG ou WebP, até 25 MB. A foto é otimizada antes do envio.</p>
-            {fotoProcessando ? <p role="status" className="text-sm text-slate-600">Otimizando foto…</p> : null}
-            {foto.preview ? (
-              <div className="relative aspect-[4/3] max-w-sm overflow-hidden rounded-xl border border-black/10 bg-slate-50">
-                <Image src={foto.preview} alt="Prévia da foto de recebimento" fill unoptimized className="object-contain" />
-              </div>
-            ) : null}
-            {foto.resultado ? <FotoOtimizadaResumo resultado={foto.resultado} /> : null}
-            {foto.erro ? <p role="alert" className="text-sm text-red-600">{foto.erro}</p> : null}
-          </div>
-
-          <div className="grid gap-3">
-            <Label htmlFor="servicoId">Serviços solicitados (opcional)</Label>
-            <Combobox
-              id="servicoId"
-              options={servicos.map((s) => ({ value: s.id, label: s.nome }))}
-              value=""
-              onChange={adicionarServico}
-              placeholder="Adicionar serviço..."
-              emptyText="Serviço não encontrado"
-            />
-            {servicosSelecionados.length > 0 ? (
-              <div className="space-y-2">
-                {servicosSelecionados.map((item) => {
-                  const servico = servicos.find(
-                    (option) => option.id === item.servicoId,
-                  );
-                  return (
-                    <div
-                      key={item.servicoId}
-                      className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_10rem_auto] sm:items-end"
-                    >
-                      <p className="text-sm font-medium text-slate-700">
-                        {servico?.nome || "Serviço"}
-                      </p>
-                      <Input
-                        aria-label={`Valor de ${servico?.nome || "serviço"}`}
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={item.valor}
-                        onChange={(event) =>
-                          atualizarValorServico(
-                            item.servicoId,
-                            event.target.value,
-                          )
-                        }
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => removerServico(item.servicoId)}
-                      >
-                        Remover
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-500">
-                Nenhum serviço selecionado. O item poderá ser detalhado depois.
-              </p>
-            )}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="dataEntrada">Data de entrada</Label>
-            <Input
-              id="dataEntrada"
-              type="date"
-              max={hojeOperacional}
-              {...register("dataEntrada")}
-            />
-            {errors.dataEntrada ? (
-              <p className="text-sm text-red-600">
-                {errors.dataEntrada.message}
-              </p>
-            ) : null}
-            {exigeJustificativaDataEntrada ? (
-              <p className="text-xs text-slate-500">
-                Registro retroativo — o número da OS usa a data de entrada
-                informada.
-              </p>
-            ) : null}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="numeroOS">Número da OS</Label>
-            <Input
-              id="numeroOS"
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="Ex.: 0124"
-              {...register("numeroOS")}
-            />
-            {errors.numeroOS ? (
-              <p className="text-sm text-red-600">{errors.numeroOS.message}</p>
-            ) : null}
-            {previaNumero ? (
-              <p className="text-xs text-slate-500">
-                Identificador: <span className="font-semibold text-[color:var(--text)]">{previaNumero}</span>
-              </p>
-            ) : null}
-          </div>
-
-          {exigeJustificativaDataEntrada ? (
+        <form className="grid gap-8" onSubmit={onSubmit}>
+          {/* 1. Cliente */}
+          <FormSection titulo="Cliente" obrigatorio>
             <div className="grid gap-2">
-              <Label htmlFor="justificativaDataEntrada">
-                Justificativa da data retroativa
+              <Label htmlFor="clienteId" className="sr-only">
+                Cliente <CampoObrigatorio />
               </Label>
-              <Textarea
-                id="justificativaDataEntrada"
-                rows={2}
-                {...register("justificativaDataEntrada")}
-              />
-              {errors.justificativaDataEntrada ? (
-                <p className="text-sm text-red-600">
-                  {errors.justificativaDataEntrada.message}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="grid gap-2 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="prazoPrevisto">Prazo previsto</Label>
-              <Input
-                id="prazoPrevisto"
-                type="date"
-                {...register("prazoPrevisto")}
-              />
-              {errors.prazoPrevisto ? (
-                <p className="text-sm text-red-600">
-                  {errors.prazoPrevisto.message}
-                </p>
-              ) : null}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="valorEstimado">
-                Valor total dos serviços (R$)
-              </Label>
-              <Input
-                id="valorEstimado"
-                type="text"
-                {...register("valorEstimado")}
-                onChange={(e) => {
-                  e.target.value = maskCurrency(e.target.value);
-                  register("valorEstimado").onChange(e);
-                }}
-                onBlur={(e) => {
-                  if (e.target.value) {
-                    e.target.value = formatCurrency(e.target.value);
-                    register("valorEstimado").onChange(e);
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <Combobox
+                    id="clienteId"
+                    options={clientesDisponiveis.map((c) => ({
+                      value: c.id,
+                      label: c.nome,
+                      subLabel: c.telefone,
+                    }))}
+                    value={watch("clienteId")}
+                    onChange={(val) =>
+                      setValue("clienteId", val, { shouldValidate: true })
+                    }
+                    placeholder="Selecione um cliente..."
+                    emptyText="Cliente não encontrado"
+                  />
+                </div>
+                <button
+                  type="button"
+                  aria-label={
+                    mostrarNovoCliente
+                      ? "Fechar cadastro rápido de cliente"
+                      : "Cadastrar novo cliente"
                   }
-                  register("valorEstimado").onBlur(e);
-                }}
-                placeholder="R$ 0,00"
-                readOnly={servicosSelecionados.length > 0}
+                  title={
+                    mostrarNovoCliente
+                      ? "Fechar cadastro rápido"
+                      : "Cadastrar novo cliente"
+                  }
+                  aria-expanded={mostrarNovoCliente}
+                  aria-controls="cadastro-rapido-cliente"
+                  onClick={() => {
+                    setClienteError(null);
+                    setMostrarNovoCliente((atual) => !atual);
+                  }}
+                  className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] ${
+                    mostrarNovoCliente
+                      ? "border-[color:var(--accent)] bg-[color:var(--accent-tint)] text-[color:var(--accent-strong)]"
+                      : "border-black/10 bg-white text-[color:var(--accent-strong)] hover:border-[color:var(--accent-soft)] hover:bg-[color:var(--accent-tint)]"
+                  }`}
+                >
+                  <svg
+                    className="h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    {mostrarNovoCliente ? (
+                      <path d="M6 6l12 12M18 6L6 18" />
+                    ) : (
+                      <>
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M19 8v6M22 11h-6" />
+                      </>
+                    )}
+                  </svg>
+                </button>
+              </div>
+              <ErroCampo mensagem={errors.clienteId?.message} />
+            </div>
+
+            {mostrarNovoCliente ? (
+              <div
+                id="cadastro-rapido-cliente"
+                className="grid gap-4 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--surface-muted)] p-4"
+              >
+                <div>
+                  <p className="text-sm font-semibold text-[color:var(--text)]">
+                    Cadastro rápido de cliente
+                  </p>
+                  <p className="mt-1 text-xs text-slate-600">
+                    O cliente será selecionado automaticamente após o cadastro.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteNome">Nome</Label>
+                    <Input
+                      id="novoClienteNome"
+                      {...registerCliente("nome")}
+                      placeholder="Nome do cliente"
+                    />
+                    <ErroCampo mensagem={clienteErrors.nome?.message} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteTelefone">Telefone</Label>
+                    <Input
+                      id="novoClienteTelefone"
+                      {...registerCliente("telefone")}
+                      onChange={(e) => {
+                        e.target.value = maskPhone(e.target.value);
+                        registerCliente("telefone").onChange(e);
+                      }}
+                      placeholder="(11) 99999-9999"
+                    />
+                    <ErroCampo mensagem={clienteErrors.telefone?.message} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteEmail">E-mail (opcional)</Label>
+                    <Input
+                      id="novoClienteEmail"
+                      {...registerCliente("email")}
+                      placeholder="cliente@exemplo.com"
+                    />
+                    <ErroCampo mensagem={clienteErrors.email?.message} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="novoClienteCpfCnpj">
+                      CPF ou CNPJ (opcional)
+                    </Label>
+                    <Input
+                      id="novoClienteCpfCnpj"
+                      {...registerCliente("cpfCnpj")}
+                      onChange={(e) => {
+                        e.target.value = maskCPFCNPJ(e.target.value);
+                        registerCliente("cpfCnpj").onChange(e);
+                      }}
+                      placeholder="Opcional"
+                    />
+                    <ErroCampo mensagem={clienteErrors.cpfCnpj?.message} />
+                  </div>
+                </div>
+
+                <ErroCampo mensagem={clienteError} />
+
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                  <Button
+                    type="button"
+                    isLoading={clienteSubmitting}
+                    onClick={onSubmitCliente}
+                    className="w-full sm:w-auto"
+                  >
+                    Salvar cliente
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={cancelarNovoCliente}
+                    className="w-full sm:w-auto"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </FormSection>
+
+          {/* 2. Dados da Ordem de Serviço */}
+          <FormSection titulo="Dados da Ordem de Serviço">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid content-start gap-2">
+                <Label htmlFor="dataEntrada">Data de entrada</Label>
+                <Input
+                  id="dataEntrada"
+                  type="date"
+                  defaultValue={hojeOperacional}
+                  max={hojeOperacional}
+                  {...register("dataEntrada")}
+                />
+                <ErroCampo mensagem={errors.dataEntrada?.message} />
+                {exigeJustificativaDataEntrada ? (
+                  <p className="text-xs text-slate-500">
+                    Registro retroativo — o número da OS usa a data de entrada
+                    informada.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid content-start gap-2">
+                <Label htmlFor="numeroOS">
+                  Número da OS <CampoObrigatorio />
+                </Label>
+                <Input
+                  id="numeroOS"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  placeholder="Ex.: 0124"
+                  {...register("numeroOS")}
+                />
+                <ErroCampo mensagem={errors.numeroOS?.message} />
+                {previaNumero ? (
+                  <p className="text-xs text-slate-500">
+                    Identificador: <span className="font-semibold text-[color:var(--text)]">{previaNumero}</span>
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="grid content-start gap-2">
+                <Label htmlFor="prazoPrevisto">
+                  Prazo previsto <CampoObrigatorio />
+                </Label>
+                <Input
+                  id="prazoPrevisto"
+                  type="date"
+                  defaultValue={calcularPrazoPrevistoPadrao(hojeOperacional)}
+                  {...register("prazoPrevisto")}
+                />
+                <ErroCampo mensagem={errors.prazoPrevisto?.message} />
+              </div>
+
+              {exigeJustificativaDataEntrada ? (
+                <div className="grid gap-2 md:col-span-3">
+                  <Label htmlFor="justificativaDataEntrada">
+                    Justificativa da data retroativa <CampoObrigatorio />
+                  </Label>
+                  <Textarea
+                    id="justificativaDataEntrada"
+                    rows={2}
+                    {...register("justificativaDataEntrada")}
+                  />
+                  <ErroCampo mensagem={errors.justificativaDataEntrada?.message} />
+                </div>
+              ) : null}
+            </div>
+          </FormSection>
+
+          {/* 3. Item recebido */}
+          <FormSection titulo="Item recebido" obrigatorio>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid content-start gap-2">
+                <Label htmlFor="itemRecebido" className="sr-only">
+                  Item recebido <CampoObrigatorio />
+                </Label>
+                <Input
+                  id="itemRecebido"
+                  {...register("itemRecebido")}
+                  placeholder="Ex.: tênis preto"
+                />
+                <ErroCampo mensagem={errors.itemRecebido?.message} />
+              </div>
+
+              <div className="grid content-start gap-2">
+                {/* Input real fica visualmente oculto; o label estilizado é a área de toque. */}
+                <input
+                  id="fotoRecebimento"
+                  ref={fotoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  disabled={Boolean(ordemPendenteFoto)}
+                  onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
+                  className="peer sr-only"
+                />
+                <label
+                  htmlFor="fotoRecebimento"
+                  className={`relative flex min-h-[3.25rem] w-full cursor-pointer items-center gap-3 overflow-hidden rounded-2xl border border-dashed transition peer-focus-visible:ring-2 peer-focus-visible:ring-[color:var(--accent-soft)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60 ${
+                    foto.preview
+                      ? "border-[color:var(--accent-soft)] bg-white p-2"
+                      : "border-black/15 bg-white px-4 py-3 hover:border-[color:var(--accent)] hover:bg-[color:var(--accent-tint)]"
+                  }`}
+                >
+                  {foto.preview ? (
+                    <>
+                      <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
+                        <Image src={foto.preview} alt="Prévia da foto de recebimento" fill unoptimized className="object-cover" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-[color:var(--text)]">Foto selecionada</span>
+                        <span className="block text-xs text-[color:var(--accent-strong)]">Toque para trocar</span>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="h-6 w-6 shrink-0 text-[color:var(--accent-strong)]"
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z" />
+                        <circle cx="12" cy="12.5" r="3.5" />
+                      </svg>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-[color:var(--text)]">Foto do item (opcional)</span>
+                        <span className="block text-xs text-slate-500">Tirar foto ou escolher da galeria</span>
+                      </span>
+                    </>
+                  )}
+                </label>
+                {foto.preview ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      foto.limpar();
+                      if (fotoInputRef.current) fotoInputRef.current.value = "";
+                    }}
+                    disabled={Boolean(ordemPendenteFoto)}
+                    className="justify-self-start text-xs font-semibold text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Remover foto
+                  </button>
+                ) : null}
+                {fotoProcessando ? <p role="status" className="text-sm text-slate-600">Otimizando foto…</p> : null}
+                {foto.erro ? <p role="alert" className="text-sm text-red-600">{foto.erro}</p> : null}
+                {foto.resultado ? <FotoOtimizadaResumo resultado={foto.resultado} /> : null}
+              </div>
+            </div>
+          </FormSection>
+
+          {/* 4. Serviços */}
+          <FormSection titulo="Serviços" obrigatorio>
+            <div className="grid gap-3">
+              <Label htmlFor="servicoId" className="sr-only">
+                Serviços solicitados <CampoObrigatorio />
+              </Label>
+              <Combobox
+                id="servicoId"
+                options={servicos.map((s) => ({ value: s.id, label: s.nome }))}
+                value=""
+                onChange={adicionarServico}
+                placeholder="Adicionar serviço..."
+                emptyText="Serviço não encontrado"
+              />
+              <ErroCampo mensagem={errors.servicos?.message} />
+              {servicosSelecionados.length > 0 ? (
+                <div className="space-y-2">
+                  {servicosSelecionados.map((item) => {
+                    const servico = servicos.find(
+                      (option) => option.id === item.servicoId,
+                    );
+                    return (
+                      <div
+                        key={item.servicoId}
+                        className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center"
+                      >
+                        <p className="text-sm font-medium text-slate-700">
+                          {servico?.nome || "Serviço"}
+                        </p>
+                        <Input
+                          aria-label={`Valor de ${servico?.nome || "serviço"}`}
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.valor}
+                          onChange={(event) =>
+                            atualizarValorServico(
+                              item.servicoId,
+                              event.target.value,
+                            )
+                          }
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => removerServico(item.servicoId)}
+                        >
+                          Remover
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Nenhum serviço selecionado. O item poderá ser detalhado depois.
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--accent-tint)] p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4">
+              <div>
+                <Label
+                  htmlFor="valorEstimado"
+                  className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--accent-strong)]"
+                >
+                  Valor total dos serviços
+                </Label>
+                {servicosSelecionados.length > 0 ? (
+                  <p className="mt-1 text-xs text-slate-600">
+                    Calculado a partir dos serviços adicionados.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-slate-600">
+                    Informe o valor ou adicione serviços para calcular.
+                  </p>
+                )}
+              </div>
+              <div className="sm:w-56">
+                <Input
+                  id="valorEstimado"
+                  type="text"
+                  className="text-right text-lg font-semibold text-[color:var(--accent-strong)] read-only:border-transparent read-only:bg-white/70"
+                  {...register("valorEstimado")}
+                  onChange={(e) => {
+                    e.target.value = maskCurrency(e.target.value);
+                    register("valorEstimado").onChange(e);
+                  }}
+                  onBlur={(e) => {
+                    if (e.target.value) {
+                      e.target.value = formatCurrency(e.target.value);
+                      register("valorEstimado").onChange(e);
+                    }
+                    register("valorEstimado").onBlur(e);
+                  }}
+                  placeholder="R$ 0,00"
+                  readOnly={servicosSelecionados.length > 0}
+                />
+              </div>
+            </div>
+          </FormSection>
+
+          {/* 5. Observações */}
+          <FormSection titulo="Observações">
+            <div className="grid gap-2">
+              <Label htmlFor="observacoes" className="sr-only">Observações</Label>
+              <Textarea
+                id="observacoes"
+                rows={4}
+                {...register("observacoes")}
+                placeholder="Detalhes adicionais do atendimento"
               />
             </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              rows={4}
-              {...register("observacoes")}
-              placeholder="Detalhes adicionais do atendimento"
-            />
-          </div>
+          </FormSection>
 
           {submitError ? (
-            <div className="space-y-2 text-sm text-red-600">
+            <div className="space-y-2 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-red-600">
               <p role="alert">{submitError}</p>
               {ordemPendenteFoto ? (
                 <div className="flex flex-wrap gap-2">
@@ -1181,11 +1325,22 @@ function OrdemServicoForm({
             </div>
           ) : null}
 
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap justify-between gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4">
-            <Button type="button" variant="secondary" onClick={onClose}>
+          {/* 6. Ações */}
+          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              className="w-full sm:w-auto"
+            >
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isPending || isSubmitting} disabled={Boolean(ordemPendenteFoto) || fotoProcessando}>
+            <Button
+              type="submit"
+              isLoading={isPending || isSubmitting}
+              disabled={Boolean(ordemPendenteFoto) || fotoProcessando}
+              className="w-full sm:w-auto sm:min-w-[12rem]"
+            >
               Cadastrar ordem
             </Button>
           </div>
@@ -1516,7 +1671,7 @@ export function OrdensServicoClient({
             role="dialog"
             aria-modal="true"
             aria-labelledby="cadastro-os-titulo"
-            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl"
+            className="fixed inset-y-0 right-0 z-50 flex w-full max-w-2xl flex-col overflow-y-auto border-l lg:max-w-3xl border-[color:var(--border)] bg-[color:var(--surface)] shadow-2xl"
           >
             <div id="cadastro-os-titulo" className="sr-only">
               Cadastro de nova ordem de serviço
