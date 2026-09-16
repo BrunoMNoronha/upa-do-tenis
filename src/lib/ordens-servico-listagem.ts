@@ -55,13 +55,16 @@ export function filtrarOrdensServicoListagem<T extends OrdemServicoListagem>(par
 type OrdemServicoBusca = {
   numero?: string | null;
   cliente?: { nome?: string | null; telefone?: string | null } | null;
+  itens?: Array<{ descricao?: string | null }> | null;
 };
 
 /**
  * Verifica se uma OS corresponde ao termo de busca digitado.
  * Mantém a busca parcial por nome do cliente e por número da OS, e
  * acrescenta a busca por telefone do cliente normalizado (somente dígitos),
- * de modo que "61985307168" encontre "(61) 98530-7168".
+ * de modo que "61985307168" encontre "(61) 98530-7168". Também encontra a OS
+ * pela descrição de qualquer item recebido (issue #205). Mesma regra do
+ * filtro de banco em `montarWhereListagemOrdensServico`.
  */
 export function ordemServicoCorrespondeBusca(ordem: OrdemServicoBusca, termo: string): boolean {
   const termoLimpo = termo.trim().toLowerCase();
@@ -73,12 +76,15 @@ export function ordemServicoCorrespondeBusca(ordem: OrdemServicoBusca, termo: st
   const numero = (ordem.numero ?? "").toLowerCase();
   const matchCliente = nome.includes(termoLimpo);
   const matchNumero = numero.includes(termoLimpo);
+  const matchItem = (ordem.itens ?? []).some((item) =>
+    (item.descricao ?? "").toLowerCase().includes(termoLimpo),
+  );
 
   const termoDigitos = termoLimpo.replace(/\D/g, "");
   const telefoneDigitos = sanitizePhone(ordem.cliente?.telefone);
   const matchTelefone = termoDigitos.length > 0 && telefoneDigitos.includes(termoDigitos);
 
-  return matchCliente || matchNumero || matchTelefone;
+  return matchCliente || matchNumero || matchItem || matchTelefone;
 }
 export type FiltrosListagemOrdensServico = {
   statusOperacional?: StatusOperacionalListagem;
@@ -189,6 +195,8 @@ export function montarWhereListagemOrdensServico(
       OR: [
         { cliente: { nome: { contains: termo, mode: "insensitive" } } },
         { numero: { contains: termo, mode: "insensitive" } },
+        // Descrição de qualquer item recebido, não só do primeiro (issue #205).
+        { itens: { some: { descricao: { contains: termo, mode: "insensitive" } } } },
         ...(termoDigitos ? [{ cliente: { telefone: { contains: termoDigitos } } }] : []),
       ],
     });

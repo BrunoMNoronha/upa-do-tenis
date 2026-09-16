@@ -2,6 +2,7 @@ import { z } from "zod";
 import { dataOperacionalHoje } from "./date-range";
 import { sanitizeCurrency } from "./sanitizers";
 import { FORMATO_NUMERO_OS } from "./ordens-servico-numero";
+import { LIMITE_ITENS_POR_OS, TIPO_ITEM_PADRAO } from "./ordens-servico-itens";
 
 const FORMATO_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 const JUSTIFICATIVA_MINIMA = 10;
@@ -15,9 +16,37 @@ export const ordemServicoServicoSchema = z.object({
   valor: safeNumber("O valor do serviço não pode ser negativo."),
 });
 
+// Um item recebido da OS (issue #205). Serviços são opcionais: o item pode
+// ser detalhado depois. O mesmo serviço não pode repetir dentro do item.
+export const ordemServicoItemSchema = z.object({
+  // Chave gerada no navegador para associar a foto ao item depois da criação.
+  clientKey: z.string().trim().max(64).optional(),
+  tipoItem: z.string().trim().min(1).optional().default(TIPO_ITEM_PADRAO),
+  descricao: z.string().trim().min(2, "A descrição do item é obrigatória."),
+  observacoes: z.string().optional(),
+  servicos: z.array(ordemServicoServicoSchema).optional().default([]),
+}).superRefine((item, ctx) => {
+  const ids = item.servicos.map((servico) => servico.servicoId);
+  if (new Set(ids).size !== ids.length) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["servicos"],
+      message: "O mesmo serviço não pode ser adicionado duas vezes ao mesmo item.",
+    });
+  }
+});
+
 export const ordemServicoFormSchema = z.object({
   clienteId: z.string().min(1, "O cliente é obrigatório."),
-  itemRecebido: z.string().min(2, "A descrição do item é obrigatória."),
+  // Contrato novo: um ou mais itens, cada um com a própria lista de serviços.
+  itens: z
+    .array(ordemServicoItemSchema)
+    .max(LIMITE_ITENS_POR_OS, `Uma OS aceita no máximo ${LIMITE_ITENS_POR_OS} itens.`)
+    .optional()
+    .default([]),
+  // Contrato antigo (um item + lista única de serviços), mantido enquanto
+  // houver navegadores com o JavaScript anterior em cache.
+  itemRecebido: z.string().optional(),
   servicoId: z.string().optional(),
   servicos: z.array(ordemServicoServicoSchema).optional().default([]),
   dataEntrada: z.string().optional(),
@@ -30,15 +59,27 @@ export const ordemServicoFormSchema = z.object({
     .regex(FORMATO_NUMERO_OS, "O número da OS deve conter apenas dígitos."),
   justificativaDataEntrada: z.string().optional(),
   prazoPrevisto: z.string().min(1, "A data de previsão é obrigatória."),
-  valorEstimado: safeNumber("O valor não pode ser negativo."),
+  valorEstimado: safeNumber("O valor não pode ser negativo.").optional().default(0),
   observacoes: z.string().optional(),
 }).superRefine((data, ctx) => {
-  if (data.servicos.length === 0 && !data.servicoId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["servicos"],
-      message: "Informe pelo menos um serviço.",
-    });
+  // Sem `itens[]` o payload segue o contrato antigo: exige o item único e
+  // aplica nele a mesma regra de serviço repetido.
+  if (data.itens.length === 0) {
+    if ((data.itemRecebido?.trim().length ?? 0) < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["itens"],
+        message: "Informe pelo menos um item recebido.",
+      });
+    }
+    const ids = data.servicos.map((servico) => servico.servicoId);
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["servicos"],
+        message: "O mesmo serviço não pode ser adicionado duas vezes ao mesmo item.",
+      });
+    }
   }
 
   // A data operacional é comparada como string "YYYY-MM-DD" para que a regra
@@ -100,6 +141,7 @@ export const ordemServicoFormSchema = z.object({
 
 export type OrdemServicoFormValues = z.infer<typeof ordemServicoFormSchema>;
 export type OrdemServicoServicoValues = z.infer<typeof ordemServicoServicoSchema>;
+export type OrdemServicoItemValues = z.infer<typeof ordemServicoItemSchema>;
 
 export const ordemServicoServicosAtualizarSchema = z.object({
   itemOrdemServicoId: z.string().min(1, "O item da OS é obrigatório."),

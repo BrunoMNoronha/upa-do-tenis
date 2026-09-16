@@ -11,6 +11,7 @@ const { prismaMock } = vi.hoisted(() => {
   const mock: any = {
     servico: { findMany: vi.fn() },
     ordemServico: { findUnique: vi.fn(), create: vi.fn() },
+    itemOrdemServico: { create: vi.fn() },
     historicoStatus: { create: vi.fn() },
     $transaction: vi.fn(async (callback: any) => callback(mock)),
   };
@@ -142,6 +143,7 @@ describe("POST /api/ordens-servico", () => {
     prismaMock.servico.findMany.mockResolvedValue([{ id: "servico-1", ativo: true }]);
     prismaMock.ordemServico.findUnique.mockResolvedValue(null);
     prismaMock.ordemServico.create.mockResolvedValue({ id: "os-1", numero: "OS-05092026-0001" });
+    prismaMock.itemOrdemServico.create.mockResolvedValue({ id: "item-1" });
     prismaMock.historicoStatus.create.mockResolvedValue({ id: "hist-1" });
   });
 

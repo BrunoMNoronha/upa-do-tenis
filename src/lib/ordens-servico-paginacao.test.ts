@@ -120,13 +120,14 @@ describe("montarWhereListagemOrdensServico", () => {
     });
   });
 
-  it("busca por nome do cliente, número da OS e telefone (somente dígitos)", () => {
+  it("busca por nome do cliente, número da OS, descrição de qualquer item e telefone (somente dígitos)", () => {
     expect(montarWhereListagemOrdensServico({ busca: "(61) 98530" }, contexto)).toEqual({
       AND: [
         {
           OR: [
             { cliente: { nome: { contains: "(61) 98530", mode: "insensitive" } } },
             { numero: { contains: "(61) 98530", mode: "insensitive" } },
+            { itens: { some: { descricao: { contains: "(61) 98530", mode: "insensitive" } } } },
             { cliente: { telefone: { contains: "6198530" } } },
           ],
         },
@@ -139,6 +140,7 @@ describe("montarWhereListagemOrdensServico", () => {
           OR: [
             { cliente: { nome: { contains: "Maria", mode: "insensitive" } } },
             { numero: { contains: "Maria", mode: "insensitive" } },
+            { itens: { some: { descricao: { contains: "Maria", mode: "insensitive" } } } },
           ],
         },
       ],
