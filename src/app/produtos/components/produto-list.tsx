@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import type { PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
@@ -19,6 +20,7 @@ type ProdutoListado = {
 
 type ProdutoListProps = {
   produtos: ProdutoListado[];
+  busca: string;
   pagination: PaginacaoInfo;
   onEdit: (produto: ProdutoListado) => void;
   onDeleteCurrent: (id: string) => void;
@@ -33,7 +35,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-export function ProdutoList({ produtos, pagination, onEdit, onDeleteCurrent }: ProdutoListProps) {
+export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurrent }: ProdutoListProps) {
   const { criarHref } = usePaginacaoUrl();
   const {
     listaError,
@@ -55,6 +57,8 @@ export function ProdutoList({ produtos, pagination, onEdit, onDeleteCurrent }: P
         <Badge tone="accent">Total: {pagination.total}</Badge>
       </div>
 
+      <BuscaListagem id="busca-produtos" label="Buscar produto" placeholder="Buscar produto..." busca={busca} />
+
       {listaError ? (
         <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
           {listaError}
@@ -63,7 +67,9 @@ export function ProdutoList({ produtos, pagination, onEdit, onDeleteCurrent }: P
 
       {produtos.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-          Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
+          {busca
+            ? `Nenhum produto encontrado para "${busca}".`
+            : "Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
         </div>
       ) : (
         <div className="space-y-4">

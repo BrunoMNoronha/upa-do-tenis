@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 
 import { listarProdutosPaginado } from "@/lib/produtos";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
+import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 import { ProdutosClient } from "./produtos-client";
 
 import { exigirSessao } from "@/lib/auth-server";
@@ -19,7 +20,9 @@ export default async function ProdutosPage(props: {
   await exigirSessao();
 
   const searchParams = await props.searchParams;
+  const busca = lerBuscaDeSearchParams(searchParams);
   const { data: produtos, pagination } = await listarProdutosPaginado({
+    busca,
     paginacao: lerPaginacaoDeSearchParams(searchParams),
   });
 
@@ -31,6 +34,7 @@ export default async function ProdutosPage(props: {
       action={{ href: "/servicos", label: "Ir para Serviços" }}
     >
       <ProdutosClient
+        busca={busca}
         pagination={pagination}
         produtos={produtos.map((produto) => ({
           id: produto.id,

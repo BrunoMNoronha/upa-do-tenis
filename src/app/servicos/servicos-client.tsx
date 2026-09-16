@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { servicoFormSchema, type ServicoFormValues } from "@/lib/servicos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
@@ -24,6 +25,7 @@ export type ServicoListado = {
 
 type ServicosClientProps = {
   servicos: ServicoListado[];
+  busca: string;
   pagination: PaginacaoInfo;
 };
 
@@ -43,7 +45,7 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-export function ServicosClient({ servicos, pagination }: ServicosClientProps) {
+export function ServicosClient({ servicos, busca, pagination }: ServicosClientProps) {
   const router = useRouter();
   const { criarHref } = usePaginacaoUrl();
   const [editando, setEditando] = useState<ServicoListado | null>(null);
@@ -198,6 +200,8 @@ export function ServicosClient({ servicos, pagination }: ServicosClientProps) {
           <Badge tone="accent">Total: {pagination.total}</Badge>
         </div>
 
+        <BuscaListagem id="busca-servicos" label="Buscar serviço" placeholder="Buscar serviço..." busca={busca} />
+
         {listaError ? (
           <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
             {listaError}
@@ -206,7 +210,9 @@ export function ServicosClient({ servicos, pagination }: ServicosClientProps) {
 
         {servicos.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            Nenhum serviço cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
+            {busca
+              ? `Nenhum serviço encontrado para "${busca}".`
+              : "Nenhum serviço cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
           </div>
         ) : (
           <div className="space-y-4">

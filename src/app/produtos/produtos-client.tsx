@@ -17,10 +17,11 @@ type ProdutoListado = {
 
 type ProdutosClientProps = {
   produtos: ProdutoListado[];
+  busca: string;
   pagination: PaginacaoInfo;
 };
 
-export function ProdutosClient({ produtos, pagination }: ProdutosClientProps) {
+export function ProdutosClient({ produtos, busca, pagination }: ProdutosClientProps) {
   const [editando, setEditando] = useState<ProdutoListado | null>(null);
 
   const iniciarEdicao = (produto: ProdutoListado) => {
@@ -46,6 +47,7 @@ export function ProdutosClient({ produtos, pagination }: ProdutosClientProps) {
       />
       <ProdutoList
         produtos={produtos}
+        busca={busca}
         pagination={pagination}
         onEdit={iniciarEdicao}
         onDeleteCurrent={onDeleteCurrent}

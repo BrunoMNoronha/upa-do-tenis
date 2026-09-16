@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
+import { montarCondicaoBusca } from "@/lib/busca-listagem";
 
 export async function listarProdutos() {
   return prisma.produto.findMany({
@@ -14,8 +15,9 @@ export async function listarProdutos() {
  * continua disponível para telas que precisam do catálogo inteiro
  * (venda de balcão).
  */
-export async function listarProdutosPaginado(params: { paginacao: PaginacaoNormalizada }) {
-  const where = {};
+export async function listarProdutosPaginado(params: { busca?: string; paginacao: PaginacaoNormalizada }) {
+  // Busca por nome/descrição aplicada no mesmo where de count e findMany.
+  const where = montarCondicaoBusca(params.busca, ["nome", "descricao"]) ?? {};
 
   return paginarConsulta({
     paginacao: params.paginacao,

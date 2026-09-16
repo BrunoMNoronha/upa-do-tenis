@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
+import { montarCondicaoBusca } from "@/lib/busca-listagem";
 
 function montarWhereInsumos(estoqueBaixo?: boolean) {
   return estoqueBaixo
@@ -22,9 +23,14 @@ export async function listarInsumos(estoqueBaixo?: boolean) {
  */
 export async function listarInsumosPaginado(params: {
   estoqueBaixo?: boolean;
+  busca?: string;
   paginacao: PaginacaoNormalizada;
 }) {
-  const where = montarWhereInsumos(params.estoqueBaixo);
+  // Alerta e busca se combinam (AND); ambos entram igualmente no count e no findMany.
+  const whereAlerta = montarWhereInsumos(params.estoqueBaixo);
+  const whereBusca = montarCondicaoBusca(params.busca, ["nome", "descricao", "unidadeMedida"]);
+  const where =
+    whereAlerta && whereBusca ? { AND: [whereAlerta, whereBusca] } : (whereAlerta ?? whereBusca);
 
   return paginarConsulta({
     paginacao: params.paginacao,

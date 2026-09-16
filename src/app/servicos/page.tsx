@@ -3,6 +3,7 @@ import { ServicosClient } from "./servicos-client";
 
 import { listarServicosParaGestaoPaginado } from "@/lib/servicos";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
+import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
 import { exigirSessao } from "@/lib/auth-server";
 
@@ -19,7 +20,9 @@ export default async function ServicosPage(props: {
   await exigirSessao();
 
   const searchParams = await props.searchParams;
+  const busca = lerBuscaDeSearchParams(searchParams);
   const { data: servicos, pagination } = await listarServicosParaGestaoPaginado({
+    busca,
     paginacao: lerPaginacaoDeSearchParams(searchParams),
   });
 
@@ -31,6 +34,7 @@ export default async function ServicosPage(props: {
       action={{ href: "/ordens-servico", label: "Ir para OS" }}
     >
       <ServicosClient
+        busca={busca}
         pagination={pagination}
         servicos={servicos.map((servico) => ({
           id: servico.id,
