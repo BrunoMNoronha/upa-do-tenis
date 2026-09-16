@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, PanelHeader, SectionTitle, LoadingState, ErrorState, EmptyState, Input } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
+import { ConfirmDialog } from "@/components/confirm-dialog";
+import { podeCancelarOrdemServico } from "@/lib/ordens-servico-status";
 
 import {
   OrdemServicoDetalhe,
@@ -141,7 +143,17 @@ export function OrdemServicoDetalheClient({
     }
   };
 
-  const cancelarOrdem = async () => {
+  const handleRefresh = async () => {
+    await carregarDetalhe(true);
+  };
+
+  const fecharConfirmacaoCancelamento = useCallback(() => {
+    if (cancelando) return;
+    setConfirmandoCancelamento(false);
+  }, [cancelando]);
+
+  const cancelarOrdemServico = async () => {
+    if (cancelando) return;
     setCancelando(true);
     setCancelamentoErro(null);
     setCancelamentoSucesso(null);
@@ -154,20 +166,18 @@ export function OrdemServicoDetalheClient({
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         setCancelamentoErro(payload?.message || "Não foi possível cancelar a ordem de serviço.");
+        // Recarrega para refletir o estado persistido (ex.: outro operador alterou o status).
+        await carregarDetalhe(true);
         return;
       }
       setConfirmandoCancelamento(false);
-      setCancelamentoSucesso("Ordem de serviço cancelada.");
+      setCancelamentoSucesso("Ordem de serviço cancelada. Ela continua registrada no sistema.");
       await carregarDetalhe(true);
     } catch {
       setCancelamentoErro("Falha de comunicação ao cancelar a ordem de serviço.");
     } finally {
       setCancelando(false);
     }
-  };
-
-  const handleRefresh = async () => {
-    await carregarDetalhe(true);
   };
 
   const resumo = useMemo(() => ordem?.resumoFinanceiro, [ordem]);
@@ -214,54 +224,31 @@ export function OrdemServicoDetalheClient({
                   <span>{ordem.cliente.telefone}</span>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge tone={ordem.status === "CANCELADA" ? "danger" : "accent"}>{formatarStatus(ordem.status)}</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="accent">{formatarStatus(ordem.status)}</Badge>
                 <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
-              </div>
-            </div>
-            {ordem.status === "ABERTA" ? (
-              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-                {confirmandoCancelamento ? (
-                  <div className="flex w-full flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm text-slate-700">
-                      <p className="font-semibold text-[color:var(--text)]">Cancelar esta ordem de serviço?</p>
-                      <p>A ordem de serviço será marcada como cancelada.</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="button" variant="secondary" onClick={() => setConfirmandoCancelamento(false)} disabled={cancelando}>
-                        Voltar
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        className="border-rose-300 text-rose-700 hover:border-rose-400 hover:bg-rose-50"
-                        onClick={() => void cancelarOrdem()}
-                        isLoading={cancelando}
-                      >
-                        Cancelar OS
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
+                {podeCancelarOrdemServico(ordem.status) ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="secondary"
+                    className="!text-rose-700"
+                    disabled={cancelando}
                     onClick={() => {
                       setCancelamentoErro(null);
                       setCancelamentoSucesso(null);
                       setConfirmandoCancelamento(true);
                     }}
                   >
-                    Cancelar OS
+                    {cancelando ? "Cancelando..." : "Cancelar OS"}
                   </Button>
-                )}
+                ) : null}
               </div>
-            ) : null}
+            </div>
             {cancelamentoErro ? (
-              <p className="mt-3 text-sm text-red-600">{cancelamentoErro}</p>
+              <p role="alert" className="mt-4 text-sm font-medium text-rose-700">{cancelamentoErro}</p>
             ) : null}
             {cancelamentoSucesso ? (
-              <p className="mt-3 text-sm text-emerald-700">{cancelamentoSucesso}</p>
+              <p role="status" className="mt-4 text-sm font-medium text-emerald-700">{cancelamentoSucesso}</p>
             ) : null}
           </div>
           <div className="grid gap-3 p-6 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
@@ -481,6 +468,16 @@ export function OrdemServicoDetalheClient({
 
         <HistoricoPagamentosList pagamentos={ordem.pagamentos} />
       </aside>
+      <ConfirmDialog
+        aberto={confirmandoCancelamento}
+        titulo="Cancelar Ordem de Serviço?"
+        descricao="Esta ação marcará a ordem como cancelada. A ordem continuará registrada no sistema."
+        textoConfirmar={cancelando ? "Cancelando..." : "Cancelar OS"}
+        textoCancelar="Voltar"
+        tone="danger"
+        onConfirmar={() => void cancelarOrdemServico()}
+        onCancelar={fecharConfirmacaoCancelamento}
+      />
     </section>
   );
 }

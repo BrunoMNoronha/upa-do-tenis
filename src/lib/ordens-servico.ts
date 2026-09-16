@@ -1,18 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS, normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
 
-export type OsStatus = "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE" | "CANCELADA";
-
-export const transicoesPermitidas: Record<OsStatus, OsStatus[]> = {
-  ABERTA: ["EM_ANDAMENTO", "CANCELADA"],
-  EM_ANDAMENTO: ["CONCLUIDA"],
-  CONCLUIDA: ["ENTREGUE"],
-  ENTREGUE: [], // Estado final
-  CANCELADA: [], // Estado final — não há reabertura
-};
-
-export const MENSAGEM_CANCELAMENTO_NAO_PERMITIDO =
-  "Apenas ordens de serviço abertas podem ser canceladas.";
+export {
+  transicoesPermitidas,
+  transicaoPermitida,
+  podeCancelarOrdemServico,
+} from "@/lib/ordens-servico-status";
+export type { OsStatus } from "@/lib/ordens-servico-status";
 
 export class OrdemServicoDetalheError extends Error {
   status: number;

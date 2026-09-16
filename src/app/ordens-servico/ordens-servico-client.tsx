@@ -36,7 +36,7 @@ import {
   type OrdemServicoServicoValues,
 } from "@/lib/ordens-servico-schema";
 import { dataOperacionalHoje } from "@/lib/date-range";
-import type { OsStatus } from "@/lib/ordens-servico";
+import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
   filtrarOrdensServicoListagem,
@@ -161,7 +161,6 @@ function OrdemServicoCard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
 
   const statusLabel =
     statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
@@ -201,7 +200,6 @@ function OrdemServicoCard({
       return;
     }
 
-    setConfirmandoCancelamento(false);
     startTransition(() => {
       router.refresh();
     });
@@ -209,52 +207,14 @@ function OrdemServicoCard({
 
   let actionButton = null;
   if (ordem.status === "ABERTA") {
-    actionButton = confirmandoCancelamento ? (
-      <div className="flex flex-col items-end gap-2 text-right">
-        <p className="text-sm text-slate-700">
-          Cancelar esta ordem de serviço? Ela será marcada como cancelada.
-        </p>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => setConfirmandoCancelamento(false)}
-            disabled={isPending}
-          >
-            Voltar
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            className="border-rose-300 text-rose-700 hover:border-rose-400 hover:bg-rose-50"
-            onClick={() => handleStatusChange("CANCELADA")}
-            isLoading={isPending}
-          >
-            Cancelar OS
-          </Button>
-        </div>
-      </div>
-    ) : (
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => {
-            setError(null);
-            setConfirmandoCancelamento(true);
-          }}
-          disabled={isPending}
-        >
-          Cancelar OS
-        </Button>
-        <Button
-          type="button"
-          onClick={() => handleStatusChange("EM_ANDAMENTO")}
-          isLoading={isPending}
-        >
-          Iniciar Serviço
-        </Button>
-      </div>
+    actionButton = (
+      <Button
+        type="button"
+        onClick={() => handleStatusChange("EM_ANDAMENTO")}
+        isLoading={isPending}
+      >
+        Iniciar Serviço
+      </Button>
     );
   } else if (ordem.status === "EM_ANDAMENTO") {
     actionButton = (
