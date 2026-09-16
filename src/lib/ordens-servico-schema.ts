@@ -99,7 +99,7 @@ export const ordemServicoServicosAtualizarSchema = z.object({
 });
 
 export const statusUpdateSchema = z.object({
-  statusNovo: z.enum(["EM_ANDAMENTO", "CONCLUIDA", "ENTREGUE"], {
+  statusNovo: z.enum(["EM_ANDAMENTO", "CONCLUIDA", "ENTREGUE", "CANCELADA"], {
     errorMap: () => ({ message: "Status inválido." }),
   }),
   observacao: z.string().optional(),
