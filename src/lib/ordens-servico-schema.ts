@@ -118,3 +118,9 @@ export type StatusUpdateValues = z.infer<typeof statusUpdateSchema>;
 export const ordemServicoIdParamsSchema = z.object({
   id: z.string().min(1, "ID da Ordem de Serviço é obrigatório."),
 });
+
+export const ordemServicoFavoritaSchema = z.object({
+  favorita: z.boolean({ required_error: "Informe se a OS deve ser favorita." }),
+});
+
+export type OrdemServicoFavoritaValues = z.infer<typeof ordemServicoFavoritaSchema>;

@@ -148,6 +148,7 @@ type OrdemServicoReal = {
   statusFinanceiro: "PENDENTE" | "PARCIAL" | "PAGO" | "CANCELADO";
   itens: Item[];
   historicosStatus?: HistoricoStatus[];
+  favorita?: boolean;
 };
 
 function OrdemServicoCard({
@@ -161,6 +162,8 @@ function OrdemServicoCard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [favoritaPending, setFavoritaPending] = useState(false);
+  const isFavorita = ordem.favorita === true;
 
   const statusLabel =
     statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
@@ -205,6 +208,41 @@ function OrdemServicoCard({
     });
   };
 
+  // Marcador operacional (issue #153): o backend é a fonte de verdade. Sem
+  // atualização otimista: após persistir, router.refresh() reposiciona o card
+  // conforme a ordenação vinda do servidor (favoritas primeiro).
+  const handleToggleFavorita = async () => {
+    if (favoritaPending || isPending) return;
+    setError(null);
+    setFavoritaPending(true);
+    try {
+      const response = await fetch(`/api/ordens-servico/${ordem.id}/favorita`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorita: !isFavorita }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        setError(
+          payload?.message ||
+            (isFavorita
+              ? "Erro ao remover a OS dos favoritos."
+              : "Erro ao favoritar a OS."),
+        );
+        return;
+      }
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } catch {
+      setError("Não foi possível comunicar com o servidor. Tente novamente.");
+    } finally {
+      setFavoritaPending(false);
+    }
+  };
+
   let actionButton = null;
   if (ordem.status === "ABERTA") {
     actionButton = (
@@ -240,10 +278,13 @@ function OrdemServicoCard({
 
   return (
     <article
+      data-favorita={isFavorita ? "true" : "false"}
       className={`rounded-[var(--r-field)] border p-4 transition ${
         isAtrasada
           ? "border-rose-300 bg-rose-50/60"
-          : "border-black/10 bg-white hover:border-[color:var(--accent-soft)]"
+          : isFavorita
+            ? "border-amber-300 bg-amber-50/40 hover:border-amber-400"
+            : "border-black/10 bg-white hover:border-[color:var(--accent-soft)]"
       }`}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -280,6 +321,53 @@ function OrdemServicoCard({
         </div>
 
         <div className="flex flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={handleToggleFavorita}
+            disabled={favoritaPending || isPending}
+            aria-pressed={isFavorita}
+            aria-busy={favoritaPending}
+            aria-label={
+              isFavorita ? "Remover dos favoritos" : "Favoritar ordem de serviço"
+            }
+            title={isFavorita ? "Remover dos favoritos" : "Favoritar ordem de serviço"}
+            className={`inline-flex h-9 w-9 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 ${
+              isFavorita
+                ? "border-amber-300 bg-amber-100 text-amber-600 hover:bg-amber-200"
+                : "border-black/10 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500"
+            }`}
+          >
+            {favoritaPending ? (
+              <svg
+                className="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+            ) : (
+              <svg
+                className="h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill={isFavorita ? "currentColor" : "none"}
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.9l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z" />
+              </svg>
+            )}
+          </button>
+          {isFavorita && <Badge tone="warning">Favorita</Badge>}
           {isAtrasada && <Badge tone="danger">Atrasada</Badge>}
           <Badge tone={getStatusTone(ordem.status)}>{statusLabel}</Badge>
           <Badge tone={statusFinanceiroTone}>{statusFinanceiroLabel}</Badge>

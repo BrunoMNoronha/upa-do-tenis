@@ -38,9 +38,10 @@ export async function listarOrdensServico() {
         },
       },
     },
-    // Ordem operacional: dataEntrada pode ser retroativa; criadoEm desempata
-    // registros do mesmo dia mantendo o mais recente primeiro.
-    orderBy: [{ dataEntrada: "desc" }, { criadoEm: "desc" }],
+    // Favoritas primeiro (marcador operacional, issue #153). Dentro de cada
+    // grupo vale a ordem operacional: dataEntrada pode ser retroativa; criadoEm
+    // desempata registros do mesmo dia mantendo o mais recente primeiro.
+    orderBy: [{ favorita: "desc" }, { dataEntrada: "desc" }, { criadoEm: "desc" }],
   });
 
   return ordens.map((ordem) => {
@@ -59,6 +60,32 @@ export async function listarOrdensServico() {
       ...normalizada,
       ...resumoFinanceiro,
     };
+  });
+}
+
+/**
+ * Marca ou desmarca uma OS como favorita. Operação idempotente: quando o
+ * estado persistido já é o solicitado, nada é gravado. Só o campo
+ * `favorita` é escrito; status, datas, valores e vínculos ficam intactos.
+ */
+export async function definirFavoritaOrdemServico(id: string, favorita: boolean) {
+  const atual = await prisma.ordemServico.findUnique({
+    where: { id },
+    select: { id: true, numero: true, favorita: true },
+  });
+
+  if (!atual) {
+    throw new OrdemServicoDetalheError("Ordem de serviço não encontrada.", 404);
+  }
+
+  if (atual.favorita === favorita) {
+    return atual;
+  }
+
+  return prisma.ordemServico.update({
+    where: { id },
+    data: { favorita },
+    select: { id: true, numero: true, favorita: true },
   });
 }
 

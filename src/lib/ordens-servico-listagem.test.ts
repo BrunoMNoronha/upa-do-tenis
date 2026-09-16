@@ -184,15 +184,183 @@ describe("ordens-servico listagem", () => {
     expect(ordens[0].statusFinanceiro).toBe("PARCIAL");
   });
 
-  it("ordena pela data operacional com criadoEm como desempate", async () => {
+  it("ordena favoritas primeiro e, dentro de cada grupo, pela data operacional com criadoEm como desempate", async () => {
     prismaMock.ordemServico.findMany.mockResolvedValueOnce([]);
 
     await listarOrdensServico();
 
     expect(prismaMock.ordemServico.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        orderBy: [{ dataEntrada: "desc" }, { criadoEm: "desc" }],
+        orderBy: [{ favorita: "desc" }, { dataEntrada: "desc" }, { criadoEm: "desc" }],
       }),
     );
+  });
+
+  describe("favoritas no topo (issue #153)", () => {
+    type Chave = "favorita" | "dataEntrada" | "criadoEm";
+    type OrdemBase = {
+      id: string;
+      favorita: boolean;
+      dataEntrada: Date;
+      criadoEm: Date;
+      status: string;
+      numero: string;
+      cliente: { nome: string; telefone: string };
+      valorTotal: number;
+      valorDesconto: number;
+      valorSinal: number;
+      valorPago: number;
+      pagamentos: never[];
+      itens: never[];
+    };
+
+    /**
+     * Aplica ao fixture o mesmo orderBy que o Prisma envia ao banco, para
+     * validar o resultado que a listagem entrega (o findMany é mockado).
+     * Postgres ordena boolean DESC como true > false.
+     */
+    function ordenarComoBanco<T extends Record<Chave, unknown>>(
+      ordens: T[],
+      orderBy: Array<Partial<Record<Chave, "asc" | "desc">>>,
+    ) {
+      return [...ordens].sort((a, b) => {
+        for (const criterio of orderBy) {
+          const [chave, direcao] = Object.entries(criterio)[0] as [Chave, "asc" | "desc"];
+          const va = a[chave] instanceof Date ? (a[chave] as Date).getTime() : Number(a[chave]);
+          const vb = b[chave] instanceof Date ? (b[chave] as Date).getTime() : Number(b[chave]);
+          if (va === vb) continue;
+          return direcao === "desc" ? vb - va : va - vb;
+        }
+        return 0;
+      });
+    }
+
+    function ordem(id: string, favorita: boolean, dataEntrada: string, status = "ABERTA"): OrdemBase {
+      return {
+        id,
+        numero: `OS-${id}`,
+        favorita,
+        status,
+        dataEntrada: new Date(`${dataEntrada}T12:00:00Z`),
+        criadoEm: new Date(`${dataEntrada}T12:00:00Z`),
+        cliente: { nome: `Cliente ${id}`, telefone: "61985307168" },
+        valorTotal: 100,
+        valorDesconto: 0,
+        valorSinal: 0,
+        valorPago: 0,
+        pagamentos: [],
+        itens: [],
+      };
+    }
+
+    // Cadastro em ordem A..E; pela regra vigente (dataEntrada desc) a lista
+    // sem favoritos seria E, D, C, B, A.
+    const fixture = [
+      ordem("A", false, "2026-09-01"),
+      ordem("B", true, "2026-09-02", "CONCLUIDA"),
+      ordem("C", false, "2026-09-03"),
+      ordem("D", true, "2026-09-04"),
+      ordem("E", false, "2026-09-05"),
+    ];
+
+    async function listarComFixture() {
+      prismaMock.ordemServico.findMany.mockImplementationOnce(async (args: any) =>
+        ordenarComoBanco(fixture, args.orderBy),
+      );
+      return listarOrdensServico();
+    }
+
+    it("mantém a ordenação vigente quando nenhuma OS é favorita", async () => {
+      prismaMock.ordemServico.findMany.mockImplementationOnce(async (args: any) =>
+        ordenarComoBanco(
+          fixture.map((o) => ({ ...o, favorita: false })),
+          args.orderBy,
+        ),
+      );
+
+      const ordens = await listarOrdensServico();
+
+      expect(ordens.map((o) => o.id)).toEqual(["E", "D", "C", "B", "A"]);
+    });
+
+    it("coloca favoritas no topo preservando a ordenação vigente em cada grupo", async () => {
+      const ordens = await listarComFixture();
+
+      expect(ordens.map((o) => o.id)).toEqual(["D", "B", "E", "C", "A"]);
+      expect(ordens.map((o) => o.favorita)).toEqual([true, true, false, false, false]);
+    });
+
+    it("uma OS que estaria no fim da lista sobe para o topo ao ser favoritada (conjunto completo, não só página)", async () => {
+      prismaMock.ordemServico.findMany.mockImplementationOnce(async (args: any) =>
+        ordenarComoBanco(
+          fixture.map((o) => ({ ...o, favorita: o.id === "A" })),
+          args.orderBy,
+        ),
+      );
+
+      const ordens = await listarOrdensServico();
+
+      expect(ordens.map((o) => o.id)).toEqual(["A", "E", "D", "C", "B"]);
+    });
+
+    it("favorito não fura o filtro de status operacional", async () => {
+      const ordens = await listarComFixture();
+
+      const abertas = filtrarOrdensServicoListagem({
+        ordens,
+        statusOperacional: "ABERTA",
+        statusFinanceiro: "TODAS",
+      });
+
+      // B é favorita mas CONCLUIDA: não aparece. D (favorita) segue no topo.
+      expect(abertas.map((o) => o.id)).toEqual(["D", "E", "C", "A"]);
+
+      const concluidas = filtrarOrdensServicoListagem({
+        ordens,
+        statusOperacional: "CONCLUIDA",
+        statusFinanceiro: "TODAS",
+      });
+      expect(concluidas.map((o) => o.id)).toEqual(["B"]);
+    });
+
+    it("favorito não fura o filtro financeiro", async () => {
+      prismaMock.ordemServico.findMany.mockImplementationOnce(async (args: any) =>
+        ordenarComoBanco(
+          fixture.map((o) => (o.id === "D" ? { ...o, valorPago: 100 } : o)),
+          args.orderBy,
+        ),
+      );
+      const ordens = await listarOrdensServico();
+
+      const pendentes = filtrarOrdensServicoListagem({
+        ordens,
+        statusOperacional: "TODAS",
+        statusFinanceiro: "PENDENTES",
+      });
+
+      // D é favorita mas está paga: sai do filtro; B continua no topo.
+      expect(pendentes.map((o) => o.id)).toEqual(["B", "E", "C", "A"]);
+    });
+
+    it("favorito não fura a busca por número/cliente/telefone", async () => {
+      const ordens = await listarComFixture();
+
+      const porNumero = ordens.filter((o) => ordemServicoCorrespondeBusca(o, "OS-C"));
+      expect(porNumero.map((o) => o.id)).toEqual(["C"]);
+
+      const porCliente = ordens.filter((o) => ordemServicoCorrespondeBusca(o, "cliente e"));
+      expect(porCliente.map((o) => o.id)).toEqual(["E"]);
+
+      // Busca ampla: mantém favoritas no topo dentro do conjunto correspondente.
+      const ampla = ordens.filter((o) => ordemServicoCorrespondeBusca(o, "cliente"));
+      expect(ampla.map((o) => o.id)).toEqual(["D", "B", "E", "C", "A"]);
+    });
+
+    it("expõe o campo favorita normalizado para o client", async () => {
+      const ordens = await listarComFixture();
+
+      const porId = Object.fromEntries(ordens.map((o) => [o.id, o.favorita]));
+      expect(porId).toEqual({ A: false, B: true, C: false, D: true, E: false });
+    });
   });
 });
