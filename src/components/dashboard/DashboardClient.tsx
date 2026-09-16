@@ -7,6 +7,7 @@ import { Button, EmptyState, ErrorState } from '@/components/ui';
 import { DashboardFiltros } from './DashboardFiltros';
 import { DashboardKpiCard } from './DashboardKpiCard';
 import { DashboardFilaOrdens } from './DashboardFilaOrdens';
+import { DashboardPanelSkeleton } from './DashboardPanel';
 import { DashboardSituacaoFinanceira } from './DashboardSituacaoFinanceira';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
@@ -162,6 +163,18 @@ export function DashboardClient() {
           ) : null}
         </div>
       </section>
+
+      {/* Skeleton dos blocos analíticos na primeira carga, com a mesma moldura do conteúdo final. */}
+      {!viewModel && loading && (
+        <div className="space-y-4">
+          <DashboardPanelSkeleton label="fila de ordens de serviço" />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <DashboardPanelSkeleton label="situação financeira" />
+            <DashboardPanelSkeleton label="serviços mais executados" />
+            <DashboardPanelSkeleton label="insumos mais utilizados" />
+          </div>
+        </div>
+      )}
 
       {viewModel && (
         <div className={`space-y-4 transition-opacity ${atualizando ? 'opacity-60' : ''}`}>
