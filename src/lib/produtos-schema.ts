@@ -15,8 +15,17 @@ export const produtoBaseSchema = z.object({
 export const produtoFormSchema = produtoBaseSchema.extend({
   quantidadeInicial: z.preprocess((val) => {
     if (val === "" || val === undefined || val === null) return undefined;
-    const num = Number(val);
-    return isNaN(num) ? val : num;
+    if (typeof val === "number") return val;
+    // Só strings numéricas são convertidas. Outros tipos (boolean, array,
+    // objeto) seguem intactos para o Zod rejeitar: `Number(true)` seria 1 e
+    // `Number([])` seria 0, criando estoque diferente do informado.
+    if (typeof val === "string") {
+      const texto = val.trim();
+      if (texto === "") return undefined;
+      const num = Number(texto);
+      return Number.isNaN(num) ? val : num;
+    }
+    return val;
   }, z.number().int("A quantidade inicial deve ser um número inteiro.").min(0, "A quantidade inicial não pode ser negativa.").optional()),
 });
 

@@ -18,7 +18,10 @@ export default async function InsumosPage(props: {
   await exigirSessao();
   const searchParams = await props.searchParams;
 
-  const insumos = (await listarInsumos()).map((insumo) => ({
+  const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
+
+  const insumosFetch = await listarInsumos(mostrarAlerta);
+  const insumosVisiveis = insumosFetch.map((insumo) => ({
     id: insumo.id,
     nome: insumo.nome,
     descricao: insumo.descricao,
@@ -28,12 +31,6 @@ export default async function InsumosPage(props: {
     custoUnitario: Number(insumo.custoUnitario),
     ativo: insumo.ativo,
   }));
-
-  const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
-
-  const insumosVisiveis = mostrarAlerta
-    ? insumos.filter((insumo) => insumo.quantidadeEstoque <= insumo.estoqueMinimo)
-    : insumos;
 
   return (
     <AppShell

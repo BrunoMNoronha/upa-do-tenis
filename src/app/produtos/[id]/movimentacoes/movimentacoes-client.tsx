@@ -12,6 +12,14 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+type BadgeTone = "success" | "danger" | "neutral";
+
+// Classificação explícita por tipo: `ESTORNO_VENDA` recompõe o estoque e é
+// entrada, apesar de conter "VENDA" no nome. `AJUSTE` fica neutro porque o
+// sinal só se lê pelo saldo anterior/posterior.
+const TIPOS_ENTRADA: ReadonlySet<string> = new Set(["ENTRADA_MANUAL", "ESTORNO_VENDA"]);
+const TIPOS_SAIDA: ReadonlySet<string> = new Set(["VENDA", "SAIDA_MANUAL"]);
+
 type MovimentacaoProduto = {
   id: string;
   tipo: string;
@@ -84,17 +92,10 @@ export function ProdutoMovimentacoesClient({
         ) : (
           <div className="space-y-3">
             {movimentacoes.map((mov) => {
-              const isEntrada =
-                mov.tipo.includes("ENTRADA") ||
-                mov.tipo.includes("ESTORNO");
-              const isSaida =
-                mov.tipo.includes("VENDA") ||
-                mov.tipo.includes("SAIDA") ||
-                mov.tipo.includes("BAIXA");
+              const isEntrada = TIPOS_ENTRADA.has(mov.tipo);
+              const isSaida = TIPOS_SAIDA.has(mov.tipo);
 
-              let corBadge = "neutral";
-              if (isEntrada) corBadge = "success";
-              if (isSaida) corBadge = "danger";
+              const corBadge: BadgeTone = isEntrada ? "success" : isSaida ? "danger" : "neutral";
 
               return (
                 <div
@@ -103,7 +104,7 @@ export function ProdutoMovimentacoesClient({
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 pb-3">
                     <div className="flex items-center gap-3">
-                      <Badge tone={corBadge as any}>{mov.tipo}</Badge>
+                      <Badge tone={corBadge}>{mov.tipo}</Badge>
                       <span className="text-slate-400">
                         {dateFormatter.format(new Date(mov.criadoEm))}
                       </span>
