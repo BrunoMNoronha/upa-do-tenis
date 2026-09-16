@@ -4,7 +4,14 @@ import { dataOperacionalHoje } from "@/lib/date-range";
 import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
 import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastreabilidade";
 import { prisma } from "@/lib/prisma";
-import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
+import { calcularResumoFinanceiroOS } from "@/lib/ordens-servico-financeiro";
+import {
+  calcularSubtotalItem,
+  calcularTotalItens,
+  encontrarItemComServicoRepetido,
+  listarServicoIdsDosItens,
+  normalizarItensOrdemServico,
+} from "@/lib/ordens-servico-itens";
 import { listarOrdensServicoPaginado } from "@/lib/ordens-servico";
 import { normalizarFiltrosListagemOrdensServico } from "@/lib/ordens-servico-listagem";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
@@ -63,20 +70,26 @@ export async function POST(req: NextRequest) {
       ? new Date(`${dataOperacional}T12:00:00`)
       : new Date();
 
-    const servicosInformados = data.servicos.length > 0
-      ? data.servicos
-      : data.servicoId
-        ? [{ servicoId: data.servicoId, valor: data.valorEstimado }]
-        : [];
-
-    const servicoIds = servicosInformados.map((servico) => servico.servicoId);
-    if (new Set(servicoIds).size !== servicoIds.length) {
+    // Itens recebidos (issue #205): contrato novo `itens[]` ou o antigo
+    // (item único + serviços), ambos normalizados para a mesma lista.
+    const itens = normalizarItensOrdemServico(data);
+    if (itens.length === 0) {
       return NextResponse.json(
-        { message: "Não é possível repetir o mesmo serviço na OS." },
+        { message: "Informe pelo menos um item recebido." },
         { status: 400 },
       );
     }
 
+    const indiceComRepeticao = encontrarItemComServicoRepetido(itens);
+    if (indiceComRepeticao >= 0) {
+      return NextResponse.json(
+        { message: `Não é possível repetir o mesmo serviço no item ${indiceComRepeticao + 1}.` },
+        { status: 400 },
+      );
+    }
+
+    // Uma única consulta para todos os serviços de todos os itens.
+    const servicoIds = listarServicoIdsDosItens(itens);
     const servicos = servicoIds.length > 0
       ? await prisma.servico.findMany({
           where: { id: { in: servicoIds } },
@@ -98,11 +111,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const valorTotalServicos = arredondarMoeda(
-      servicosInformados.reduce((total, servico) => total + servico.valor, 0),
-    );
-    const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : arredondarMoeda(data.valorEstimado);
-
+    // Subtotal por item (soma dos serviços) e total da OS (soma dos subtotais).
+    const itensComSubtotal = itens.map((item) => ({ ...item, subtotal: calcularSubtotalItem(item) }));
+    const valorTotal = calcularTotalItens(itens);
 
     // Identificador operacional: OS-<DDMMAAAA da Data de Entrada>-<número informado
     // pelo operador>. Não há geração automática; a data usada é a operacional
@@ -145,19 +156,29 @@ export async function POST(req: NextRequest) {
           valorPago: resumoFinanceiro.valorPago,
           saldo: resumoFinanceiro.saldo,
           observacoes: data.observacoes,
-          itens: {
-            create: {
-              tipoItem: "CALCADO", // Default for now
-              descricao: data.itemRecebido,
-              valor: valorTotal,
-              servicos: servicosInformados.length > 0
-                ? { create: servicosInformados }
-                : undefined,
-            }
-          },
         },
-        include: { itens: { select: { id: true } } },
       });
+
+      // Itens criados um a um, na ordem informada, para devolver ao navegador
+      // o mapeamento clientKey → id (as fotos só podem ser enviadas depois).
+      // Qualquer falha desfaz a OS inteira junto com a transação.
+      const itensCriados: Array<{ id: string; clientKey: string; descricao: string }> = [];
+      for (const item of itensComSubtotal) {
+        const itemCriado = await tx.itemOrdemServico.create({
+          data: {
+            ordemServicoId: ordemCriada.id,
+            tipoItem: item.tipoItem,
+            descricao: item.descricao,
+            observacoes: item.observacoes,
+            valor: item.subtotal,
+            servicos: item.servicos.length > 0
+              ? { create: item.servicos }
+              : undefined,
+          },
+          select: { id: true },
+        });
+        itensCriados.push({ id: itemCriado.id, clientKey: item.clientKey, descricao: item.descricao });
+      }
 
       if (ehRetroativa) {
         await tx.historicoStatus.create({
@@ -175,7 +196,7 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      return ordemCriada;
+      return { ...ordemCriada, itens: itensCriados };
     });
 
     // Caminho público de acompanhamento (token assinado) para a sugestão de

@@ -156,6 +156,17 @@ describe("ordens-servico listagem", () => {
       expect(ordemServicoCorrespondeBusca(ordem, "")).toBe(true);
       expect(ordemServicoCorrespondeBusca(ordem, "   ")).toBe(true);
     });
+
+    it("encontra pela descrição de qualquer item, não só do primeiro (issue #205)", () => {
+      const comItens = {
+        ...ordem,
+        itens: [{ descricao: "Tênis preto" }, { descricao: "Bota marrom" }],
+      };
+      expect(ordemServicoCorrespondeBusca(comItens, "bota")).toBe(true);
+      expect(ordemServicoCorrespondeBusca(comItens, "Tênis")).toBe(true);
+      expect(ordemServicoCorrespondeBusca(comItens, "sandália")).toBe(false);
+      expect(ordemServicoCorrespondeBusca({ ...ordem, itens: [] }, "bota")).toBe(false);
+    });
   });
 
   it("nao quebra com OS antigas (valorPago legado sem pagamentos)", async () => {

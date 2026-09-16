@@ -37,24 +37,25 @@ function posicao(html: string, trecho: string) {
 describe("layout do formulário de cadastro de OS", () => {
   const html = renderizarCadastro();
 
-  it("mantém todos os campos existentes com os mesmos ids (bindings inalterados)", () => {
-    for (const id of [
-      "clienteId",
-      "dataEntrada",
-      "numeroOS",
-      "prazoPrevisto",
-      "itemRecebido",
-      "fotoRecebimento",
-      "servicoId",
-      "valorEstimado",
-      "observacoes",
-    ]) {
+  it("mantém os campos da OS com os mesmos ids (bindings inalterados)", () => {
+    for (const id of ["clienteId", "dataEntrada", "numeroOS", "prazoPrevisto", "observacoes"]) {
       expect(html, `campo #${id}`).toContain(`id="${id}"`);
     }
   });
 
-  it("organiza o formulário em seções na ordem: cliente, dados da OS, item, serviços, observações", () => {
-    const secoes = ["Cliente", "Dados da Ordem de Serviço", "Item recebido", "Serviços", "Observações"];
+  it("renderiza um card de item com descrição, foto e serviços; sem valor total digitável (issue #205)", () => {
+    expect(html).toContain('data-testid="item-recebido-0"');
+    expect(html).toContain('name="itens.0.descricao"');
+    expect(html).toMatch(/<input[^>]*id="item-[^"]+-foto"[^>]*type="file"/);
+    expect(html).toMatch(/<input[^>]*id="item-[^"]+-servico"[^>]*role="combobox"/);
+    expect(html).toContain(">+ Adicionar outro item</button>");
+    expect(html).toContain('data-testid="total-ordem"');
+    expect(html).not.toContain('id="valorEstimado"');
+    expect(html).not.toContain('id="itemRecebido"');
+  });
+
+  it("organiza o formulário em seções na ordem: cliente, dados da OS, itens recebidos, observações", () => {
+    const secoes = ["Cliente", "Dados da Ordem de Serviço", "Itens recebidos", "Observações"];
     // O título pode trazer o marcador de obrigatório após o texto.
     const posicoes = secoes.map((titulo) => posicao(html, `tracking-[0.16em] text-[color:var(--accent-strong)]">${titulo}`));
     expect([...posicoes].sort((a, b) => a - b)).toEqual(posicoes);
@@ -66,10 +67,12 @@ describe("layout do formulário de cadastro de OS", () => {
       'id="dataEntrada"',
       'id="numeroOS"',
       'id="prazoPrevisto"',
-      'id="itemRecebido"',
-      'id="fotoRecebimento"',
-      'id="servicoId"',
-      'id="valorEstimado"',
+      'name="itens.0.descricao"',
+      'type="file"',
+      'placeholder="Adicionar serviço..."',
+      ">Subtotal do item</span>",
+      ">+ Adicionar outro item</button>",
+      'data-testid="total-ordem"',
       'id="observacoes"',
       ">Cancelar</button>",
       'type="submit"',

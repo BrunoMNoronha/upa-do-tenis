@@ -60,7 +60,7 @@ describe("ordens-servico-schema", () => {
     });
   });
 
-  it("rejeita criar uma OS sem serviços", () => {
+  it("aceita criar uma OS sem serviços: o item pode ser detalhado depois (issue #205)", () => {
     const resultado = ordemServicoFormSchema.safeParse({
       clienteId: "cliente-1",
       numeroOS: "0001",
@@ -69,7 +69,105 @@ describe("ordens-servico-schema", () => {
       valorEstimado: 0,
     });
 
+    expect(resultado.success).toBe(true);
+  });
+
+  it("rejeita o contrato antigo sem descrição do item", () => {
+    const resultado = ordemServicoFormSchema.safeParse({
+      clienteId: "cliente-1",
+      numeroOS: "0001",
+      itemRecebido: "",
+      prazoPrevisto: "2026-09-10",
+      servicos: [{ servicoId: "servico-1", valor: 100 }],
+    });
+
     expect(resultado.success).toBe(false);
+    if (!resultado.success) {
+      expect(resultado.error.flatten().fieldErrors.itens).toContain("Informe pelo menos um item recebido.");
+    }
+  });
+
+  describe("itens[] (issue #205)", () => {
+    const base = {
+      clienteId: "cliente-1",
+      numeroOS: "0001",
+      prazoPrevisto: "2026-09-10",
+    };
+
+    it("aceita dois itens com serviços próprios e valorEstimado ausente", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: [
+          { clientKey: "a", descricao: "Tênis preto", servicos: [{ servicoId: "servico-1", valor: "40,00" }] },
+          { clientKey: "b", descricao: "Bota marrom", servicos: [{ servicoId: "servico-2", valor: 90 }] },
+        ],
+      });
+
+      expect(resultado.success).toBe(true);
+      if (resultado.success) {
+        expect(resultado.data.itens).toHaveLength(2);
+        expect(resultado.data.itens[0].tipoItem).toBe("CALCADO");
+        expect(resultado.data.itens[0].servicos).toEqual([{ servicoId: "servico-1", valor: 40 }]);
+        expect(resultado.data.valorEstimado).toBe(0);
+      }
+    });
+
+    it("aceita item sem serviço", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: [{ descricao: "Bolsa de couro" }],
+      });
+
+      expect(resultado.success).toBe(true);
+      if (resultado.success) {
+        expect(resultado.data.itens[0].servicos).toEqual([]);
+      }
+    });
+
+    it("exige descrição em cada item", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: [{ descricao: "Tênis preto" }, { descricao: " " }],
+      });
+
+      expect(resultado.success).toBe(false);
+    });
+
+    it("rejeita o mesmo serviço duas vezes no mesmo item", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: [{
+          descricao: "Tênis preto",
+          servicos: [
+            { servicoId: "servico-1", valor: 10 },
+            { servicoId: "servico-1", valor: 20 },
+          ],
+        }],
+      });
+
+      expect(resultado.success).toBe(false);
+    });
+
+    it("aceita o mesmo serviço em itens diferentes", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: [
+          { descricao: "Tênis preto", servicos: [{ servicoId: "servico-1", valor: 10 }] },
+          { descricao: "Tênis branco", servicos: [{ servicoId: "servico-1", valor: 10 }] },
+        ],
+      });
+
+      expect(resultado.success).toBe(true);
+    });
+
+    it("limita a quantidade de itens por OS", () => {
+      const resultado = ordemServicoFormSchema.safeParse({
+        ...base,
+        itens: Array.from({ length: 11 }, (_, indice) => ({ descricao: `Item ${indice + 1}` })),
+      });
+
+      expect(resultado.success).toBe(false);
+    });
   });
 
   it("rejeita remover todos os serviços de um item", () => {

@@ -5,6 +5,13 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 ## [Não lançado]
 
 ### Adicionado
+- **Múltiplos itens recebidos por OS** (issue #205): uma OS pode registrar vários objetos do mesmo cliente, cada um com descrição, foto e serviços próprios.
+  - Cadastro com cards repetidores ("+ Adicionar outro item", até 10 itens), subtotal por item calculado dos serviços e total da OS derivado dos subtotais; não há mais valor total digitável.
+  - Item pode ser cadastrado sem serviço e detalhado depois; o mesmo serviço é aceito em itens diferentes, mas não repetido no mesmo item.
+  - `POST /api/ordens-servico` passa a receber `itens[]` e cria a OS e os itens em uma única transação, devolvendo o mapeamento `clientKey → id` para associar cada foto ao item certo. O contrato antigo (`itemRecebido` + `servicos`) continua aceito e vira um item.
+  - Fotos são enviadas uma a uma após a criação; falha em uma foto não cria outra OS nem perde as já salvas, e "Reenviar fotos com falha" reenvia só as pendentes.
+  - Listagem resume todos os itens (`3 itens: Tênis preto, Bota marrom +1`) e agrega os serviços; a busca encontra a OS pela descrição de qualquer item.
+  - Sem alteração de schema Prisma; a galeria de várias fotos por item fica para a issue #206.
 - **Fotos da OS pelo celular** (`/os/fotos`, PR #202): tela mobile-first para incluir fotos em ordens de serviço, acessível pelo menu "Fotos da OS".
   - Busca de OS por número (priorizando o número exato), nome ou telefone do cliente, com estados de carregando, nenhum resultado e erro.
   - Conferência de número, cliente, item e status antes da foto; em OS com vários itens, o operador escolhe o item.

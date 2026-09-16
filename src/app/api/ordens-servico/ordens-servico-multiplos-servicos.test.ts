@@ -11,6 +11,7 @@ const { prismaMock } = vi.hoisted(() => {
   const mock: any = {
     servico: { findMany: vi.fn() },
     ordemServico: { findUnique: vi.fn(), create: vi.fn() },
+    itemOrdemServico: { create: vi.fn() },
     historicoStatus: { create: vi.fn() },
     $transaction: vi.fn(async (callback: any) => callback(mock)),
   };
@@ -54,6 +55,13 @@ function dadosDoCreate() {
   return prismaMock.ordemServico.create.mock.calls[0][0].data;
 }
 
+// Desde a issue #205 os itens são criados um a um dentro da transação; o
+// contrato antigo (item único) vira exatamente uma chamada.
+function dadosDoItem() {
+  expect(prismaMock.itemOrdemServico.create).toHaveBeenCalledTimes(1);
+  return prismaMock.itemOrdemServico.create.mock.calls[0][0].data;
+}
+
 describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,6 +74,7 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     );
     prismaMock.ordemServico.findUnique.mockResolvedValue(null);
     prismaMock.ordemServico.create.mockResolvedValue({ id: "os-1", numero: "OS-05092026-0001" });
+    prismaMock.itemOrdemServico.create.mockResolvedValue({ id: "item-1" });
     prismaMock.historicoStatus.create.mockResolvedValue({ id: "hist-1" });
   });
 
@@ -94,8 +103,10 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     expect(data.valorTotal).toBe(175.5);
     expect(data.valorPago).toBe(0);
     expect(data.saldo).toBe(175.5);
-    expect(data.itens.create.valor).toBe(175.5);
-    expect(data.itens.create.servicos.create).toEqual([
+    const item = dadosDoItem();
+    expect(item.ordemServicoId).toBe("os-1");
+    expect(item.valor).toBe(175.5);
+    expect(item.servicos.create).toEqual([
       { servicoId: "servico-1", valor: 100 },
       { servicoId: "servico-2", valor: 75.5 },
     ]);
@@ -114,7 +125,7 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     const data = dadosDoCreate();
     expect(data.valorTotal).toBe(80);
     expect(data.saldo).toBe(80);
-    expect(data.itens.create.servicos.create).toEqual([{ servicoId: "servico-1", valor: 80 }]);
+    expect(dadosDoItem().servicos.create).toEqual([{ servicoId: "servico-1", valor: 80 }]);
   });
 
   it("ignora valorEstimado divergente quando há serviços informados", async () => {
@@ -131,7 +142,7 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
 
     const data = dadosDoCreate();
     expect(data.valorTotal).toBe(75.5);
-    expect(data.itens.create.valor).toBe(75.5);
+    expect(dadosDoItem().valor).toBe(75.5);
   });
 
   it("aceita o contrato legado (servicoId + valorEstimado) criando um único vínculo", async () => {
@@ -151,8 +162,9 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
 
     const data = dadosDoCreate();
     expect(data.valorTotal).toBe(120);
-    expect(data.itens.create.valor).toBe(120);
-    expect(data.itens.create.servicos.create).toEqual([{ servicoId: "servico-legado", valor: 120 }]);
+    const item = dadosDoItem();
+    expect(item.valor).toBe(120);
+    expect(item.servicos.create).toEqual([{ servicoId: "servico-legado", valor: 120 }]);
   });
 
   it("prioriza a lista de serviços sobre o servicoId legado quando ambos vêm no payload", async () => {
@@ -167,7 +179,7 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
 
     const data = dadosDoCreate();
     expect(data.valorTotal).toBe(50);
-    expect(data.itens.create.servicos.create).toEqual([{ servicoId: "servico-1", valor: 50 }]);
+    expect(dadosDoItem().servicos.create).toEqual([{ servicoId: "servico-1", valor: 50 }]);
   });
 
   it("aplica arredondamento monetário ao total e ao valor do item", async () => {
@@ -185,7 +197,7 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     const data = dadosDoCreate();
     expect(data.valorTotal).toBe(30.3);
     expect(data.saldo).toBe(30.3);
-    expect(data.itens.create.valor).toBe(30.3);
+    expect(dadosDoItem().valor).toBe(30.3);
   });
 
   it("rejeita o mesmo serviço repetido antes de consultar o banco", async () => {
@@ -200,7 +212,12 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     );
 
     expect(resposta.status).toBe(400);
-    expect((await resposta.json()).message).toBe("Não é possível repetir o mesmo serviço na OS.");
+    // A duplicidade é barrada já na validação do payload (issue #205).
+    const body = await resposta.json();
+    expect(body.message).toBe("Dados inválidos.");
+    expect(body.errors.fieldErrors.servicos).toContain(
+      "O mesmo serviço não pode ser adicionado duas vezes ao mesmo item.",
+    );
     expect(prismaMock.servico.findMany).not.toHaveBeenCalled();
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
@@ -246,14 +263,18 @@ describe("POST /api/ordens-servico — múltiplos serviços (Issue #3)", () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it("rejeita payload sem nenhum serviço com erro de validação", async () => {
-    const resposta = await POST(criarRequest({ ...payloadBase, servicos: [] }));
+  it("aceita payload sem nenhum serviço: o item pode ser detalhado depois (issue #205)", async () => {
+    const resposta = await POST(criarRequest({ ...payloadBase, servicos: [], valorEstimado: 45 }));
 
-    expect(resposta.status).toBe(400);
-    const body = await resposta.json();
-    expect(body.message).toBe("Dados inválidos.");
-    expect(body.errors.fieldErrors.servicos).toContain("Informe pelo menos um serviço.");
+    expect(resposta.status).toBe(201);
     expect(prismaMock.servico.findMany).not.toHaveBeenCalled();
+
+    const data = dadosDoCreate();
+    // Sem serviços, o contrato antigo mantém o valor informado manualmente.
+    expect(data.valorTotal).toBe(45);
+    const item = dadosDoItem();
+    expect(item.valor).toBe(45);
+    expect(item.servicos).toBeUndefined();
   });
 
   it("rejeita serviço com valor negativo com erro de validação", async () => {

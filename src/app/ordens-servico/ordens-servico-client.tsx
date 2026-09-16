@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useTransition, useCallback, useEffect, useRef } from "react";
-import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useFieldArray, useForm } from "react-hook-form";
 
 import {
   Badge,
@@ -30,7 +29,6 @@ import {
   formatCurrency,
   formatPhone,
   maskCPFCNPJ,
-  maskCurrency,
   maskPhone,
   whatsappLink,
 } from "@/lib/formatters";
@@ -41,8 +39,20 @@ import {
 import {
   ordemServicoFormSchema,
   type OrdemServicoFormValues,
-  type OrdemServicoServicoValues,
+  type OrdemServicoItemValues,
 } from "@/lib/ordens-servico-schema";
+import {
+  LIMITE_ITENS_POR_OS,
+  TIPO_ITEM_PADRAO,
+  calcularTotalItens,
+  resumirItensOrdem,
+} from "@/lib/ordens-servico-itens";
+import {
+  ItemRecebidoFormCard,
+  gerarClientKeyItem,
+  type EstadoFotoItem,
+  type StatusUploadFotoItem,
+} from "./item-recebido-form-card";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
@@ -57,9 +67,6 @@ import {
 import type { EstatisticasOrdensServico } from "@/lib/ordens-servico";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
-import { FotoOtimizadaResumo } from "@/components/foto-otimizada-resumo";
-import { useFotoOtimizada } from "@/components/use-foto-otimizada";
-
 type StatusFilter = StatusOperacionalListagem;
 
 const statusOptions: Array<{
@@ -117,12 +124,19 @@ function getStatusTone(
   }
 }
 
+const criarItemVazio = (): OrdemServicoItemValues => ({
+  clientKey: gerarClientKeyItem(),
+  tipoItem: TIPO_ITEM_PADRAO,
+  descricao: "",
+  observacoes: "",
+  servicos: [],
+});
+
 const criarDefaultValues = (): OrdemServicoFormValues => {
   const hoje = dataOperacionalHoje();
   return {
     clienteId: "",
-    itemRecebido: "",
-    servicoId: "",
+    itens: [criarItemVazio()],
     servicos: [],
     dataEntrada: hoje,
     numeroOS: "",
@@ -133,6 +147,25 @@ const criarDefaultValues = (): OrdemServicoFormValues => {
     observacoes: "",
   };
 };
+
+type UploadFotoItem = {
+  clientKey: string;
+  itemId: string;
+  arquivo: File;
+  status: StatusUploadFotoItem;
+  erro?: string;
+};
+
+type OrdemCriadaComCliente = {
+  id: string;
+  numero: string;
+  caminhoAcompanhamento?: string;
+  nomeCliente: string;
+  telefone?: string;
+};
+
+/** OS já criada cujo upload de foto de algum item ainda não terminou bem. */
+type OrdemPendenteFoto = OrdemCriadaComCliente & { uploads: UploadFotoItem[] };
 
 const defaultClienteValues: ClienteFormValues = {
   nome: "",
@@ -193,11 +226,8 @@ function OrdemServicoCard({
 
   const statusLabel =
     statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
-  const itemPrincipal = ordem.itens?.[0];
-  const servicosDaOrdem = itemPrincipal?.servicos
-    ?.map((item) => item.servico?.nome)
-    .filter(Boolean)
-    .join(", ");
+  // Resume todos os itens recebidos, não só o primeiro (issue #205).
+  const resumoItens = resumirItensOrdem(ordem.itens);
   const statusFinanceiroLabel =
     ordem.statusFinanceiro === "PARCIAL"
       ? "Parcial"
@@ -428,18 +458,18 @@ function OrdemServicoCard({
       <div className="mt-4 grid gap-3 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-3">
         <div>
           <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-            Item
+            {resumoItens.quantidade > 1 ? "Itens" : "Item"}
           </p>
           <p className="mt-1 text-[color:var(--text)]">
-            {itemPrincipal?.descricao || "Nenhum"}
+            {resumoItens.itens}
           </p>
         </div>
         <div>
           <p className="text-xs uppercase tracking-[0.12em] text-slate-500">
-            Serviço
+            {resumoItens.servicos.includes(",") ? "Serviços" : "Serviço"}
           </p>
           <p className="mt-1 text-[color:var(--text)]">
-            {servicosDaOrdem || "Geral"}
+            {resumoItens.servicos}
           </p>
         </div>
         <div>
@@ -611,26 +641,18 @@ function OrdemServicoForm({
   const [mostrarNovoCliente, setMostrarNovoCliente] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clienteError, setClienteError] = useState<string | null>(null);
-  const foto = useFotoOtimizada();
-  const fotoRecebimento = foto.arquivo;
-  const fotoProcessando = foto.estado === "processando";
-  const fotoInputRef = useRef<HTMLInputElement>(null);
-  const [ordemPendenteFoto, setOrdemPendenteFoto] = useState<{
-    id: string;
-    itemId: string;
-    numero: string;
-    caminhoAcompanhamento?: string;
-    nomeCliente: string;
-    telefone?: string;
-  } | null>(null);
+  // Fotos ficam fora do JSON do formulário, indexadas pela clientKey do item.
+  const [fotosPorItem, setFotosPorItem] = useState<Record<string, EstadoFotoItem>>({});
+  const fotoProcessando = Object.values(fotosPorItem).some((estado) => estado.processando);
+  // OS já criada cujo upload de foto de algum item falhou: o botão de
+  // cadastrar não pode criar outra OS, e só as fotos com erro são reenviadas.
+  const [ordemPendenteFoto, setOrdemPendenteFoto] = useState<OrdemPendenteFoto | null>(null);
   const [reenviandoFoto, setReenviandoFoto] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [servicosSelecionados, setServicosSelecionados] = useState<
-    OrdemServicoServicoValues[]
-  >([]);
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
@@ -641,6 +663,23 @@ function OrdemServicoForm({
     defaultValues: criarDefaultValues(),
     mode: "onChange",
   });
+  const { fields: itensFields, append: adicionarItem, remove: removerItemDoFormulario } = useFieldArray({
+    control,
+    name: "itens",
+    keyName: "fieldId",
+  });
+  const itensAtuais = watch("itens");
+  const totalOrdem = calcularTotalItens(itensAtuais ?? []);
+
+  const registrarFotoDoItem = useCallback((clientKey: string, estado: EstadoFotoItem) => {
+    setFotosPorItem((atual) => {
+      const anterior = atual[clientKey];
+      if (anterior && anterior.arquivo === estado.arquivo && anterior.processando === estado.processando) {
+        return atual;
+      }
+      return { ...atual, [clientKey]: estado };
+    });
+  }, []);
 
   const hojeOperacional = dataOperacionalHoje();
   const dataEntradaSelecionada = watch("dataEntrada");
@@ -651,13 +690,6 @@ function OrdemServicoForm({
     dataEntradaSelecionada || hojeOperacional,
     numeroOSDigitado,
   );
-
-  const selecionarFoto = (arquivo: File | null) => {
-    void foto.selecionar(arquivo).then((ok) => {
-      // Após erro, limpa o input para permitir escolher o mesmo arquivo de novo.
-      if (!ok && fotoInputRef.current) fotoInputRef.current.value = "";
-    });
-  };
 
   const enviarFoto = async (ordemId: string, itemId: string, arquivo: File) => {
     const dados = new FormData();
@@ -672,11 +704,36 @@ function OrdemServicoForm({
     }
   };
 
-  const concluirCriacao = (criada: NonNullable<typeof ordemPendenteFoto>) => {
+  /**
+   * Envia as fotos uma a uma (baixa concorrência no celular) e devolve a
+   * lista com o resultado de cada uma. Falha em uma foto não interrompe as
+   * demais nem apaga a OS.
+   */
+  const enviarFotosDosItens = async (ordemId: string, uploads: UploadFotoItem[]) => {
+    const resultado: UploadFotoItem[] = [];
+    for (const upload of uploads) {
+      if (upload.status === "enviada") {
+        resultado.push(upload);
+        continue;
+      }
+      try {
+        await enviarFoto(ordemId, upload.itemId, upload.arquivo);
+        resultado.push({ ...upload, status: "enviada", erro: undefined });
+      } catch (error) {
+        resultado.push({
+          ...upload,
+          status: "erro",
+          erro: error instanceof Error ? error.message : "Não foi possível salvar a foto.",
+        });
+      }
+    }
+    return resultado;
+  };
+
+  const concluirCriacao = (criada: OrdemCriadaComCliente) => {
+    // Novas clientKeys remontam os cards e limpam as fotos de cada item.
     reset(criarDefaultValues());
-    setServicosSelecionados([]);
-    foto.limpar();
-    if (fotoInputRef.current) fotoInputRef.current.value = "";
+    setFotosPorItem({});
     setOrdemPendenteFoto(null);
     onClose();
     if (criada.caminhoAcompanhamento) {
@@ -691,18 +748,28 @@ function OrdemServicoForm({
   };
 
   const reenviarFoto = async () => {
-    if (!ordemPendenteFoto || !fotoRecebimento || reenviandoFoto) return;
+    if (!ordemPendenteFoto || reenviandoFoto) return;
     setReenviandoFoto(true);
     setSubmitError(null);
     try {
-      await enviarFoto(ordemPendenteFoto.id, ordemPendenteFoto.itemId, fotoRecebimento);
-      concluirCriacao(ordemPendenteFoto);
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Não foi possível salvar a foto.");
+      // Só as fotos com falha são reenviadas; as já salvas ficam como estão.
+      const uploads = await enviarFotosDosItens(ordemPendenteFoto.id, ordemPendenteFoto.uploads);
+      const comErro = uploads.filter((upload) => upload.status === "erro");
+      if (comErro.length === 0) {
+        concluirCriacao(ordemPendenteFoto);
+        return;
+      }
+      setOrdemPendenteFoto({ ...ordemPendenteFoto, uploads });
+      setSubmitError(montarMensagemFotosComErro(comErro.length));
     } finally {
       setReenviandoFoto(false);
     }
   };
+
+  const montarMensagemFotosComErro = (quantidade: number) =>
+    quantidade === 1
+      ? "A OS foi criada, mas a foto de um item não foi salva. Reenvie a foto ou abra a OS para continuar."
+      : `A OS foi criada, mas as fotos de ${quantidade} itens não foram salvas. Reenvie as fotos ou abra a OS para continuar.`;
 
   const {
     register: registerCliente,
@@ -744,11 +811,17 @@ function OrdemServicoForm({
     cancelarNovoCliente();
   });
 
-  const adicionarServico = (servicoId: string) => {
-    if (
-      !servicoId ||
-      servicosSelecionados.some((item) => item.servicoId === servicoId)
-    ) {
+  // Serviços vivem em `itens[indice].servicos`; o subtotal do item e o total
+  // da OS são derivados deles, nunca digitados.
+  const servicosDoItem = (indice: number) => itensAtuais?.[indice]?.servicos ?? [];
+  const definirServicosDoItem = (indice: number, atualizados: OrdemServicoItemValues["servicos"]) => {
+    setValue(`itens.${indice}.servicos`, atualizados, { shouldValidate: true, shouldDirty: true });
+  };
+
+  const adicionarServico = (indice: number, servicoId: string) => {
+    const atuais = servicosDoItem(indice);
+    // Mesmo serviço em itens diferentes é permitido; repetido no item, não.
+    if (!servicoId || atuais.some((item) => item.servicoId === servicoId)) {
       return;
     }
 
@@ -757,62 +830,60 @@ function OrdemServicoForm({
       return;
     }
 
-    const novoServico = {
-      servicoId,
-      valor: Number(servico.precoBase || 0),
-    };
-    const atualizados = [...servicosSelecionados, novoServico];
-    setServicosSelecionados(atualizados);
-    setValue("servicos", atualizados);
-    setValue(
-      "valorEstimado",
-      atualizados.reduce(
-        (total, item) => total + Number(item.valor || 0),
-        0,
-      ) as unknown as number,
-    );
+    definirServicosDoItem(indice, [
+      ...atuais,
+      { servicoId, valor: Number(servico.precoBase || 0) },
+    ]);
   };
 
-  const atualizarValorServico = (servicoId: string, valor: string) => {
+  const atualizarValorServico = (indice: number, servicoId: string, valor: string) => {
     const valorNumerico = Number(valor.replace(",", "."));
-    const atualizados = servicosSelecionados.map((item) =>
-      item.servicoId === servicoId
-        ? { ...item, valor: Number.isFinite(valorNumerico) ? valorNumerico : 0 }
-        : item,
-    );
-    setServicosSelecionados(atualizados);
-    setValue("servicos", atualizados);
-    setValue(
-      "valorEstimado",
-      atualizados.reduce(
-        (total, item) => total + Number(item.valor || 0),
-        0,
-      ) as unknown as number,
+    definirServicosDoItem(
+      indice,
+      servicosDoItem(indice).map((item) =>
+        item.servicoId === servicoId
+          ? { ...item, valor: Number.isFinite(valorNumerico) ? valorNumerico : 0 }
+          : item,
+      ),
     );
   };
 
-  const removerServico = (servicoId: string) => {
-    const atualizados = servicosSelecionados.filter(
-      (item) => item.servicoId !== servicoId,
+  const removerServico = (indice: number, servicoId: string) => {
+    definirServicosDoItem(
+      indice,
+      servicosDoItem(indice).filter((item) => item.servicoId !== servicoId),
     );
-    setServicosSelecionados(atualizados);
-    setValue("servicos", atualizados);
-    setValue(
-      "valorEstimado",
-      atualizados.reduce(
-        (total, item) => total + Number(item.valor || 0),
-        0,
-      ) as unknown as number,
-    );
+  };
+
+  const adicionarNovoItem = () => {
+    if (itensFields.length >= LIMITE_ITENS_POR_OS) return;
+    adicionarItem(criarItemVazio());
+  };
+
+  const removerItem = (indice: number) => {
+    if (itensFields.length <= 1) return;
+    const item = itensAtuais?.[indice];
+    const clientKey = itensFields[indice]?.clientKey ?? item?.clientKey ?? "";
+    const temConteudo =
+      (item?.servicos?.length ?? 0) > 0 || Boolean(fotosPorItem[clientKey]?.arquivo);
+    if (temConteudo && !window.confirm(`Remover o item ${indice + 1}? Os serviços e a foto dele serão descartados.`)) {
+      return;
+    }
+    removerItemDoFormulario(indice);
+    setFotosPorItem((atual) => {
+      if (!(clientKey in atual)) return atual;
+      const { [clientKey]: _removida, ...restantes } = atual;
+      return restantes;
+    });
   };
 
   const onSubmit = handleSubmit(async (values) => {
     if (ordemPendenteFoto) {
-      setSubmitError("Esta OS já foi criada. Reenvie a foto ou abra o detalhe para continuar.");
+      setSubmitError("Esta OS já foi criada. Reenvie as fotos ou abra o detalhe para continuar.");
       return;
     }
     if (fotoProcessando) {
-      setSubmitError("Aguarde a otimização da foto terminar.");
+      setSubmitError("Aguarde a otimização das fotos terminar.");
       return;
     }
     setSubmitError(null);
@@ -837,28 +908,47 @@ function OrdemServicoForm({
       id: string;
       numero: string;
       caminhoAcompanhamento?: string;
-      itens: Array<{ id: string }>;
+      itens: Array<{ id: string; clientKey?: string }>;
     };
     const cliente = clientesDisponiveis.find((item) => item.id === values.clienteId);
-    const criadaComCliente = {
-      ...criada,
-      itemId: criada.itens[0]?.id,
+    const criadaComCliente: OrdemCriadaComCliente = {
+      id: criada.id,
+      numero: criada.numero,
+      caminhoAcompanhamento: criada.caminhoAcompanhamento,
       nomeCliente: cliente?.nome ?? "",
       telefone: cliente?.telefone,
     };
 
-    if (fotoRecebimento && criadaComCliente.itemId) {
-      try {
-        await enviarFoto(criada.id, criadaComCliente.itemId, fotoRecebimento);
-      } catch (error) {
-        setOrdemPendenteFoto(criadaComCliente as NonNullable<typeof ordemPendenteFoto>);
-        setSubmitError(error instanceof Error ? error.message : "A OS foi criada, mas não foi possível salvar a foto.");
+    // Associa cada foto ao item persistido pela clientKey devolvida pela API.
+    // Sem clientKey na resposta (API antiga), cai na posição do item.
+    const uploads: UploadFotoItem[] = [];
+    values.itens.forEach((item, indice) => {
+      const clientKey = item.clientKey ?? "";
+      const arquivo = fotosPorItem[clientKey]?.arquivo;
+      if (!arquivo) return;
+      const persistido =
+        criada.itens.find((candidato) => candidato.clientKey && candidato.clientKey === clientKey) ??
+        criada.itens[indice];
+      if (!persistido) return;
+      uploads.push({ clientKey, itemId: persistido.id, arquivo, status: "pendente" });
+    });
+
+    if (uploads.length > 0) {
+      const resultado = await enviarFotosDosItens(criada.id, uploads);
+      const comErro = resultado.filter((upload) => upload.status === "erro");
+      if (comErro.length > 0) {
+        setOrdemPendenteFoto({ ...criadaComCliente, uploads: resultado });
+        setSubmitError(montarMensagemFotosComErro(comErro.length));
         return;
       }
     }
 
-    concluirCriacao(criadaComCliente as NonNullable<typeof ordemPendenteFoto>);
+    concluirCriacao(criadaComCliente);
   });
+
+  const statusUploadPorClientKey = new Map(
+    (ordemPendenteFoto?.uploads ?? []).map((upload) => [upload.clientKey, upload] as const),
+  );
 
   return (
     <section id="nova-ordem">
@@ -1110,193 +1200,68 @@ function OrdemServicoForm({
             </div>
           </FormSection>
 
-          {/* 3. Item recebido */}
-          <FormSection titulo="Item recebido" obrigatorio>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="grid content-start gap-2">
-                <Label htmlFor="itemRecebido" className="sr-only">
-                  Item recebido <CampoObrigatorio />
-                </Label>
-                <Input
-                  id="itemRecebido"
-                  {...register("itemRecebido")}
-                  placeholder="Ex.: tênis preto"
-                />
-                <ErroCampo mensagem={errors.itemRecebido?.message} />
-              </div>
-
-              <div className="grid content-start gap-2">
-                {/* Input real fica visualmente oculto; o label estilizado é a área de toque. */}
-                <input
-                  id="fotoRecebimento"
-                  ref={fotoInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  capture="environment"
-                  disabled={Boolean(ordemPendenteFoto)}
-                  onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
-                  className="peer sr-only"
-                />
-                <label
-                  htmlFor="fotoRecebimento"
-                  className={`relative flex min-h-[3.25rem] w-full cursor-pointer items-center gap-3 overflow-hidden rounded-2xl border border-dashed transition peer-focus-visible:ring-2 peer-focus-visible:ring-[color:var(--accent-soft)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60 ${
-                    foto.preview
-                      ? "border-[color:var(--accent-soft)] bg-white p-2"
-                      : "border-black/15 bg-white px-4 py-3 hover:border-[color:var(--accent)] hover:bg-[color:var(--accent-tint)]"
-                  }`}
+          {/* 3. Itens recebidos (issue #205): um card por objeto entregue */}
+          <FormSection
+            titulo="Itens recebidos"
+            obrigatorio
+            descricao="Cada objeto entregue pelo cliente é um item, com a própria foto e os próprios serviços."
+          >
+            <div className="grid gap-4">
+              {itensFields.map((campo, indice) => {
+                const upload = statusUploadPorClientKey.get(campo.clientKey ?? "");
+                return (
+                  <ItemRecebidoFormCard
+                    key={campo.fieldId}
+                    indice={indice}
+                    clientKey={campo.clientKey ?? campo.fieldId}
+                    descricaoField={register(`itens.${indice}.descricao`)}
+                    erroDescricao={errors.itens?.[indice]?.descricao?.message}
+                    erroServicos={errors.itens?.[indice]?.servicos?.message}
+                    servicos={servicosDoItem(indice)}
+                    catalogo={servicos}
+                    onAdicionarServico={(servicoId) => adicionarServico(indice, servicoId)}
+                    onAtualizarValorServico={(servicoId, valor) => atualizarValorServico(indice, servicoId, valor)}
+                    onRemoverServico={(servicoId) => removerServico(indice, servicoId)}
+                    onFotoChange={registrarFotoDoItem}
+                    statusUpload={upload?.status}
+                    erroUpload={upload?.erro}
+                    onRemoverItem={() => removerItem(indice)}
+                    podeRemover={itensFields.length > 1}
+                    bloqueado={Boolean(ordemPendenteFoto)}
+                  />
+                );
+              })}
+              <ErroCampo mensagem={errors.itens?.message ?? errors.itens?.root?.message} />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={adicionarNovoItem}
+                  disabled={Boolean(ordemPendenteFoto) || itensFields.length >= LIMITE_ITENS_POR_OS}
                 >
-                  {foto.preview ? (
-                    <>
-                      <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
-                        <Image src={foto.preview} alt="Prévia da foto de recebimento" fill unoptimized className="object-cover" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-[color:var(--text)]">Foto selecionada</span>
-                        <span className="block text-xs text-[color:var(--accent-strong)]">Toque para trocar</span>
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <svg
-                        className="h-6 w-6 shrink-0 text-[color:var(--accent-strong)]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z" />
-                        <circle cx="12" cy="12.5" r="3.5" />
-                      </svg>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm font-medium text-[color:var(--text)]">Foto do item (opcional)</span>
-                        <span className="block text-xs text-slate-500">Tirar foto ou escolher da galeria</span>
-                      </span>
-                    </>
-                  )}
-                </label>
-                {foto.preview ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      foto.limpar();
-                      if (fotoInputRef.current) fotoInputRef.current.value = "";
-                    }}
-                    disabled={Boolean(ordemPendenteFoto)}
-                    className="justify-self-start text-xs font-semibold text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Remover foto
-                  </button>
-                ) : null}
-                {fotoProcessando ? <p role="status" className="text-sm text-slate-600">Otimizando foto…</p> : null}
-                {foto.erro ? <p role="alert" className="text-sm text-red-600">{foto.erro}</p> : null}
-                {foto.resultado ? <FotoOtimizadaResumo resultado={foto.resultado} /> : null}
-              </div>
-            </div>
-          </FormSection>
-
-          {/* 4. Serviços */}
-          <FormSection titulo="Serviços" obrigatorio>
-            <div className="grid gap-3">
-              <Label htmlFor="servicoId" className="sr-only">
-                Serviços solicitados <CampoObrigatorio />
-              </Label>
-              <Combobox
-                id="servicoId"
-                options={servicos.map((s) => ({ value: s.id, label: s.nome }))}
-                value=""
-                onChange={adicionarServico}
-                placeholder="Adicionar serviço..."
-                emptyText="Serviço não encontrado"
-              />
-              <ErroCampo mensagem={errors.servicos?.message} />
-              {servicosSelecionados.length > 0 ? (
-                <div className="space-y-2">
-                  {servicosSelecionados.map((item) => {
-                    const servico = servicos.find(
-                      (option) => option.id === item.servicoId,
-                    );
-                    return (
-                      <div
-                        key={item.servicoId}
-                        className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center"
-                      >
-                        <p className="text-sm font-medium text-slate-700">
-                          {servico?.nome || "Serviço"}
-                        </p>
-                        <Input
-                          aria-label={`Valor de ${servico?.nome || "serviço"}`}
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.valor}
-                          onChange={(event) =>
-                            atualizarValorServico(
-                              item.servicoId,
-                              event.target.value,
-                            )
-                          }
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => removerServico(item.servicoId)}
-                        >
-                          Remover
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
+                  + Adicionar outro item
+                </Button>
                 <p className="text-xs text-slate-500">
-                  Nenhum serviço selecionado. O item poderá ser detalhado depois.
+                  {itensFields.length} de {LIMITE_ITENS_POR_OS} itens
                 </p>
-              )}
+              </div>
             </div>
 
             <div className="grid gap-2 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--accent-tint)] p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4">
               <div>
-                <Label
-                  htmlFor="valorEstimado"
-                  className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--accent-strong)]"
-                >
-                  Valor total dos serviços
-                </Label>
-                {servicosSelecionados.length > 0 ? (
-                  <p className="mt-1 text-xs text-slate-600">
-                    Calculado a partir dos serviços adicionados.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-slate-600">
-                    Informe o valor ou adicione serviços para calcular.
-                  </p>
-                )}
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--accent-strong)]">
+                  Total da OS
+                </p>
+                <p className="mt-1 text-xs text-slate-600">
+                  Soma dos subtotais de todos os itens.
+                </p>
               </div>
-              <div className="sm:w-56">
-                <Input
-                  id="valorEstimado"
-                  type="text"
-                  className="text-right text-lg font-semibold text-[color:var(--accent-strong)] read-only:border-transparent read-only:bg-white/70"
-                  {...register("valorEstimado")}
-                  onChange={(e) => {
-                    e.target.value = maskCurrency(e.target.value);
-                    register("valorEstimado").onChange(e);
-                  }}
-                  onBlur={(e) => {
-                    if (e.target.value) {
-                      e.target.value = formatCurrency(e.target.value);
-                      register("valorEstimado").onChange(e);
-                    }
-                    register("valorEstimado").onBlur(e);
-                  }}
-                  placeholder="R$ 0,00"
-                  readOnly={servicosSelecionados.length > 0}
-                />
-              </div>
+              <p
+                data-testid="total-ordem"
+                className="text-right text-lg font-semibold text-[color:var(--accent-strong)] sm:w-56"
+              >
+                {formatCurrency(totalOrdem)}
+              </p>
             </div>
           </FormSection>
 
@@ -1318,7 +1283,7 @@ function OrdemServicoForm({
               <p role="alert">{submitError}</p>
               {ordemPendenteFoto ? (
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" isLoading={reenviandoFoto} onClick={() => void reenviarFoto()}>Reenviar foto</Button>
+                  <Button type="button" isLoading={reenviandoFoto} onClick={() => void reenviarFoto()}>Reenviar fotos com falha</Button>
                   <Button href={`/ordens-servico/${ordemPendenteFoto.id}`} variant="secondary">Abrir OS já criada</Button>
                 </div>
               ) : null}
@@ -1499,7 +1464,7 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
       <div className="border-b border-[color:var(--border)] p-4">
         <div className="flex flex-wrap items-center gap-2">
           <Input
-            placeholder="Buscar por cliente, telefone ou número da OS..."
+            placeholder="Buscar por cliente, telefone, item ou número da OS..."
             value={searchTerm}
             onChange={(e) => aoDigitarBusca(e.target.value)}
             className="max-w-md"
