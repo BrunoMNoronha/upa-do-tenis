@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, Button, Card, PanelHeader, SectionTitle, LoadingState, ErrorState, EmptyState, Input } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { CompartilharAcompanhamentoDialog } from "@/components/compartilhar-acompanhamento-dialog";
 import { podeCancelarOrdemServico } from "@/lib/ordens-servico-status";
 
 import {
@@ -61,6 +62,8 @@ export function OrdemServicoDetalheClient({
   const [cancelando, setCancelando] = useState(false);
   const [cancelamentoErro, setCancelamentoErro] = useState<string | null>(null);
   const [cancelamentoSucesso, setCancelamentoSucesso] = useState<string | null>(null);
+  const [compartilhando, setCompartilhando] = useState(false);
+  const fecharCompartilhamento = useCallback(() => setCompartilhando(false), []);
 
   const carregarDetalhe = useCallback(async (silencioso = false) => {
     if (!silencioso) {
@@ -228,6 +231,9 @@ export function OrdemServicoDetalheClient({
               <div className="flex flex-wrap items-center gap-2">
                 <Badge tone="accent">{formatarStatus(ordem.status)}</Badge>
                 <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
+                <Button type="button" variant="secondary" onClick={() => setCompartilhando(true)}>
+                  Compartilhar acompanhamento
+                </Button>
                 {podeCancelarOrdemServico(ordem.status) ? (
                   <Button
                     type="button"
@@ -480,6 +486,20 @@ export function OrdemServicoDetalheClient({
         tone="danger"
         onConfirmar={() => void cancelarOrdemServico()}
         onCancelar={fecharConfirmacaoCancelamento}
+      />
+      <CompartilharAcompanhamentoDialog
+        titulo="Compartilhar acompanhamento"
+        dados={
+          compartilhando
+            ? {
+                numeroOS: ordem.numero,
+                nomeCliente: ordem.cliente.nome,
+                telefone: ordem.cliente.telefone,
+                caminhoAcompanhamento: ordem.caminhoAcompanhamento,
+              }
+            : null
+        }
+        onFechar={fecharCompartilhamento}
       />
     </section>
   );

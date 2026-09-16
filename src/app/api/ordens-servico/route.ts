@@ -9,6 +9,7 @@ import { listarOrdensServicoPaginado } from "@/lib/ordens-servico";
 import { normalizarFiltrosListagemOrdensServico } from "@/lib/ordens-servico-listagem";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { formatarNumeroOS } from "@/lib/ordens-servico-numero";
+import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -176,7 +177,12 @@ export async function POST(req: NextRequest) {
       return ordemCriada;
     });
 
-    return NextResponse.json(novaOS, { status: 201 });
+    // Caminho público de acompanhamento (token assinado) para a sugestão de
+    // WhatsApp; só é devolvido depois que a criação foi confirmada.
+    return NextResponse.json(
+      { ...novaOS, caminhoAcompanhamento: montarCaminhoAcompanhamento(novaOS.id) },
+      { status: 201 },
+    );
   } catch (error) {
     // Corrida entre a verificação prévia e o insert: a unicidade de `numero`
     // é garantida pelo banco; devolve conflito de negócio em vez de 500.

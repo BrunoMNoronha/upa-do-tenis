@@ -96,6 +96,7 @@ export type OrdemServicoDetalhe = {
   pagamentos: Pagamento[];
   historicosStatus: HistoricoStatus[];
   resumoFinanceiro: ResumoFinanceiro;
+  caminhoAcompanhamento: string;
 };
 
 export type EstadoTela = "carregando" | "erro" | "nao-encontrada" | "sucesso";

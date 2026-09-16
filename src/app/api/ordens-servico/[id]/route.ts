@@ -9,6 +9,7 @@ import {
 } from "@/lib/ordens-servico";
 import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { ordemServicoServicosAtualizarSchema } from "@/lib/ordens-servico-schema";
+import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 
 export async function GET(
   req: NextRequest,
@@ -33,7 +34,12 @@ export async function GET(
 
     const ordemServico = await obterDetalheOrdemServico(parsedParams.data.id);
 
-    return NextResponse.json({ ordemServico });
+    return NextResponse.json({
+      ordemServico: {
+        ...ordemServico,
+        caminhoAcompanhamento: montarCaminhoAcompanhamento(ordemServico.id),
+      },
+    });
   } catch (error) {
     if (error instanceof OrdemServicoDetalheError) {
       return NextResponse.json({ message: error.message }, { status: error.status });

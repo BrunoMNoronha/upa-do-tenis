@@ -46,6 +46,19 @@ describe('Formatters', () => {
     expect(whatsappLink(null)).toBe('');
     expect(whatsappLink('123')).toBe('');
   });
+
+  it('should pre-fill URL-encoded text when a message is given', () => {
+    const link = whatsappLink('(61) 98530-7168', 'Olá, José!\nLink: https://x.com/a?b=1&c=2');
+    expect(link).toBe(
+      'https://wa.me/5561985307168?text=' +
+        'Ol%C3%A1%2C%20Jos%C3%A9!%0ALink%3A%20https%3A%2F%2Fx.com%2Fa%3Fb%3D1%26c%3D2',
+    );
+  });
+
+  it('should not build a link with message for invalid phone', () => {
+    expect(whatsappLink('', 'Olá')).toBe('');
+    expect(whatsappLink('123', 'Olá')).toBe('');
+  });
 });
 
 describe('maskPhone (máscara de digitação)', () => {

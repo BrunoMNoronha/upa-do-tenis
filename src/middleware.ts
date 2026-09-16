@@ -7,8 +7,18 @@ import { verificarTokenSessaoEdge } from "@/lib/auth-edge";
 const PAGINAS_PUBLICAS = new Set(["/login"]);
 const APIS_PUBLICAS = new Set(["/api/auth/login", "/api/auth/logout"]);
 
+// Página pública de acompanhamento da OS: exatamente um segmento (o token),
+// sem subrotas. A autorização é a assinatura do token, validada no servidor
+// pela própria página — nunca a sessão administrativa. Token malformado
+// (ex.: link truncado) também chega à página e recebe o estado genérico.
+const PAGINA_ACOMPANHAMENTO = /^\/acompanhar\/[^/]+$/;
+
 function ehRotaPublica(pathname: string): boolean {
-  return PAGINAS_PUBLICAS.has(pathname) || APIS_PUBLICAS.has(pathname);
+  return (
+    PAGINAS_PUBLICAS.has(pathname) ||
+    APIS_PUBLICAS.has(pathname) ||
+    PAGINA_ACOMPANHAMENTO.test(pathname)
+  );
 }
 
 export async function middleware(req: NextRequest) {

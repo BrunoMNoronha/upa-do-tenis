@@ -68,13 +68,35 @@ export function formatCEP(value: string | null | undefined): string {
  * Gera um link para conversa no WhatsApp a partir de um telefone brasileiro.
  * Prefixa o código do país (55) para números nacionais de 10 ou 11 dígitos.
  * Retorna string vazia quando não há telefone válido (não deve gerar link).
+ * Com `mensagem`, pré-preenche o texto (parâmetro `text`, URL-encoded).
  */
-export function whatsappLink(value: string | null | undefined): string {
+export function whatsappLink(value: string | null | undefined, mensagem?: string): string {
   const cleaned = sanitizePhone(value);
   if (cleaned.length === 10 || cleaned.length === 11) {
-    return `https://wa.me/55${cleaned}`;
+    const base = `https://wa.me/55${cleaned}`;
+    return mensagem ? `${base}?text=${encodeURIComponent(mensagem)}` : base;
   }
   return "";
+}
+
+/**
+ * Mensagem sugerida ao cliente na abertura da OS. Sem valores, saldo ou
+ * cobrança: apenas identificação da OS e o link público de acompanhamento.
+ */
+export function mensagemAberturaOS({
+  nomeCliente,
+  numeroOS,
+  linkAcompanhamento,
+}: {
+  nomeCliente: string;
+  numeroOS: string;
+  linkAcompanhamento: string;
+}): string {
+  const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
+  return (
+    `${saudacao} Sua Ordem de Serviço ${numeroOS} foi aberta na UPA do Tênis - Sapataria Alves.\n\n` +
+    `Você pode acompanhar o andamento pelo link:\n${linkAcompanhamento}`
+  );
 }
 
 const brlFormatter = new Intl.NumberFormat("pt-BR", {
