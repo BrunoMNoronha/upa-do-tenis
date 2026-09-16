@@ -22,6 +22,7 @@ import {
   CompartilharAcompanhamentoDialog,
   type DadosCompartilhamentoAcompanhamento,
 } from "@/components/compartilhar-acompanhamento-dialog";
+import { SugerirWhatsAppConclusaoDialog } from "@/components/sugerir-whatsapp-conclusao-dialog";
 import {
   formatCurrency,
   formatPhone,
@@ -42,6 +43,7 @@ import {
 import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
+import { alterarStatusOS, type DadosSugestaoConclusao } from "@/lib/os-conclusao-whatsapp";
 import {
   ordemServicoEstaAtrasada,
   type FiltrosListagemOrdensServico,
@@ -161,15 +163,20 @@ type OrdemServicoReal = {
 function OrdemServicoCard({
   ordem,
   isAtrasada,
+  onConcluida,
 }: {
   ordem: OrdemServicoReal;
   isAtrasada: boolean;
+  onConcluida: (dados: DadosSugestaoConclusao) => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [favoritaPending, setFavoritaPending] = useState(false);
+  const [statusPending, setStatusPending] = useState(false);
+  // Ref além do estado: dois cliques no mesmo tick ainda não veem o re-render.
+  const statusEmAndamentoRef = useRef(false);
   const isFavorita = ordem.favorita === true;
 
   const statusLabel =
@@ -197,22 +204,31 @@ function OrdemServicoCard({
           : "neutral";
 
   const handleStatusChange = async (novoStatus: OsStatus) => {
+    // Guarda contra clique duplo: uma única requisição (e um único modal).
+    if (statusEmAndamentoRef.current || isPending) return;
+    statusEmAndamentoRef.current = true;
     setError(null);
-    const response = await fetch(`/api/ordens-servico/${ordem.id}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ statusNovo: novoStatus }),
-    });
+    setStatusPending(true);
+    try {
+      const resultado = await alterarStatusOS(ordem, novoStatus);
 
-    if (!response.ok) {
-      const payload = await response.json();
-      setError(payload.message || "Erro ao atualizar status.");
-      return;
+      if (!resultado.ok) {
+        setError(resultado.mensagem);
+        return;
+      }
+
+      // Sugestão de WhatsApp só depois de o backend confirmar a conclusão.
+      if (resultado.sugestaoConclusao) {
+        onConcluida(resultado.sugestaoConclusao);
+      }
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } finally {
+      statusEmAndamentoRef.current = false;
+      setStatusPending(false);
     }
-
-    startTransition(() => {
-      router.refresh();
-    });
   };
 
   // Marcador operacional (issue #153): o backend é a fonte de verdade. Sem
@@ -256,7 +272,7 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("EM_ANDAMENTO")}
-        isLoading={isPending}
+        isLoading={isPending || statusPending}
       >
         Iniciar Serviço
       </Button>
@@ -266,7 +282,7 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("CONCLUIDA")}
-        isLoading={isPending}
+        isLoading={isPending || statusPending}
       >
         Marcar como Concluída
       </Button>
@@ -276,7 +292,7 @@ function OrdemServicoCard({
       <Button
         type="button"
         onClick={() => handleStatusChange("ENTREGUE")}
-        isLoading={isPending}
+        isLoading={isPending || statusPending}
       >
         Entregar ao Cliente
       </Button>
@@ -1060,6 +1076,10 @@ type OrdemServicoListProps = {
 const BUSCA_DEBOUNCE_MS = 350;
 
 function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemServicoListProps) {
+  // Estado no nível da lista: após router.refresh() o card concluído pode sair
+  // do filtro atual e desmontar, mas a sugestão de WhatsApp deve continuar aberta.
+  const [sugestaoConclusao, setSugestaoConclusao] = useState<DadosSugestaoConclusao | null>(null);
+  const fecharSugestaoConclusao = useCallback(() => setSugestaoConclusao(null), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1254,6 +1274,7 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
               key={ordem.id}
               ordem={ordem}
               isAtrasada={ordemServicoEstaAtrasada(ordem)}
+              onConcluida={setSugestaoConclusao}
             />
           ))}
         </div>
@@ -1267,6 +1288,10 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
           carregando={isPending}
         />
       </div>
+      <SugerirWhatsAppConclusaoDialog
+        dados={sugestaoConclusao}
+        onFechar={fecharSugestaoConclusao}
+      />
     </Card>
   );
 }
