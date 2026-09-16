@@ -210,3 +210,28 @@ export function montarWhereListagemOrdensServico(
 
   return { AND: condicoes };
 }
+
+type OrdemServicoPrazo = {
+  status: string;
+  dataPrevisao: Date | string | null | undefined;
+};
+
+/**
+ * Uma OS está atrasada quando o fluxo não foi encerrado (`STATUS_ENCERRADOS`)
+ * e o dia previsto já terminou (horário local). Uma OS com previsão para hoje
+ * ainda não é considerada atrasada. Mesma regra do filtro `atrasadas` em
+ * `montarWhereListagemOrdensServico`.
+ */
+export function ordemServicoEstaAtrasada(ordem: OrdemServicoPrazo, agora: Date = new Date()): boolean {
+  if ((STATUS_ENCERRADOS as readonly string[]).includes(ordem.status) || !ordem.dataPrevisao) {
+    return false;
+  }
+
+  const fimDoDiaPrevisto = new Date(ordem.dataPrevisao);
+  if (Number.isNaN(fimDoDiaPrevisto.getTime())) {
+    return false;
+  }
+  fimDoDiaPrevisto.setHours(23, 59, 59, 999);
+
+  return fimDoDiaPrevisto < agora;
+}

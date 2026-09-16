@@ -39,6 +39,7 @@ import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
+  ordemServicoEstaAtrasada,
   type FiltrosListagemOrdensServico,
   type StatusFinanceiroListagem,
   type StatusOperacionalListagem,
@@ -1100,17 +1101,10 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
     }, BUSCA_DEBOUNCE_MS);
   };
 
-  const checkIsAtrasada = (ordem: OrdemServicoReal) => {
-    if (
-      ordem.status === "CONCLUIDA" ||
-      ordem.status === "ENTREGUE" ||
-      ordem.status === "CANCELADA"
-    )
-      return false;
-    const prev = new Date(ordem.dataPrevisao);
-    prev.setHours(23, 59, 59, 999);
-    return prev < new Date();
-  };
+  // Total global vindo do servidor: não depende da página nem do filtro ativo.
+  const totalAtrasadas = estatisticas.atrasadas;
+
+  const toggleAtrasadas = () => updateFilters("atrasadas", (!showAtrasadas).toString());
 
   const possuiFiltroAtivo =
     statusFilter !== "TODAS" || financeFilter !== "TODAS" || showAtrasadas || (filtros.busca ?? "") !== "";
@@ -1129,6 +1123,25 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
           action={<Badge tone="accent">{pagination.total} ordens</Badge>}
         />
       </div>
+
+      {totalAtrasadas > 0 ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        >
+          <p>
+            <span className="font-semibold">
+              {totalAtrasadas === 1
+                ? "1 ordem de serviço atrasada"
+                : `${totalAtrasadas} ordens de serviço atrasadas`}
+            </span>{" "}
+            — prazo previsto vencido e ainda não concluídas.
+          </p>
+          <Button type="button" variant="secondary" onClick={toggleAtrasadas}>
+            {showAtrasadas ? "Mostrar todas" : "Ver atrasadas"}
+          </Button>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 border-b border-[color:var(--border)] p-4 sm:grid-cols-3">
         <StatCard
@@ -1194,9 +1207,9 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
           <FilterChip
             tone="danger"
             active={showAtrasadas}
-            onClick={() => updateFilters("atrasadas", (!showAtrasadas).toString())}
+            onClick={toggleAtrasadas}
           >
-            Atrasadas
+            Atrasadas ({totalAtrasadas})
           </FilterChip>
         </div>
       </div>
@@ -1217,7 +1230,7 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
             <OrdemServicoCard
               key={ordem.id}
               ordem={ordem}
-              isAtrasada={checkIsAtrasada(ordem)}
+              isAtrasada={ordemServicoEstaAtrasada(ordem)}
             />
           ))}
         </div>

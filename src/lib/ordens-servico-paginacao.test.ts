@@ -229,16 +229,32 @@ describe("contarEstatisticasOrdensServico", () => {
     vi.clearAllMocks();
   });
 
-  it("conta abertas, em andamento e com saldo sobre o conjunto completo", async () => {
+  it("conta abertas, em andamento, com saldo e atrasadas sobre o conjunto completo", async () => {
     prismaMock.ordemServico.count
       .mockResolvedValueOnce(7)
       .mockResolvedValueOnce(3)
-      .mockResolvedValueOnce(5);
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(2);
 
-    await expect(contarEstatisticasOrdensServico()).resolves.toEqual({ abertas: 7, emAndamento: 3, comSaldo: 5 });
+    const agora = new Date(2026, 8, 16, 10, 0, 0);
+    await expect(contarEstatisticasOrdensServico(agora)).resolves.toEqual({
+      abertas: 7,
+      emAndamento: 3,
+      comSaldo: 5,
+      atrasadas: 2,
+    });
 
     expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(1, { where: { status: "ABERTA" } });
     expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(2, { where: { status: "EM_ANDAMENTO" } });
     expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(3, { where: { saldo: { gt: 0 } } });
+    // Atrasadas usa exatamente o mesmo where do filtro da listagem.
+    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(4, {
+      where: {
+        AND: [
+          { status: { notIn: ["CONCLUIDA", "ENTREGUE", "CANCELADA"] } },
+          { dataPrevisao: { lt: new Date(2026, 8, 16, 0, 0, 0, 0) } },
+        ],
+      },
+    });
   });
 });

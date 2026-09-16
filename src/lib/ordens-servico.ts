@@ -90,6 +90,7 @@ export type EstatisticasOrdensServico = {
   abertas: number;
   emAndamento: number;
   comSaldo: number;
+  atrasadas: number;
 };
 
 /**
@@ -97,14 +98,24 @@ export type EstatisticasOrdensServico = {
  * (não apenas a página atual nem o filtro ativo), preservando o comportamento
  * anterior em que os cards refletiam o conjunto completo.
  */
-export async function contarEstatisticasOrdensServico(): Promise<EstatisticasOrdensServico> {
-  const [abertas, emAndamento, comSaldo] = await Promise.all([
+export async function contarEstatisticasOrdensServico(
+  agora: Date = new Date(),
+): Promise<EstatisticasOrdensServico> {
+  // Reusa o mesmo `where` do filtro "Atrasadas" para que o alerta e a
+  // listagem filtrada nunca divirjam.
+  const whereAtrasadas = montarWhereListagemOrdensServico(
+    { atrasadas: true },
+    { agora, referencias: { valorTotal: prisma.ordemServico.fields.valorTotal } },
+  );
+
+  const [abertas, emAndamento, comSaldo, atrasadas] = await Promise.all([
     prisma.ordemServico.count({ where: { status: "ABERTA" } }),
     prisma.ordemServico.count({ where: { status: "EM_ANDAMENTO" } }),
     prisma.ordemServico.count({ where: { saldo: { gt: 0 } } }),
+    prisma.ordemServico.count({ where: whereAtrasadas }),
   ]);
 
-  return { abertas, emAndamento, comSaldo };
+  return { abertas, emAndamento, comSaldo, atrasadas };
 }
 
 /**
