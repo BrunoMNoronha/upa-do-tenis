@@ -51,12 +51,3 @@ export async function validarFotoRecebimento(file: File): Promise<FotoRecebiment
   const extensao = contentType === "image/jpeg" ? "jpg" : contentType === "image/png" ? "png" : "webp";
   return { bytes, contentType, extensao };
 }
-
-export function validarFotoRecebimentoNoCliente(file: File): string | null {
-  if (file.size === 0) return "Selecione uma imagem não vazia.";
-  if (file.size > FOTO_RECEBIMENTO_TAMANHO_MAXIMO_BYTES) return "A imagem deve ter no máximo 4 MB.";
-  if (!FOTO_RECEBIMENTO_TIPOS_PERMITIDOS.includes(file.type as FotoRecebimentoTipo)) {
-    return "Formato inválido. Use uma imagem JPEG, PNG ou WebP.";
-  }
-  return null;
-}

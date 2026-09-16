@@ -56,7 +56,8 @@ import {
 import type { EstatisticasOrdensServico } from "@/lib/ordens-servico";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
-import { validarFotoRecebimentoNoCliente } from "@/lib/ordens-servico-foto";
+import { FotoOtimizadaResumo } from "@/components/foto-otimizada-resumo";
+import { useFotoOtimizada } from "@/components/use-foto-otimizada";
 
 type StatusFilter = StatusOperacionalListagem;
 
@@ -550,9 +551,10 @@ function OrdemServicoForm({
   const [mostrarNovoCliente, setMostrarNovoCliente] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clienteError, setClienteError] = useState<string | null>(null);
-  const [fotoRecebimento, setFotoRecebimento] = useState<File | null>(null);
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
-  const [fotoError, setFotoError] = useState<string | null>(null);
+  const foto = useFotoOtimizada();
+  const fotoRecebimento = foto.arquivo;
+  const fotoProcessando = foto.estado === "processando";
+  const fotoInputRef = useRef<HTMLInputElement>(null);
   const [ordemPendenteFoto, setOrdemPendenteFoto] = useState<{
     id: string;
     itemId: string;
@@ -590,29 +592,11 @@ function OrdemServicoForm({
     numeroOSDigitado,
   );
 
-  useEffect(() => {
-    if (!fotoRecebimento) {
-      setFotoPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(fotoRecebimento);
-    setFotoPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [fotoRecebimento]);
-
   const selecionarFoto = (arquivo: File | null) => {
-    setFotoError(null);
-    if (!arquivo) {
-      setFotoRecebimento(null);
-      return;
-    }
-    const mensagem = validarFotoRecebimentoNoCliente(arquivo);
-    if (mensagem) {
-      setFotoError(mensagem);
-      setFotoRecebimento(null);
-      return;
-    }
-    setFotoRecebimento(arquivo);
+    void foto.selecionar(arquivo).then((ok) => {
+      // Após erro, limpa o input para permitir escolher o mesmo arquivo de novo.
+      if (!ok && fotoInputRef.current) fotoInputRef.current.value = "";
+    });
   };
 
   const enviarFoto = async (ordemId: string, itemId: string, arquivo: File) => {
@@ -631,8 +615,8 @@ function OrdemServicoForm({
   const concluirCriacao = (criada: NonNullable<typeof ordemPendenteFoto>) => {
     reset(criarDefaultValues());
     setServicosSelecionados([]);
-    setFotoRecebimento(null);
-    setFotoError(null);
+    foto.limpar();
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
     setOrdemPendenteFoto(null);
     onClose();
     if (criada.caminhoAcompanhamento) {
@@ -765,6 +749,10 @@ function OrdemServicoForm({
   const onSubmit = handleSubmit(async (values) => {
     if (ordemPendenteFoto) {
       setSubmitError("Esta OS já foi criada. Reenvie a foto ou abra o detalhe para continuar.");
+      return;
+    }
+    if (fotoProcessando) {
+      setSubmitError("Aguarde a otimização da foto terminar.");
       return;
     }
     setSubmitError(null);
@@ -999,18 +987,22 @@ function OrdemServicoForm({
             <Label htmlFor="fotoRecebimento">Foto no recebimento (opcional)</Label>
             <Input
               id="fotoRecebimento"
+              ref={fotoInputRef}
               type="file"
               accept="image/jpeg,image/png,image/webp"
               capture="environment"
+              disabled={Boolean(ordemPendenteFoto)}
               onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
             />
-            <p className="text-xs text-slate-500">JPEG, PNG ou WebP, até 4 MB.</p>
-            {fotoPreview ? (
+            <p className="text-xs text-slate-500">JPEG, PNG ou WebP, até 25 MB. A foto é otimizada antes do envio.</p>
+            {fotoProcessando ? <p role="status" className="text-sm text-slate-600">Otimizando foto…</p> : null}
+            {foto.preview ? (
               <div className="relative aspect-[4/3] max-w-sm overflow-hidden rounded-xl border border-black/10 bg-slate-50">
-                <Image src={fotoPreview} alt="Prévia da foto de recebimento" fill unoptimized className="object-contain" />
+                <Image src={foto.preview} alt="Prévia da foto de recebimento" fill unoptimized className="object-contain" />
               </div>
             ) : null}
-            {fotoError ? <p role="alert" className="text-sm text-red-600">{fotoError}</p> : null}
+            {foto.resultado ? <FotoOtimizadaResumo resultado={foto.resultado} /> : null}
+            {foto.erro ? <p role="alert" className="text-sm text-red-600">{foto.erro}</p> : null}
           </div>
 
           <div className="grid gap-3">
@@ -1193,7 +1185,7 @@ function OrdemServicoForm({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isPending || isSubmitting} disabled={Boolean(ordemPendenteFoto)}>
+            <Button type="submit" isLoading={isPending || isSubmitting} disabled={Boolean(ordemPendenteFoto) || fotoProcessando}>
               Cadastrar ordem
             </Button>
           </div>
