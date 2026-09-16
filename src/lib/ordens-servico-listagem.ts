@@ -1,3 +1,4 @@
+import { dataOperacional, inicioDoDiaOperacional } from "./date-range";
 import { sanitizePhone } from "./sanitizers";
 
 export type StatusOperacionalListagem = "TODAS" | "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE" | "CANCELADA";
@@ -194,8 +195,8 @@ export function montarWhereListagemOrdensServico(
   }
 
   if (filtros.atrasadas) {
-    const inicioHoje = new Date(contexto.agora);
-    inicioHoje.setHours(0, 0, 0, 0);
+    // Início de hoje no fuso da operação: o servidor pode rodar em UTC.
+    const inicioHoje = inicioDoDiaOperacional(contexto.agora);
     condicoes.push(
       { status: { notIn: [...STATUS_ENCERRADOS] } },
       // Uma OS está atrasada quando o fim do dia da previsão já passou, ou
@@ -218,7 +219,8 @@ type OrdemServicoPrazo = {
 
 /**
  * Uma OS está atrasada quando o fluxo não foi encerrado (`STATUS_ENCERRADOS`)
- * e o dia previsto já terminou (horário local). Uma OS com previsão para hoje
+ * e o dia previsto já terminou no fuso da operação (`FUSO_OPERACIONAL`),
+ * independente do fuso do servidor ou do navegador. Uma OS com previsão para hoje
  * ainda não é considerada atrasada. Mesma regra do filtro `atrasadas` em
  * `montarWhereListagemOrdensServico`.
  */
@@ -227,11 +229,11 @@ export function ordemServicoEstaAtrasada(ordem: OrdemServicoPrazo, agora: Date =
     return false;
   }
 
-  const fimDoDiaPrevisto = new Date(ordem.dataPrevisao);
-  if (Number.isNaN(fimDoDiaPrevisto.getTime())) {
+  const previsao = new Date(ordem.dataPrevisao);
+  if (Number.isNaN(previsao.getTime())) {
     return false;
   }
-  fimDoDiaPrevisto.setHours(23, 59, 59, 999);
 
-  return fimDoDiaPrevisto < agora;
+  // "YYYY-MM-DD" compara corretamente como texto.
+  return dataOperacional(previsao) < dataOperacional(agora);
 }

@@ -5,6 +5,7 @@ import {
   montarWhereListagemOrdensServico,
   normalizarFiltrosListagemOrdensServico,
 } from "@/lib/ordens-servico-listagem";
+import { inicioDoDiaOperacional } from "@/lib/date-range";
 import { normalizarPaginacao } from "@/lib/paginacao";
 import {
   contarEstatisticasOrdensServico,
@@ -144,8 +145,8 @@ describe("montarWhereListagemOrdensServico", () => {
     });
   });
 
-  it("atrasadas: previsão anterior ao início de hoje e status não encerrado", () => {
-    const inicioHoje = new Date("2026-09-16T00:00:00");
+  it("atrasadas: previsão anterior ao início de hoje (fuso da operação) e status não encerrado", () => {
+    const inicioHoje = inicioDoDiaOperacional(contexto.agora);
     expect(montarWhereListagemOrdensServico({ atrasadas: true }, contexto)).toEqual({
       AND: [
         { status: { notIn: ["CONCLUIDA", "ENTREGUE", "CANCELADA"] } },
@@ -236,7 +237,7 @@ describe("contarEstatisticasOrdensServico", () => {
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(2);
 
-    const agora = new Date(2026, 8, 16, 10, 0, 0);
+    const agora = new Date("2026-09-16T13:00:00Z");
     await expect(contarEstatisticasOrdensServico(agora)).resolves.toEqual({
       abertas: 7,
       emAndamento: 3,
@@ -252,7 +253,8 @@ describe("contarEstatisticasOrdensServico", () => {
       where: {
         AND: [
           { status: { notIn: ["CONCLUIDA", "ENTREGUE", "CANCELADA"] } },
-          { dataPrevisao: { lt: new Date(2026, 8, 16, 0, 0, 0, 0) } },
+          // 16/09 00:00 em Brasília (UTC-3).
+          { dataPrevisao: { lt: new Date("2026-09-16T03:00:00Z") } },
         ],
       },
     });

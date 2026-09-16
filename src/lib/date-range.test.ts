@@ -6,6 +6,7 @@ import {
   formatarDataLocal,
   calcularIntervaloPreset,
   dataOperacionalHoje,
+  inicioDoDiaOperacional,
 } from "./date-range";
 
 describe("date-range", () => {
@@ -188,6 +189,21 @@ describe("date-range", () => {
     it("mantém o dia anterior antes das 03:00 UTC", () => {
       // 04/09 23:59:59 em Brasília = 05/09 02:59:59 em UTC.
       expect(dataOperacionalHoje(new Date("2026-09-05T02:59:59Z"))).toBe("2026-09-04");
+    });
+  });
+
+  describe("inicioDoDiaOperacional", () => {
+    it("retorna a meia-noite de Brasília como instante UTC", () => {
+      expect(inicioDoDiaOperacional(new Date("2026-09-16T13:00:00Z")).toISOString()).toBe("2026-09-16T03:00:00.000Z");
+    });
+
+    it("usa o dia brasileiro quando em UTC já é o dia seguinte", () => {
+      // 16/09 22:30 em Brasília = 17/09 01:30 UTC.
+      expect(inicioDoDiaOperacional(new Date("2026-09-17T01:30:00Z")).toISOString()).toBe("2026-09-16T03:00:00.000Z");
+    });
+
+    it("vira o dia exatamente na meia-noite de Brasília", () => {
+      expect(inicioDoDiaOperacional(new Date("2026-09-17T03:00:00Z")).toISOString()).toBe("2026-09-17T03:00:00.000Z");
     });
   });
 });
