@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Script from "next/script";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -44,9 +43,8 @@ async function obterTokenCaptcha(siteKey: string): Promise<string | undefined> {
 }
 
 export function LoginForm({ captchaSiteKey }: LoginFormProps) {
-  const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [redirecionando, setRedirecionando] = useState(false);
 
   const {
     register,
@@ -83,13 +81,15 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
       return;
     }
 
-    startTransition(() => {
-      router.replace("/dashboard");
-      router.refresh();
-    });
+    // Navegação completa, e não `router.replace`: uma troca client-side
+    // manteria o script do reCAPTCHA e o iframe do badge vivos no dashboard e
+    // em todas as telas seguintes. O captcha existe só na página de login
+    // (issue #123); recarregar o documento descarta o script.
+    setRedirecionando(true);
+    window.location.assign("/dashboard");
   });
 
-  const carregando = isSubmitting || isPending;
+  const carregando = isSubmitting || redirecionando;
 
   return (
     <Card className="p-6 sm:p-8">
@@ -106,11 +106,13 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
           <Input
             id="email"
             type="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
             autoComplete="username"
             {...register("email")}
             placeholder="usuario@exemplo.com"
           />
-          {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
+          {errors.email ? <p id="email-error" className="text-sm text-red-600">{errors.email.message}</p> : null}
         </div>
 
         <div className="grid gap-2">
@@ -118,15 +120,17 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
           <Input
             id="senha"
             type="password"
+            aria-invalid={Boolean(errors.senha)}
+            aria-describedby={errors.senha ? "senha-error" : undefined}
             autoComplete="current-password"
             {...register("senha")}
             placeholder="Sua senha"
           />
-          {errors.senha ? <p className="text-sm text-red-600">{errors.senha.message}</p> : null}
+          {errors.senha ? <p id="senha-error" className="text-sm text-red-600">{errors.senha.message}</p> : null}
         </div>
 
         {submitError ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {submitError}
           </p>
         ) : null}

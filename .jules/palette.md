@@ -9,3 +9,7 @@
 ## 2026-09-12 - Rótulos associados no seletor de datas
 **Aprendizado:** useId permite associar rótulos e campos sem duplicar IDs entre instâncias.
 **Ação:** Preservar o indicador de foco vigente e vincular cada Label ao Input correspondente.
+
+## 2024-05-18 - Form validation accessibility
+**Learning:** Form validation messages are often rendered without proper programmatic association to their respective inputs (missing `aria-describedby` and `aria-invalid`), and global/submission errors lack `role="alert"`. This prevents screen readers from correctly announcing errors to users when they occur.
+**Action:** When implementing or fixing forms, always link field-level error messages directly to their inputs using a matching `id` and `aria-describedby`, set `aria-invalid` based on the error state, and explicitly use `role="alert"` on global submission error messages.
