@@ -6,6 +6,7 @@ import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastrea
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { listarOrdensServico } from "@/lib/ordens-servico";
+import { randomInt } from "crypto";
 
 export async function GET(req: NextRequest) {
   try {
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     const maxAttempts = 10;
 
     while (!isUnique && attempts < maxAttempts) {
-      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const randomSuffix = randomInt(10000).toString().padStart(4, '0');
       numeroStr = `${datePrefix}-${randomSuffix}`;
       const existingOs = await prisma.ordemServico.findUnique({
         where: { numero: numeroStr },
