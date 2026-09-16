@@ -20,7 +20,8 @@ import {
   currencyFormatter,
   dateFormatter,
   formatarStatus,
-  obterTomStatusFinanceiro
+  obterTomStatusFinanceiro,
+  deveExibirReceberPagamento
 } from "./utils";
 
 import { ReceberPagamentoForm } from "./components/ReceberPagamentoForm";
@@ -453,11 +454,13 @@ export function OrdemServicoDetalheClient({
           </div>
         </Card>
 
-        <ReceberPagamentoForm
-          ordemServicoId={ordemServicoId}
-          formasPagamento={formasPagamento}
-          onPagamentoRegistrado={handleRefresh}
-        />
+        {deveExibirReceberPagamento(resumo) ? (
+          <ReceberPagamentoForm
+            ordemServicoId={ordemServicoId}
+            formasPagamento={formasPagamento}
+            onPagamentoRegistrado={handleRefresh}
+          />
+        ) : null}
 
         <AplicarInsumoForm
           ordemServicoId={ordemServicoId}
