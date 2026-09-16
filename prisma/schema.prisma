@@ -70,6 +70,7 @@ model OrdemServico {
   saldo                           Decimal                     @default(0)
   justificativaInicioSemAprovacao String?
   observacoes                     String?
+  favorita                        Boolean                     @default(false)
   criadoEm                        DateTime                    @default(now())
   atualizadoEm                    DateTime                    @updatedAt
   itens                           ItemOrdemServico[]
@@ -81,6 +82,7 @@ model OrdemServico {
   @@index([numero])
   @@index([status])
   @@index([clienteId])
+  @@index([favorita])
 }
 
 model ItemOrdemServico {

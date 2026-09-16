@@ -33,6 +33,7 @@ import {
 import { GET as osGet, POST as osPost } from "@/app/api/ordens-servico/route";
 import { GET as osIdGet, DELETE as osIdDelete, PATCH as osIdPatch } from "@/app/api/ordens-servico/[id]/route";
 import { PATCH as osStatusPatch } from "@/app/api/ordens-servico/[id]/status/route";
+import { PATCH as osFavoritaPatch } from "@/app/api/ordens-servico/[id]/favorita/route";
 import {
   GET as osPagamentosGet,
   POST as osPagamentosPost,
@@ -125,6 +126,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "PATCH /api/ordens-servico/[id]/status",
     () => osStatusPatch(criarRequest("/api/ordens-servico/abc/status", "PATCH"), params),
+  ],
+  [
+    "PATCH /api/ordens-servico/[id]/favorita",
+    () => osFavoritaPatch(criarRequest("/api/ordens-servico/abc/favorita", "PATCH"), params),
   ],
   [
     "GET /api/ordens-servico/[id]/pagamentos",
