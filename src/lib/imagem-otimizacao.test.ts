@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   calcularDimensoesAlvo,
-  deveManterOriginal,
   formatarTamanhoArquivo,
   ImagemOtimizacaoError,
+  lerDimensoesCabecalho,
   otimizarImagem,
   OTIMIZACAO_FOTO_PADRAO,
   validarDimensoesOriginais,
@@ -12,8 +12,25 @@ import {
   type AmbienteImagem,
 } from "./imagem-otimizacao";
 
-function arquivo(tamanho: number, tipo = "image/jpeg") {
-  return new File([new Uint8Array(tamanho)], "IMG_0001.jpg", { type: tipo });
+function cabecalhoPng(largura: number, altura: number) {
+  const bytes = new Uint8Array(24);
+  bytes.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52]);
+  new DataView(bytes.buffer).setUint32(16, largura);
+  new DataView(bytes.buffer).setUint32(20, altura);
+  return bytes;
+}
+
+function cabecalhoJpeg(largura: number, altura: number) {
+  const app1 = [0xff, 0xe1, 0x00, 0x08, 0x45, 0x78, 0x69, 0x66, 0, 0];
+  const sof = [0xff, 0xc0, 0x00, 0x11, 0x08, altura >> 8, altura & 255, largura >> 8, largura & 255, 3];
+  return Uint8Array.from([0xff, 0xd8, ...app1, ...sof, ...new Array(12).fill(0)]);
+}
+
+/** Arquivo com cabeçalho real (dimensões) completado com zeros até o tamanho desejado. */
+function arquivo(tamanho: number, tipo = "image/jpeg", dimensoes = { largura: 4000, altura: 3000 }) {
+  const bytes = new Uint8Array(tamanho);
+  if (tamanho > 0) bytes.set(cabecalhoJpeg(dimensoes.largura, dimensoes.altura).subarray(0, tamanho));
+  return new File([bytes], "IMG_0001.jpg", { type: tipo });
 }
 
 function ambienteFalso(params: {
@@ -80,10 +97,25 @@ describe("validações", () => {
     expect(validarDimensoesOriginais({ largura: 8000, altura: 6000 })).toBeNull();
   });
 
-  it("só mantém o original quando não redimensiona e ele já é menor", () => {
-    expect(deveManterOriginal({ redimensionou: false, tamanhoOriginal: 100, tamanhoRecodificado: 200 })).toBe(true);
-    expect(deveManterOriginal({ redimensionou: false, tamanhoOriginal: 300, tamanhoRecodificado: 200 })).toBe(false);
-    expect(deveManterOriginal({ redimensionou: true, tamanhoOriginal: 100, tamanhoRecodificado: 200 })).toBe(false);
+  it("lê dimensões do cabeçalho JPEG (após APP1), PNG e WebP sem decodificar", () => {
+    expect(lerDimensoesCabecalho(cabecalhoJpeg(4032, 3024))).toEqual({ largura: 4032, altura: 3024 });
+    expect(lerDimensoesCabecalho(cabecalhoPng(800, 600))).toEqual({ largura: 800, altura: 600 });
+    const vp8x = new Uint8Array(30);
+    vp8x.set([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 0x56, 0x50, 0x38, 0x58]);
+    vp8x.set([0x3f, 0x06, 0x00, 0xaf, 0x04, 0x00], 24); // 1600 × 1200 (valores - 1)
+    expect(lerDimensoesCabecalho(vp8x)).toEqual({ largura: 1600, altura: 1200 });
+    const riff = (chunk: string) => Uint8Array.from([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, ...[...chunk].map((c) => c.charCodeAt(0))]);
+    const vp8 = new Uint8Array(30);
+    vp8.set(riff("VP8 "));
+    vp8.set([0x9d, 0x01, 0x2a, 0x40, 0x06, 0xb0, 0x04], 23); // 1600 × 1200 (LE, 14 bits)
+    expect(lerDimensoesCabecalho(vp8)).toEqual({ largura: 1600, altura: 1200 });
+    const vp8l = new Uint8Array(30);
+    vp8l.set(riff("VP8L"));
+    const bits = (1600 - 1) + (1200 - 1) * 2 ** 14;
+    vp8l.set([0x2f, bits & 255, (bits >> 8) & 255, (bits >> 16) & 255, (bits >> 24) & 255], 20);
+    expect(lerDimensoesCabecalho(vp8l)).toEqual({ largura: 1600, altura: 1200 });
+    expect(lerDimensoesCabecalho(Uint8Array.from([1, 2, 3, 4]))).toBeNull();
+    expect(lerDimensoesCabecalho(Uint8Array.from([0xff, 0xd8, 0xff, 0xda, 0, 4, 0, 0, 0, 0, 0, 0]))).toBeNull();
   });
 
   it("formata tamanhos em pt-BR", () => {
@@ -104,7 +136,6 @@ describe("otimizarImagem", () => {
     expect(resultado.final).toEqual({ largura: 1600, altura: 1200 });
     expect(resultado.tamanhoOriginal).toBe(4_800_000);
     expect(resultado.tamanhoOtimizado).toBe(300_000);
-    expect(resultado.recodificada).toBe(true);
     expect(codificar).toHaveBeenCalledWith(expect.anything(), { largura: 1600, altura: 1200 }, "image/webp", 0.85);
     expect(fechar).toHaveBeenCalledOnce();
   });
@@ -131,23 +162,40 @@ describe("otimizarImagem", () => {
     expect(resultado.tamanhoOtimizado).toBe(650_000);
   });
 
-  it("mantém imagem pequena que já é menor que a recodificação, sem upscale", async () => {
+  it("recodifica imagem pequena mesmo se o original for menor, para não enviar EXIF", async () => {
     const { ambiente } = ambienteFalso({ largura: 800, altura: 600, tamanhos: { "image/webp@0.85": 180_000 } });
-    const original = arquivo(150_000);
+    const original = arquivo(150_000, "image/jpeg", { largura: 800, altura: 600 });
 
     const resultado = await otimizarImagem(original, OTIMIZACAO_FOTO_PADRAO, ambiente);
 
-    expect(resultado.file).toBe(original);
-    expect(resultado.recodificada).toBe(false);
+    expect(resultado.file).not.toBe(original);
+    expect(resultado.file.type).toBe("image/webp");
     expect(resultado.final).toEqual({ largura: 800, altura: 600 });
+  });
+
+  it("recusa resolução excessiva pelo cabeçalho sem decodificar a imagem", async () => {
+    const { ambiente } = ambienteFalso({ largura: 12_000, altura: 9_000 });
+
+    await expect(
+      otimizarImagem(arquivo(5_000, "image/jpeg", { largura: 12_000, altura: 9_000 }), OTIMIZACAO_FOTO_PADRAO, ambiente),
+    ).rejects.toThrow(/resolução/);
+    expect(ambiente.decodificar).not.toHaveBeenCalled();
+  });
+
+  it("recusa arquivo sem cabeçalho de imagem reconhecível sem decodificar", async () => {
+    const { ambiente } = ambienteFalso({ largura: 10, altura: 10 });
+    const falso = new File([new Uint8Array(1000)], "falsa.jpg", { type: "image/jpeg" });
+
+    await expect(otimizarImagem(falso, OTIMIZACAO_FOTO_PADRAO, ambiente)).rejects.toThrow(/corrompido/);
+    expect(ambiente.decodificar).not.toHaveBeenCalled();
   });
 
   it("recodifica imagem pequena quando isso reduz o arquivo, sem upscale", async () => {
     const { ambiente, codificar } = ambienteFalso({ largura: 900, altura: 700, tamanhos: { "image/webp@0.85": 90_000 } });
 
-    const resultado = await otimizarImagem(arquivo(400_000, "image/png"), OTIMIZACAO_FOTO_PADRAO, ambiente);
+    const resultado = await otimizarImagem(arquivo(400_000, "image/png", { largura: 900, altura: 700 }), OTIMIZACAO_FOTO_PADRAO, ambiente);
 
-    expect(resultado.recodificada).toBe(true);
+    expect(resultado.tamanhoOtimizado).toBe(90_000);
     expect(codificar).toHaveBeenCalledWith(expect.anything(), { largura: 900, altura: 700 }, "image/webp", 0.85);
   });
 

@@ -60,7 +60,6 @@ export function useFotoOtimizada() {
           original: `${otimizada.original.largura}x${otimizada.original.altura}`,
           final: `${otimizada.final.largura}x${otimizada.final.altura}`,
           mimeType: otimizada.mimeType,
-          recodificada: otimizada.recodificada,
         });
       }
       setResultado(otimizada);

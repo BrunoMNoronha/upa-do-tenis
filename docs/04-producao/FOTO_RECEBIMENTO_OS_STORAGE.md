@@ -11,13 +11,12 @@ Formatos aceitos: JPEG, PNG e WebP. O backend aceita arquivos de até **4.000.00
 Antes do envio, a foto é processada no próprio aparelho por `src/lib/imagem-otimizacao.ts` (APIs nativas `createImageBitmap` + canvas, sem dependência nova), usada pelo cadastro da OS e pelo detalhe via `useFotoOtimizada`:
 
 1. valida MIME (JPEG/PNG/WebP), arquivo não vazio e original de até **25 MB**;
-2. decodifica aplicando a orientação EXIF; recusa arquivo corrompido e imagens acima de 64 MP;
+2. lê as dimensões no cabeçalho (JPEG/PNG/WebP) e recusa imagens acima de 64 MP **antes** de decodificar; depois decodifica aplicando a orientação EXIF e recusa arquivo corrompido;
 3. limita o maior lado a **1600 px**, preservando a proporção e sem upscale;
 4. recodifica em **WebP qualidade 0,85** (fundo branco, sem transparência); se passar de 600 KB, faz uma única segunda passada a 0,75;
 5. se o navegador não codificar WebP no canvas (Safari), usa **JPEG 0,85**;
-6. se a imagem não precisou de redimensionamento e o original já é menor que a recodificação, mantém o original para não aumentar o arquivo.
 
-A recodificação descarta metadados EXIF (inclusive GPS). O preview mostra o arquivo otimizado, e somente ele é enviado; a Object URL é revogada ao trocar, cancelar ou desmontar.
+A imagem é **sempre** recodificada, mesmo quando pequena, para que metadados EXIF (inclusive GPS) nunca sejam enviados; em imagens pequenas já muito comprimidas isso pode gerar um arquivo um pouco maior, limitado pelos 1600 px. O preview mostra o arquivo otimizado, e somente ele é enviado; a Object URL é revogada ao trocar, cancelar ou desmontar.
 
 Medição (Chromium, fotos reais de calçados do Wikimedia Commons, em 2026-09-16):
 

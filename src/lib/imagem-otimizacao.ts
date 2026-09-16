@@ -52,8 +52,6 @@ export type ImagemOtimizada = {
   tamanhoOtimizado: number;
   original: Dimensoes;
   final: Dimensoes;
-  /** false quando o arquivo original foi mantido por já ser menor que a recodificação. */
-  recodificada: boolean;
 };
 
 export function validarFotoOriginal(file: File | null | undefined): string | null {
@@ -87,17 +85,58 @@ export function calcularDimensoesAlvo({ largura, altura }: Dimensoes, maiorDimen
   };
 }
 
+/** Bytes lidos do início do arquivo para achar as dimensões no cabeçalho. */
+export const CABECALHO_IMAGEM_BYTES = 2_000_000;
+
+function uint16(bytes: Uint8Array, i: number, littleEndian = false) {
+  return littleEndian ? bytes[i] | (bytes[i + 1] << 8) : (bytes[i] << 8) | bytes[i + 1];
+}
+
+function uint24le(bytes: Uint8Array, i: number) {
+  return bytes[i] | (bytes[i + 1] << 8) | (bytes[i + 2] << 16);
+}
+
 /**
- * Mantém o original somente se ele não precisou de redimensionamento, já é
- * menor que a recodificação e está num formato aceito — assim uma imagem
- * pequena e já otimizada nunca vira um arquivo maior.
+ * Lê largura/altura do cabeçalho (JPEG SOF, PNG IHDR, WebP VP8/VP8L/VP8X)
+ * sem decodificar pixels, para recusar resoluções excessivas antes de
+ * `createImageBitmap` alocar a imagem inteira. Retorna null se não achar.
  */
-export function deveManterOriginal(params: {
-  redimensionou: boolean;
-  tamanhoOriginal: number;
-  tamanhoRecodificado: number;
-}) {
-  return !params.redimensionou && params.tamanhoOriginal <= params.tamanhoRecodificado;
+export function lerDimensoesCabecalho(bytes: Uint8Array): Dimensoes | null {
+  // PNG: assinatura + IHDR
+  if (bytes.length >= 24 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[12] === 0x49 && bytes[13] === 0x48) {
+    const largura = ((bytes[16] << 24) >>> 0) + (bytes[17] << 16) + (bytes[18] << 8) + bytes[19];
+    const altura = ((bytes[20] << 24) >>> 0) + (bytes[21] << 16) + (bytes[22] << 8) + bytes[23];
+    return { largura, altura };
+  }
+  // WebP: RIFF....WEBP + primeiro chunk
+  if (bytes.length >= 30 && bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[8] === 0x57 && bytes[9] === 0x45) {
+    const chunk = String.fromCharCode(bytes[12], bytes[13], bytes[14], bytes[15]);
+    if (chunk === "VP8X") return { largura: uint24le(bytes, 24) + 1, altura: uint24le(bytes, 27) + 1 };
+    if (chunk === "VP8L" && bytes[20] === 0x2f) {
+      const b = bytes.subarray(21, 25);
+      return { largura: 1 + (b[0] | ((b[1] & 0x3f) << 8)), altura: 1 + (((b[1] >> 6) | (b[2] << 2) | ((b[3] & 0x0f) << 10))) };
+    }
+    if (chunk === "VP8 " && bytes[23] === 0x9d && bytes[24] === 0x01 && bytes[25] === 0x2a) {
+      return { largura: uint16(bytes, 26, true) & 0x3fff, altura: uint16(bytes, 28, true) & 0x3fff };
+    }
+    return null;
+  }
+  // JPEG: percorre segmentos até um SOFn
+  if (bytes.length >= 4 && bytes[0] === 0xff && bytes[1] === 0xd8) {
+    let i = 2;
+    while (i + 9 < bytes.length) {
+      if (bytes[i] !== 0xff) return null;
+      const marcador = bytes[i + 1];
+      if (marcador === 0xff) { i += 1; continue; }
+      if (marcador === 0xd8 || marcador === 0x01 || (marcador >= 0xd0 && marcador <= 0xd7)) { i += 2; continue; }
+      const tamanho = uint16(bytes, i + 2);
+      const ehSof = marcador >= 0xc0 && marcador <= 0xcf && marcador !== 0xc4 && marcador !== 0xc8 && marcador !== 0xcc;
+      if (ehSof) return { largura: uint16(bytes, i + 7), altura: uint16(bytes, i + 5) };
+      if (marcador === 0xda || marcador === 0xd9 || tamanho < 2) return null;
+      i += 2 + tamanho;
+    }
+  }
+  return null;
 }
 
 export function nomeArquivoOtimizado(mimeType: FotoRecebimentoTipo) {
@@ -164,6 +203,12 @@ export async function otimizarImagem(
   const erroArquivo = validarFotoOriginal(file);
   if (erroArquivo) throw new ImagemOtimizacaoError(erroArquivo);
 
+  // Valida a resolução pelo cabeçalho antes de alocar a imagem decodificada.
+  const cabecalho = lerDimensoesCabecalho(new Uint8Array(await file.slice(0, CABECALHO_IMAGEM_BYTES).arrayBuffer()));
+  if (!cabecalho) throw new ImagemOtimizacaoError("Não foi possível ler a imagem. O arquivo pode estar corrompido.");
+  const erroCabecalho = validarDimensoesOriginais(cabecalho);
+  if (erroCabecalho) throw new ImagemOtimizacaoError(erroCabecalho);
+
   let imagem: Awaited<ReturnType<AmbienteImagem["decodificar"]>>;
   try {
     imagem = await ambiente.decodificar(file);
@@ -178,21 +223,10 @@ export async function otimizarImagem(
     if (erroDimensoes) throw new ImagemOtimizacaoError(erroDimensoes);
 
     const alvo = calcularDimensoesAlvo(original, opcoes.maiorDimensao);
-    const redimensionou = alvo.largura !== original.largura || alvo.altura !== original.altura;
     const blob = await recodificar(ambiente, imagem.fonte, alvo, opcoes);
     const mimeType = blob.type as FotoRecebimentoTipo;
     if (mimeType !== "image/webp" && mimeType !== "image/jpeg") {
       throw new ImagemOtimizacaoError("Não foi possível gerar a imagem otimizada.");
-    }
-
-    if (deveManterOriginal({ redimensionou, tamanhoOriginal: file.size, tamanhoRecodificado: blob.size })) {
-      if (file.size > FOTO_RECEBIMENTO_TAMANHO_MAXIMO_BYTES) {
-        throw new ImagemOtimizacaoError("A imagem otimizada excede 4 MB.");
-      }
-      return {
-        file, mimeType: file.type as FotoRecebimentoTipo, tamanhoOriginal: file.size, tamanhoOtimizado: file.size,
-        original, final: original, recodificada: false,
-      };
     }
 
     if (blob.size > FOTO_RECEBIMENTO_TAMANHO_MAXIMO_BYTES) {
@@ -201,7 +235,7 @@ export async function otimizarImagem(
     const otimizado = new File([blob], nomeArquivoOtimizado(mimeType), { type: mimeType, lastModified: Date.now() });
     return {
       file: otimizado, mimeType, tamanhoOriginal: file.size, tamanhoOtimizado: otimizado.size,
-      original, final: alvo, recodificada: true,
+      original, final: alvo,
     };
   } catch (error) {
     if (error instanceof ImagemOtimizacaoError) throw error;
