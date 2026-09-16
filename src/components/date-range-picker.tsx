@@ -100,8 +100,8 @@ export function DateRangePicker({
           />
         </div>
         {onApply && (
-          <Button type="button" onClick={onApply} disabled={applying} className="h-11">
-            {applying ? "Carregando..." : applyLabel}
+          <Button type="button" onClick={onApply} isLoading={applying} className="h-11">
+            {applyLabel}
           </Button>
         )}
       </div>
