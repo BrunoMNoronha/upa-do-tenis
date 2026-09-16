@@ -54,6 +54,17 @@ describe("layout do formulário de cadastro de OS", () => {
     expect(html).not.toContain('id="itemRecebido"');
   });
 
+  it("gera ids do card determinísticos entre SSR e hidratação (não usa a clientKey no DOM)", () => {
+    // A clientKey é um UUID gerado por render; se aparecesse em id/htmlFor,
+    // o HTML do servidor divergiria do primeiro render do navegador.
+    const ids = [...html.matchAll(/id="(item-[^"]+)"/g)].map((m) => m[1]);
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      expect(id, id).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/);
+    }
+    expect(renderizarCadastro()).toBe(html);
+  });
+
   it("organiza o formulário em seções na ordem: cliente, dados da OS, itens recebidos, observações", () => {
     const secoes = ["Cliente", "Dados da Ordem de Serviço", "Itens recebidos", "Observações"];
     // O título pode trazer o marcador de obrigatório após o texto.

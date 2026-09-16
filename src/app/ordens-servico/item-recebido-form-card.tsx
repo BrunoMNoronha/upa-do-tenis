@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import Image from "next/image";
 import type { UseFormRegisterReturn } from "react-hook-form";
 
@@ -76,7 +76,10 @@ export function ItemRecebidoFormCard({
   const fotoInputRef = useRef<HTMLInputElement>(null);
   const fotoProcessando = foto.estado === "processando";
   const subtotal = calcularSubtotalItem({ servicos });
-  const idBase = `item-${clientKey}`;
+  // Ids do DOM vêm de useId, estável entre SSR e hidratação. A clientKey é
+  // gerada no navegador e mudaria entre os dois renders quando o drawer já
+  // abre na primeira carga (?nova=1), o que causaria erro de hidratação.
+  const idBase = `item-${useId()}`;
 
   useEffect(() => {
     onFotoChange(clientKey, { arquivo: foto.arquivo, processando: fotoProcessando });
