@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { servicoFormSchema, type ServicoFormValues } from "@/lib/servicos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
+import { filtrarPorBusca } from "@/lib/busca-listagem";
 
 export type ServicoListado = {
   id: string;
@@ -44,6 +46,12 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
   const router = useRouter();
   const [editando, setEditando] = useState<ServicoListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [busca, setBusca] = useState("");
+
+  const servicosFiltrados = useMemo(
+    () => filtrarPorBusca(servicos, busca, (servico) => [servico.nome, servico.descricao]),
+    [servicos, busca],
+  );
 
   const {
     listaError,
@@ -194,6 +202,14 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
           <Badge tone="accent">Total: {servicos.length}</Badge>
         </div>
 
+        <BuscaListagem
+          id="busca-servicos"
+          label="Buscar serviço"
+          placeholder="Buscar serviço..."
+          valor={busca}
+          onChange={setBusca}
+        />
+
         {listaError ? (
           <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
             {listaError}
@@ -204,9 +220,13 @@ export function ServicosClient({ servicos }: ServicosClientProps) {
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
             Nenhum serviço cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
           </div>
+        ) : servicosFiltrados.length === 0 ? (
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
+            Nenhum serviço encontrado para &quot;{busca.trim()}&quot;.
+          </div>
         ) : (
           <div className="space-y-4">
-            {servicos.map((servico) => (
+            {servicosFiltrados.map((servico) => (
               <article
                 key={servico.id}
                 className={`rounded-3xl border p-5 ${

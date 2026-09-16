@@ -1,9 +1,12 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
+import { filtrarPorBusca } from "@/lib/busca-listagem";
 
 type ProdutoListado = {
   id: string;
@@ -31,6 +34,13 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListProps) {
+  const [busca, setBusca] = useState("");
+
+  const produtosFiltrados = useMemo(
+    () => filtrarPorBusca(produtos, busca, (produto) => [produto.nome, produto.descricao]),
+    [produtos, busca],
+  );
+
   const {
     listaError,
     isPending,
@@ -51,6 +61,14 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
         <Badge tone="accent">Total: {produtos.length}</Badge>
       </div>
 
+      <BuscaListagem
+        id="busca-produtos"
+        label="Buscar produto"
+        placeholder="Buscar produto..."
+        valor={busca}
+        onChange={setBusca}
+      />
+
       {listaError ? (
         <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
           {listaError}
@@ -61,9 +79,13 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
           Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
         </div>
+      ) : produtosFiltrados.length === 0 ? (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
+          Nenhum produto encontrado para &quot;{busca.trim()}&quot;.
+        </div>
       ) : (
         <div className="space-y-4">
-          {produtos.map((produto) => (
+          {produtosFiltrados.map((produto) => (
             <article
               key={produto.id}
               className={`rounded-3xl border p-5 ${
