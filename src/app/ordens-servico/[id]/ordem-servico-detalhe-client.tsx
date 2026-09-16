@@ -277,8 +277,8 @@ export function OrdemServicoDetalheClient({
                         ))}
                         {servicosErro ? <p className="text-sm text-red-600">{servicosErro}</p> : null}
                         <div className="flex flex-wrap gap-2">
-                          <Button type="button" disabled={salvandoServicos} onClick={() => void salvarServicos()}>
-                            {salvandoServicos ? "Salvando..." : "Salvar serviços"}
+                          <Button type="button" isLoading={salvandoServicos} onClick={() => void salvarServicos()}>
+                            Salvar serviços
                           </Button>
                           <Button type="button" variant="secondary" onClick={() => setItemServicoEditando(null)}>
                             Cancelar

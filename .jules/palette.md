@@ -13,3 +13,7 @@
 ## 2024-05-18 - Form validation accessibility
 **Learning:** Form validation messages are often rendered without proper programmatic association to their respective inputs (missing `aria-describedby` and `aria-invalid`), and global/submission errors lack `role="alert"`. This prevents screen readers from correctly announcing errors to users when they occur.
 **Action:** When implementing or fixing forms, always link field-level error messages directly to their inputs using a matching `id` and `aria-describedby`, set `aria-invalid` based on the error state, and explicitly use `role="alert"` on global submission error messages.
+
+## 2026-09-15 - Estado de carregamento inconsistente nos botões
+**Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
+**Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.

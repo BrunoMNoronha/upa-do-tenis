@@ -185,8 +185,8 @@ export function AplicarInsumoForm({
           {insumoSucesso ? <p className="text-sm text-emerald-700">{insumoSucesso}</p> : null}
 
           <div>
-            <Button type="submit" disabled={enviandoInsumo}>
-              {enviandoInsumo ? "Registrando..." : "Registrar insumo"}
+            <Button type="submit" isLoading={enviandoInsumo}>
+              Registrar insumo
             </Button>
           </div>
         </form>

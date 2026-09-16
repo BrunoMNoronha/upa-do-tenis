@@ -220,8 +220,8 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
           {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
 
           <div className="flex flex-wrap gap-3">
-            <Button type="submit" disabled={isSubmitting || isPending}>
-              {isSubmitting || isPending ? "Salvando..." : editando ? "Salvar alterações" : "Cadastrar Insumo"}
+            <Button type="submit" isLoading={isSubmitting || isPending}>
+              {editando ? "Salvar alterações" : "Cadastrar Insumo"}
             </Button>
             {editando ? (
               <Button type="button" variant="secondary" onClick={cancelarEdicao}>

@@ -125,7 +125,7 @@ export function MovimentacoesCaixa({
               />
             </div>
             <div className="sm:col-span-2">
-              <Button type="submit" disabled={movLoading}>{movLoading ? "Salvando..." : "Salvar"}</Button>
+              <Button type="submit" isLoading={movLoading}>Salvar</Button>
             </div>
           </form>
         </div>
