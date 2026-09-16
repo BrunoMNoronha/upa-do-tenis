@@ -37,6 +37,7 @@ import {
 } from "@/lib/ordens-servico-schema";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
+import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
   filtrarOrdensServicoListagem,
   ordemServicoCorrespondeBusca,
@@ -94,6 +95,8 @@ function getStatusTone(
       return "success";
     case "ENTREGUE":
       return "neutral";
+    case "CANCELADA":
+      return "danger";
     default:
       return "neutral";
   }
@@ -105,6 +108,7 @@ const criarDefaultValues = (): OrdemServicoFormValues => ({
   servicoId: "",
   servicos: [],
   dataEntrada: dataOperacionalHoje(),
+  numeroOS: "",
   justificativaDataEntrada: "",
   prazoPrevisto: "",
   valorEstimado: 0,
@@ -433,6 +437,11 @@ function OrdemServicoForm({
   const dataEntradaSelecionada = watch("dataEntrada");
   const exigeJustificativaDataEntrada =
     !!dataEntradaSelecionada && dataEntradaSelecionada !== hojeOperacional;
+  const numeroOSDigitado = watch("numeroOS");
+  const previaNumero = previaNumeroOS(
+    dataEntradaSelecionada || hojeOperacional,
+    numeroOSDigitado,
+  );
 
   const {
     register: registerCliente,
@@ -815,8 +824,28 @@ function OrdemServicoForm({
             ) : null}
             {exigeJustificativaDataEntrada ? (
               <p className="text-xs text-slate-500">
-                Registro retroativo — o número da OS continua sendo gerado com a
-                data de hoje.
+                Registro retroativo — o número da OS usa a data de entrada
+                informada.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="numeroOS">Número da OS</Label>
+            <Input
+              id="numeroOS"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Ex.: 0124"
+              {...register("numeroOS")}
+            />
+            {errors.numeroOS ? (
+              <p className="text-sm text-red-600">{errors.numeroOS.message}</p>
+            ) : null}
+            {previaNumero ? (
+              <p className="text-xs text-slate-500">
+                Identificador: <span className="font-semibold text-[color:var(--text)]">{previaNumero}</span>
               </p>
             ) : null}
           </div>

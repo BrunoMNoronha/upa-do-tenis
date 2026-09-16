@@ -36,6 +36,7 @@ vi.mock("@/lib/ordens-servico", () => ({
 
 const payloadBase = {
   clienteId: "cliente-1",
+      numeroOS: "0001",
   itemRecebido: "Tênis preto",
   prazoPrevisto: "2026-09-10",
   valorEstimado: 0,

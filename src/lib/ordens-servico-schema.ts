@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { dataOperacionalHoje } from "./date-range";
 import { sanitizeCurrency } from "./sanitizers";
+import { FORMATO_NUMERO_OS } from "./ordens-servico-numero";
 
 const FORMATO_DATA_ISO = /^\d{4}-\d{2}-\d{2}$/;
 const JUSTIFICATIVA_MINIMA = 10;
@@ -20,6 +21,13 @@ export const ordemServicoFormSchema = z.object({
   servicoId: z.string().optional(),
   servicos: z.array(ordemServicoServicoSchema).optional().default([]),
   dataEntrada: z.string().optional(),
+  // Número informado pelo operador; compõe OS-<DDMMAAAA>-<numeroOS>.
+  // Mantido como string para preservar zeros à esquerda (ex.: "0124").
+  numeroOS: z
+    .string({ required_error: "O número da OS é obrigatório." })
+    .trim()
+    .min(1, "O número da OS é obrigatório.")
+    .regex(FORMATO_NUMERO_OS, "O número da OS deve conter apenas dígitos."),
   justificativaDataEntrada: z.string().optional(),
   prazoPrevisto: z.string().min(1, "A data de previsão é obrigatória."),
   valorEstimado: safeNumber("O valor não pode ser negativo."),
