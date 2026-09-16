@@ -35,8 +35,14 @@ export interface RelatorioFinanceiroOSResumo {
 }
 
 export interface RelatorioFinanceiroOSAgregados {
-  /** Composição do Valor Total do conjunto filtrado: pago + saldo em aberto. */
+  /**
+   * Composição do Valor Total do conjunto filtrado. Em regra, pago + saldo =
+   * valorTotal; em OS legadas com sobrepagamento (saldo zerado e pago maior
+   * que o total) a soma excede o total, por isso `valorTotal` é devolvido
+   * explicitamente como base do gráfico.
+   */
   composicaoFinanceira: {
+    valorTotal: number;
     valorPago: number;
     saldoAberto: number;
   };
@@ -105,6 +111,7 @@ export function calcularAgregadosRelatorio(itens: ItemAgregavel[]): RelatorioFin
 
   return {
     composicaoFinanceira: {
+      valorTotal: resumo.valorTotal,
       valorPago: resumo.valorPago,
       saldoAberto: resumo.saldoAberto,
     },
