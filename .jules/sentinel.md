@@ -10,3 +10,7 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+## 2025-02-28 - Insecure Randomness in Business Identifiers
+**Vulnerability:** Uso de gerador de números pseudoaleatórios não criptográfico (`Math.random()`) para geração de números de ordens de serviço.
+**Learning:** A previsibilidade dos números gerados por `Math.random()` pode permitir a enumeração e previsão de identificadores de negócio, facilitando ataques como Insecure Direct Object References (IDOR).
+**Prevention:** Sempre utilizar funções criptograficamente seguras, como as fornecidas pelo módulo `crypto` do Node.js (ex: `crypto.randomInt`), para a geração de identificadores, sufixos, tokens ou senhas.
