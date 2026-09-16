@@ -106,11 +106,13 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
           <Input
             id="email"
             type="email"
+            aria-invalid={Boolean(errors.email)}
+            aria-describedby={errors.email ? "email-error" : undefined}
             autoComplete="username"
             {...register("email")}
             placeholder="usuario@exemplo.com"
           />
-          {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
+          {errors.email ? <p id="email-error" className="text-sm text-red-600">{errors.email.message}</p> : null}
         </div>
 
         <div className="grid gap-2">
@@ -118,15 +120,17 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
           <Input
             id="senha"
             type="password"
+            aria-invalid={Boolean(errors.senha)}
+            aria-describedby={errors.senha ? "senha-error" : undefined}
             autoComplete="current-password"
             {...register("senha")}
             placeholder="Sua senha"
           />
-          {errors.senha ? <p className="text-sm text-red-600">{errors.senha.message}</p> : null}
+          {errors.senha ? <p id="senha-error" className="text-sm text-red-600">{errors.senha.message}</p> : null}
         </div>
 
         {submitError ? (
-          <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {submitError}
           </p>
         ) : null}
