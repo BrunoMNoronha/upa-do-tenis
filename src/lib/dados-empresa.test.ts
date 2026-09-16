@@ -9,16 +9,26 @@ import {
 import { mensagemAberturaOS, mensagemAvaliacaoOS, mensagemConclusaoOS } from "./formatters";
 
 describe("dadosEmpresaSchema", () => {
+  it("mantém os dados comerciais confirmados na carga inicial", () => {
+    expect(DADOS_EMPRESA_PADRAO.whatsapp).toBe("6184492002");
+    expect(DADOS_EMPRESA_PADRAO.endereco.cep).toBe("72010120");
+    expect(DADOS_EMPRESA_PADRAO.horarioAtendimento).toBe(
+      "Segunda a sexta, das 09:00 às 17:00; sábado, das 09:00 às 13:00; domingo, fechado.",
+    );
+    expect(DADOS_EMPRESA_PADRAO.razaoSocial).toBeNull();
+    expect(DADOS_EMPRESA_PADRAO.cnpj).toBeNull();
+  });
+
   it("aceita e normaliza a carga inicial", () => {
     const resultado = dadosEmpresaSchema.parse({
       ...DADOS_EMPRESA_PADRAO,
       telefone: "(61) 3562-8447",
-      whatsapp: "(61) 98449-2002",
-      endereco: { ...DADOS_EMPRESA_PADRAO.endereco, uf: "df", cep: "72015-510" },
+      whatsapp: "+55 61 8449-2002",
+      endereco: { ...DADOS_EMPRESA_PADRAO.endereco, uf: "df", cep: "72010-120" },
     });
     expect(resultado.telefone).toBe("6135628447");
-    expect(resultado.whatsapp).toBe("61984492002");
-    expect(resultado.endereco).toMatchObject({ uf: "DF", cep: "72015510" });
+    expect(resultado.whatsapp).toBe("6184492002");
+    expect(resultado.endereco).toMatchObject({ uf: "DF", cep: "72010120" });
   });
 
   it("transforma textos opcionais vazios em null", () => {

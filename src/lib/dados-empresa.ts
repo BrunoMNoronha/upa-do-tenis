@@ -23,6 +23,21 @@ const somenteDigitosOpcional = (quantidades: number[], mensagem: string) =>
     })
     .refine((valor) => valor === null || quantidades.includes(valor.length), mensagem);
 
+const telefoneBrasileiroOpcional = z
+  .string()
+  .nullish()
+  .transform((valor) => {
+    let digitos = valor?.replace(/\D/g, "") ?? "";
+    if ((digitos.length === 12 || digitos.length === 13) && digitos.startsWith("55")) {
+      digitos = digitos.slice(2);
+    }
+    return digitos === "" ? null : digitos;
+  })
+  .refine(
+    (valor) => valor === null || valor.length === 10 || valor.length === 11,
+    "O telefone deve conter 10 ou 11 dígitos, com DDD.",
+  );
+
 export function cnpjValido(valor: string): boolean {
   const cnpj = valor.replace(/\D/g, "");
   if (cnpj.length !== 14 || /^(\d)\1{13}$/.test(cnpj)) return false;
@@ -85,8 +100,8 @@ export const dadosEmpresaSchema = z
     nomeComplementar: textoOpcional(120),
     razaoSocial: textoOpcional(180),
     cnpj: cnpjOpcional,
-    telefone: somenteDigitosOpcional([10, 11], "O telefone deve conter 10 ou 11 dígitos."),
-    whatsapp: somenteDigitosOpcional([10, 11], "O WhatsApp deve conter 10 ou 11 dígitos."),
+    telefone: telefoneBrasileiroOpcional,
+    whatsapp: telefoneBrasileiroOpcional,
     email: emailOpcional,
     site: urlHttpsOpcional,
     endereco: z
@@ -122,7 +137,7 @@ export const DADOS_EMPRESA_PADRAO: Readonly<DadosEmpresa> = Object.freeze({
   razaoSocial: null,
   cnpj: null,
   telefone: "6135628447",
-  whatsapp: "61984492002",
+  whatsapp: "6184492002",
   email: "upadotenis@gmail.com",
   site: "https://www.upadotenis.com.br/",
   endereco: Object.freeze({
@@ -132,10 +147,10 @@ export const DADOS_EMPRESA_PADRAO: Readonly<DadosEmpresa> = Object.freeze({
     bairro: "Taguatinga Centro",
     cidade: "Brasília",
     uf: "DF",
-    cep: "72015510",
+    cep: "72010120",
   }),
   horarioAtendimento:
-    "Segunda a sexta, das 08:00 às 18:00; sábado, das 08:00 às 14:00; domingo, fechado.",
+    "Segunda a sexta, das 09:00 às 17:00; sábado, das 09:00 às 13:00; domingo, fechado.",
   instagramUrl: "https://www.instagram.com/upa.do.tenis/",
   facebookUrl: "https://www.facebook.com/upadotenis/",
 });
