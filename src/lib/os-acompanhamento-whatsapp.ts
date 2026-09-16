@@ -14,15 +14,17 @@ export function montarSugestaoAcompanhamento({
   nomeCliente,
   numeroOS,
   telefone,
+  nomeExibicaoEmpresa,
 }: {
   origem: string;
   caminhoAcompanhamento: string;
   nomeCliente: string;
   numeroOS: string;
   telefone: string | null | undefined;
+  nomeExibicaoEmpresa?: string;
 }) {
   const linkAcompanhamento = `${origem.replace(/\/+$/, "")}${caminhoAcompanhamento}`;
-  const mensagem = mensagemAberturaOS({ nomeCliente, numeroOS, linkAcompanhamento });
+  const mensagem = mensagemAberturaOS({ nomeCliente, numeroOS, linkAcompanhamento, nomeExibicaoEmpresa });
 
   return {
     linkAcompanhamento,

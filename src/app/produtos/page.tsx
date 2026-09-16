@@ -8,7 +8,7 @@ import { ProdutosClient } from "./produtos-client";
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Produtos | UPA do Tênis",
+  title: "Produtos",
   description: "Cadastro e consulta de produtos para venda no balcão.",
 };
 

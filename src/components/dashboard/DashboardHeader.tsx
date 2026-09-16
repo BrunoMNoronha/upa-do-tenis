@@ -7,6 +7,7 @@ type DashboardHeaderProps = {
   nomeUsuario?: string | null;
   /** Instante de referência (padrão: agora). Usado para saudação e data. */
   agora?: Date;
+  nomeEmpresa?: string;
 };
 
 const acaoBase =
@@ -34,7 +35,7 @@ function IconeMais() {
  * sessão (quando houver), data por extenso e as duas ações principais.
  * Componente sem estado, renderizável no servidor.
  */
-export function DashboardHeader({ nomeUsuario, agora = new Date() }: DashboardHeaderProps) {
+export function DashboardHeader({ nomeUsuario, agora = new Date(), nomeEmpresa = "a sapataria" }: DashboardHeaderProps) {
   const saudacao = montarSaudacao(nomeUsuario, agora);
   const data = formatarDataCabecalho(agora);
 
@@ -46,7 +47,7 @@ export function DashboardHeader({ nomeUsuario, agora = new Date() }: DashboardHe
         <p className="text-sm text-[color:var(--text-soft)]">
           <span>{data}</span>
           <span aria-hidden="true"> · </span>
-          <span>Visão geral financeira e operacional da Sapataria Alves</span>
+          <span>Visão geral financeira e operacional de {nomeEmpresa}</span>
         </p>
       </div>
 

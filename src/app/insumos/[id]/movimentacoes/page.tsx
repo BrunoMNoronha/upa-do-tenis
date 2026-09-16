@@ -5,7 +5,7 @@ import MovimentacoesClient from "./movimentacoes-client";
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Extrato de Insumo | UPA do Tênis",
+  title: "Extrato de Insumo",
 };
 
 export const dynamic = "force-dynamic";

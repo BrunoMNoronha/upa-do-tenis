@@ -1,6 +1,7 @@
 import { Badge, Card } from "@/components/ui";
 import { FUSO_OPERACIONAL } from "@/lib/date-range";
 import type { AcompanhamentoPublico } from "@/lib/os-acompanhamento";
+import { DADOS_EMPRESA_PADRAO, type DadosEmpresa } from "@/lib/dados-empresa";
 
 const dataFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
@@ -20,35 +21,35 @@ function tomDoStatus(status: string) {
   return "accent" as const;
 }
 
-function Cabecalho() {
+function Cabecalho({ dadosEmpresa }: { dadosEmpresa: DadosEmpresa }) {
   return (
     <header className="mb-6 text-center">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent-strong)]">
-        UPA do Tênis
+        {dadosEmpresa.nomeFantasia}
       </p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text)]">Sapataria Alves</h1>
+      {dadosEmpresa.nomeComplementar ? <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text)]">{dadosEmpresa.nomeComplementar}</h1> : null}
       <p className="mt-2 text-sm text-slate-600">Acompanhamento da Ordem de Serviço</p>
     </header>
   );
 }
 
-function Moldura({ children }: { children: React.ReactNode }) {
+function Moldura({ children, dadosEmpresa }: { children: React.ReactNode; dadosEmpresa: DadosEmpresa }) {
   return (
     <main className="flex min-h-screen justify-center bg-[color:var(--background)] px-4 py-10">
       <div className="w-full max-w-lg">
-        <Cabecalho />
+        <Cabecalho dadosEmpresa={dadosEmpresa} />
         {children}
       </div>
     </main>
   );
 }
 
-export function AcompanhamentoView({ acompanhamento }: { acompanhamento: AcompanhamentoPublico }) {
+export function AcompanhamentoView({ acompanhamento, dadosEmpresa = DADOS_EMPRESA_PADRAO }: { acompanhamento: AcompanhamentoPublico; dadosEmpresa?: DadosEmpresa }) {
   // Mais recente primeiro: o cliente quer ver onde o calçado está agora.
   const etapas = [...acompanhamento.etapas].reverse();
 
   return (
-    <Moldura>
+    <Moldura dadosEmpresa={dadosEmpresa}>
       <Card className="p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">Ordem de Serviço</p>
         <p className="mt-1 break-all text-2xl font-semibold text-[color:var(--text)]">{acompanhamento.numero}</p>
@@ -89,9 +90,9 @@ export function AcompanhamentoView({ acompanhamento }: { acompanhamento: Acompan
   );
 }
 
-export function AcompanhamentoIndisponivelView() {
+export function AcompanhamentoIndisponivelView({ dadosEmpresa = DADOS_EMPRESA_PADRAO }: { dadosEmpresa?: DadosEmpresa }) {
   return (
-    <Moldura>
+    <Moldura dadosEmpresa={dadosEmpresa}>
       <Card className="p-6 text-center">
         <h2 className="text-lg font-semibold text-[color:var(--text)]">Link de acompanhamento indisponível</h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">

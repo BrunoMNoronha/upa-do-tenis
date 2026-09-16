@@ -9,6 +9,7 @@ export type DadosSugestaoAvaliacao = {
   nomeCliente: string;
   telefone: string | null | undefined;
   linkAvaliacaoGoogle?: string | null;
+  nomeExibicaoEmpresa?: string;
 };
 
 /**
@@ -21,8 +22,9 @@ export function montarSugestaoAvaliacao({
   nomeCliente,
   telefone,
   linkAvaliacaoGoogle,
+  nomeExibicaoEmpresa,
 }: DadosSugestaoAvaliacao) {
-  const mensagem = mensagemAvaliacaoOS({ nomeCliente, numeroOS, linkAvaliacaoGoogle });
+  const mensagem = mensagemAvaliacaoOS({ nomeCliente, numeroOS, linkAvaliacaoGoogle, nomeExibicaoEmpresa });
   const telefoneFormatado = telefone ? formatPhone(telefone) : "";
   const temTelefoneValido = Boolean(whatsappLink(telefone));
   const temLinkConfigurado = Boolean(linkAvaliacaoGoogle?.trim());

@@ -6,7 +6,7 @@ import { VendaBalcaoClient } from "./venda-balcao-client";
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Venda de Balcão | UPA do Tênis",
+  title: "Venda de Balcão",
   description: "Registre vendas diretas de produtos no balcão de atendimento da sapataria.",
 };
 

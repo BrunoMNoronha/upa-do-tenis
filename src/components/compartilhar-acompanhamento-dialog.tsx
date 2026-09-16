@@ -10,6 +10,7 @@ export type DadosCompartilhamentoAcompanhamento = {
   nomeCliente: string;
   telefone: string | null | undefined;
   caminhoAcompanhamento: string;
+  nomeExibicaoEmpresa?: string;
 };
 
 type CompartilharAcompanhamentoDialogProps = {

@@ -9,7 +9,7 @@ import { listarFormasPagamento } from "@/lib/formas-pagamento";
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Histórico de Vendas | UPA do Tênis",
+  title: "Histórico de Vendas",
   description: "Histórico de vendas de balcão realizadas.",
 };
 

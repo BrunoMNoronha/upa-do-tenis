@@ -1,4 +1,5 @@
 import { sanitizeCPFCNPJ, sanitizeCurrency, sanitizePhone } from "./sanitizers";
+import { NOME_EMPRESA_FALLBACK } from "./dados-empresa";
 
 export function formatPhone(value: string | null | undefined): string {
   if (!value) return "";
@@ -87,14 +88,16 @@ export function mensagemAberturaOS({
   nomeCliente,
   numeroOS,
   linkAcompanhamento,
+  nomeExibicaoEmpresa = NOME_EMPRESA_FALLBACK,
 }: {
   nomeCliente: string;
   numeroOS: string;
   linkAcompanhamento: string;
+  nomeExibicaoEmpresa?: string;
 }): string {
   const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
   return (
-    `${saudacao} Sua Ordem de Serviço ${numeroOS} foi aberta na UPA do Tênis - Sapataria Alves.\n\n` +
+    `${saudacao} Sua Ordem de Serviço ${numeroOS} foi aberta na ${nomeExibicaoEmpresa}.\n\n` +
     `Você pode acompanhar o andamento pelo link:\n${linkAcompanhamento}`
   );
 }
@@ -106,14 +109,16 @@ export function mensagemAberturaOS({
 export function mensagemConclusaoOS({
   nomeCliente,
   numeroOS,
+  nomeExibicaoEmpresa = NOME_EMPRESA_FALLBACK,
 }: {
   nomeCliente: string;
   numeroOS: string;
+  nomeExibicaoEmpresa?: string;
 }): string {
   const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
   return (
     `${saudacao} Sua Ordem de Serviço ${numeroOS} foi concluída. Quando puder, entre em contato ` +
-    `ou venha até a UPA do Tênis - Sapataria Alves para seguirmos com o atendimento.`
+    `ou venha até a ${nomeExibicaoEmpresa} para seguirmos com o atendimento.`
   );
 }
 
@@ -127,10 +132,12 @@ export function mensagemAvaliacaoOS({
   nomeCliente,
   numeroOS,
   linkAvaliacaoGoogle,
+  nomeExibicaoEmpresa = NOME_EMPRESA_FALLBACK,
 }: {
   nomeCliente: string;
   numeroOS: string;
   linkAvaliacaoGoogle?: string | null;
+  nomeExibicaoEmpresa?: string;
 }): string {
   const link = linkAvaliacaoGoogle?.trim();
   if (!link) {
@@ -139,7 +146,7 @@ export function mensagemAvaliacaoOS({
 
   const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
   return (
-    `${saudacao} Agradecemos por escolher a UPA do Tênis - Sapataria Alves.\n\n` +
+    `${saudacao} Agradecemos por escolher a ${nomeExibicaoEmpresa}.\n\n` +
     `Sua Ordem de Serviço ${numeroOS} foi entregue. Se puder, conte como foi sua experiência deixando uma avaliação no Google:\n` +
     `${link}\n\n` +
     `Muito obrigado pela confiança!`
@@ -173,4 +180,3 @@ export function formatCurrency(value: number | string | null | undefined): strin
   
   return brlFormatter.format(numVal);
 }
-

@@ -4,7 +4,7 @@ import { exigirSessao } from "@/lib/auth-server";
 import { OsFotosClient } from "./os-fotos-client";
 
 export const metadata = {
-  title: "Fotos da OS | UPA do Tênis",
+  title: "Fotos da OS",
   description: "Inclusão rápida de fotos em ordens de serviço pelo celular.",
 };
 

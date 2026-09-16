@@ -9,14 +9,15 @@ export type DadosSugestaoConclusao = {
   numeroOS: string;
   nomeCliente: string;
   telefone: string | null | undefined;
+  nomeExibicaoEmpresa?: string;
 };
 
 /**
  * `urlWhatsApp` vem vazia quando o telefone não serve para WhatsApp — a UI
  * deve desabilitar a ação em vez de gerar um `wa.me` inválido.
  */
-export function montarSugestaoConclusao({ numeroOS, nomeCliente, telefone }: DadosSugestaoConclusao) {
-  const mensagem = mensagemConclusaoOS({ nomeCliente, numeroOS });
+export function montarSugestaoConclusao({ numeroOS, nomeCliente, telefone, nomeExibicaoEmpresa }: DadosSugestaoConclusao) {
+  const mensagem = mensagemConclusaoOS({ nomeCliente, numeroOS, nomeExibicaoEmpresa });
 
   return {
     mensagem,

@@ -6,9 +6,10 @@ import { validarUrlHttps } from "@/lib/configuracoes-schema";
 
 type ConfiguracoesClientProps = {
   linkInicial: string | null;
+  nomeEmpresa: string;
 };
 
-export function ConfiguracoesClient({ linkInicial }: ConfiguracoesClientProps) {
+export function ConfiguracoesClient({ linkInicial, nomeEmpresa }: ConfiguracoesClientProps) {
   const [linkGoogle, setLinkGoogle] = useState(linkInicial ?? "");
   const [linkSalvo, setLinkSalvo] = useState(linkInicial ?? "");
   const [salvando, setSalvando] = useState(false);
@@ -63,8 +64,7 @@ export function ConfiguracoesClient({ linkInicial }: ConfiguracoesClientProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="overflow-hidden">
+    <Card className="overflow-hidden">
         <div className="border-b border-[color:var(--border)] p-6">
           <PanelHeader
             title="Avaliações de Clientes"
@@ -81,9 +81,9 @@ export function ConfiguracoesClient({ linkInicial }: ConfiguracoesClientProps) {
               Link de avaliação no Google
             </label>
             <p id="link-google-descricao" className="text-xs text-slate-500 leading-relaxed">
-              Cole o link direto do perfil da UPA do Tênis no Google Business / Google Maps (ex.:{" "}
-              <code className="rounded bg-black/5 px-1 py-0.5 text-xs">https://g.page/r/.../review</code> ou{" "}
-              <code className="rounded bg-black/5 px-1 py-0.5 text-xs">https://maps.app.goo.gl/...</code>).
+              Cole o link direto do perfil de {nomeEmpresa} no Google Business / Google Maps (ex.:{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5 text-xs text-slate-700">https://g.page/r/.../review</code> ou{" "}
+              <code className="rounded bg-black/5 px-1 py-0.5 text-xs text-slate-700">https://maps.app.goo.gl/...</code>).
               Apenas links com protocolo seguro <strong className="font-semibold">HTTPS</strong> são aceitos.
             </p>
 
@@ -170,7 +170,6 @@ export function ConfiguracoesClient({ linkInicial }: ConfiguracoesClientProps) {
             )}
           </div>
         </form>
-      </Card>
-    </div>
+    </Card>
   );
 }

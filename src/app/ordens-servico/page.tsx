@@ -17,7 +17,7 @@ import { listarServicos } from "@/lib/servicos";
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Ordens de Serviço | UPA do Tênis",
+  title: "Ordens de Serviço",
   description: "Listagem e cadastro inicial de ordens de serviço.",
 };
 

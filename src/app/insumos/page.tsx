@@ -10,7 +10,7 @@ import { exigirSessao } from "@/lib/auth-server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Insumos e Produtos | UPA do Tênis",
+  title: "Insumos e Produtos",
   description: "Cadastro e consulta de insumos e produtos da sapataria.",
 };
 

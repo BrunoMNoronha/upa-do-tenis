@@ -8,7 +8,7 @@ import { exigirSessao } from "@/lib/auth-server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Formas de Pagamento | UPA do Tênis",
+  title: "Formas de Pagamento",
   description: "Cadastro e consulta de formas de pagamento da sapataria.",
 };
 

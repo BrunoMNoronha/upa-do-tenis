@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge, Button, Card, SectionTitle } from "@/components/ui";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresa } from "@/lib/configuracoes";
 
 const highlights = [
   "Clientes",
@@ -15,11 +16,12 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   await exigirSessao();
+  const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       eyebrow="Painel inicial"
-      title="Base administrativa da UPA do Tênis"
+      title={`Base administrativa de ${dadosEmpresa.nomeFantasia}`}
       description="Painel inicial do MVP v1 para clientes, ordens de serviço e operação da sapataria, já preparado para evoluir com navegação e layout consistentes."
       action={{ href: "/clientes", label: "Abrir clientes" }}
     >

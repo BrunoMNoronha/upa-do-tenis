@@ -67,6 +67,7 @@ import {
 import type { EstatisticasOrdensServico } from "@/lib/ordens-servico";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
+import { NOME_EMPRESA_FALLBACK, nomeExibicaoEmpresa as montarNomeEmpresa } from "@/lib/dados-empresa";
 type StatusFilter = StatusOperacionalListagem;
 
 const statusOptions: Array<{
@@ -208,11 +209,13 @@ function OrdemServicoCard({
   isAtrasada,
   onConcluida,
   onEntregue,
+  nomeExibicaoEmpresa,
 }: {
   ordem: OrdemServicoReal;
   isAtrasada: boolean;
   onConcluida: (dados: DadosSugestaoConclusao) => void;
   onEntregue: (dados: DadosSugestaoAvaliacao) => void;
+  nomeExibicaoEmpresa: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -261,7 +264,7 @@ function OrdemServicoCard({
 
       // Sugestão de WhatsApp só depois de o backend confirmar a conclusão/entrega.
       if (resultado.sugestaoConclusao) {
-        onConcluida(resultado.sugestaoConclusao);
+        onConcluida({ ...resultado.sugestaoConclusao, nomeExibicaoEmpresa });
       } else if (resultado.sugestaoAvaliacao) {
         let linkAvaliacao: string | null = null;
         try {
@@ -277,6 +280,7 @@ function OrdemServicoCard({
         onEntregue({
           ...resultado.sugestaoAvaliacao,
           linkAvaliacaoGoogle: linkAvaliacao,
+          nomeExibicaoEmpresa,
         });
       }
 
@@ -1320,11 +1324,12 @@ type OrdemServicoListProps = {
   pagination: PaginacaoInfo;
   estatisticas: EstatisticasOrdensServico;
   filtros: FiltrosListagemOrdensServico;
+  nomeExibicaoEmpresa: string;
 };
 
 const BUSCA_DEBOUNCE_MS = 350;
 
-function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemServicoListProps) {
+function OrdemServicoList({ ordens, pagination, estatisticas, filtros, nomeExibicaoEmpresa }: OrdemServicoListProps) {
   // Estado no nível da lista: após router.refresh() o card concluído pode sair
   // do filtro atual e desmontar, mas a sugestão de WhatsApp deve continuar aberta.
   const [sugestaoConclusao, setSugestaoConclusao] = useState<DadosSugestaoConclusao | null>(null);
@@ -1527,6 +1532,7 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
               isAtrasada={ordemServicoEstaAtrasada(ordem)}
               onConcluida={setSugestaoConclusao}
               onEntregue={setSugestaoAvaliacao}
+              nomeExibicaoEmpresa={nomeExibicaoEmpresa}
             />
           ))}
         </div>
@@ -1578,7 +1584,19 @@ export function OrdensServicoClient({
   const drawerOpen = searchParams.get(NOVA_ORDEM_PARAM) === "1";
   const [compartilhamento, setCompartilhamento] =
     useState<DadosCompartilhamentoAcompanhamento | null>(null);
+  const [nomeEmpresa, setNomeEmpresa] = useState(NOME_EMPRESA_FALLBACK);
   const fecharCompartilhamento = useCallback(() => setCompartilhamento(null), []);
+
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/configuracoes/dados-empresa")
+      .then((resposta) => (resposta.ok ? resposta.json() : null))
+      .then((dados) => {
+        if (ativo && dados?.nomeFantasia) setNomeEmpresa(montarNomeEmpresa(dados));
+      })
+      .catch(() => undefined);
+    return () => { ativo = false; };
+  }, []);
 
   const closeDrawer = useCallback(() => {
     const url = new URL(window.location.href);
@@ -1623,6 +1641,7 @@ export function OrdensServicoClient({
         pagination={pagination}
         estatisticas={estatisticas}
         filtros={filtros}
+        nomeExibicaoEmpresa={nomeEmpresa}
       />
       {drawerOpen ? (
         <>
@@ -1645,7 +1664,7 @@ export function OrdensServicoClient({
               clientes={clientes}
               servicos={servicos}
               onClose={closeDrawer}
-              onCriada={setCompartilhamento}
+              onCriada={(dados) => setCompartilhamento({ ...dados, nomeExibicaoEmpresa: nomeEmpresa })}
             />
           </aside>
         </>
