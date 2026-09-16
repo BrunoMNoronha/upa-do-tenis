@@ -78,9 +78,14 @@ antes da #123. É o estado de desenvolvimento, testes e CI.
 1. Console do reCAPTCHA (Google Cloud → reCAPTCHA, ou
    `https://www.google.com/recaptcha/admin`): criar chave do tipo
    **reCAPTCHA v3** (score-based).
-2. Domínios: o domínio oficial de produção. Para o Preview, registrar
-   `vercel.app` (o console aceita o domínio raiz e cobre os subdomínios de
-   deployment).
+2. Domínios: registrar apenas o domínio oficial de produção
+   (`upa-do-tenis.vercel.app`). Desde 2026-09-16 o deploy é somente a partir
+   de `main` e não existem Preview deployments (`vercel.json` →
+   `git.deploymentEnabled`); só se o Preview voltar a ser usado faz sentido
+   registrar `vercel.app` no par de chaves do escopo Preview. Não usar o
+   domínio raiz `vercel.app` no par de Production: ele cobre subdomínios de
+   terceiros. `localhost` só se alguém quiser testar com chaves reais em
+   desenvolvimento (por padrão o escopo Development fica vazio).
 3. Preferir **um par de chaves por escopo** (Production ≠ Preview), seguindo
    a mesma regra de separação usada para `AUTH_SESSION_SECRET`.
 4. Cadastrar na Vercel, uma variável por escopo, **nunca** em "All

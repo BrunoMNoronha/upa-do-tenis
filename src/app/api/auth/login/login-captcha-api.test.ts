@@ -99,6 +99,20 @@ describe("reCAPTCHA em POST /api/auth/login", () => {
     expect(prismaMock.usuario.findUnique).not.toHaveBeenCalled();
   });
 
+  it("recusa token vazio com 403, sem chamar o Google nem o banco", async () => {
+    const fetchMock = googleResponde({ success: true, score: 0.9, action: "login" });
+
+    const response = await POST(
+      criarRequest({ email: usuario.email, senha: "senha-correta", captchaToken: "" })
+    );
+
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ message: MENSAGEM_CAPTCHA_RECUSADO });
+    expect(response.cookies.get(SESSAO_COOKIE_NOME)?.value).toBeFalsy();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(prismaMock.usuario.findUnique).not.toHaveBeenCalled();
+  });
+
   it("recusa token inválido antes de verificar a senha", async () => {
     googleResponde({ success: false, "error-codes": ["invalid-input-response"] });
 

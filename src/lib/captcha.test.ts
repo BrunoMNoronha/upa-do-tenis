@@ -78,6 +78,18 @@ describe("verificarCaptcha", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
+  it("recusa token vazio sem chamar a rede", async () => {
+    const fetchImpl = vi.fn();
+
+    const resultado = await verificarCaptcha("", {
+      config: configAtiva,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    expect(resultado).toEqual({ status: "recusado", motivo: "token_ausente" });
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("envia secret, token e IP ao siteverify e aceita score acima do mínimo", async () => {
     const fetchImpl = fetchRespondendo({ success: true, score: 0.9, action: "login" });
 
