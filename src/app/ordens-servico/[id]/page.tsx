@@ -14,7 +14,7 @@ type OrdemServicoDetalhePageProps = {
 };
 
 export const metadata = {
-  title: "Detalhe da Ordem de Serviço | UPA do Tênis",
+  title: "Detalhe da Ordem de Serviço",
   description: "Visualização consolidada de dados operacionais e financeiros da OS.",
 };
 

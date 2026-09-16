@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui";
 import { navGroups } from "@/config/navigation";
+import { DADOS_EMPRESA_PADRAO, nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
 const SIDEBAR_COLLAPSED_KEY = "upa:sidebar-collapsed";
 
@@ -34,6 +35,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
   // Inicia expandido no servidor e no primeiro render do cliente para evitar
   // divergência de hidratação; a preferência salva é aplicada após montar.
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [identidade, setIdentidade] = useState(DADOS_EMPRESA_PADRAO);
 
   useEffect(() => {
     try {
@@ -41,6 +43,17 @@ export function AppShell({ title, description, eyebrow, action, header, children
     } catch {
       // localStorage indisponível (ex.: modo privado restrito): mantém expandido.
     }
+  }, []);
+
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/configuracoes/dados-empresa")
+      .then((resposta) => (resposta.ok ? resposta.json() : null))
+      .then((dados) => {
+        if (ativo && dados?.nomeFantasia) setIdentidade(dados);
+      })
+      .catch(() => undefined);
+    return () => { ativo = false; };
   }, []);
 
   const toggleCollapsed = () => {
@@ -96,8 +109,8 @@ export function AppShell({ title, description, eyebrow, action, header, children
             }`}
           >
             <div className={collapsedOnDesktop ? "lg:hidden" : ""}>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent-strong)]">UPA do Tênis</p>
-              <p className="mt-0.5 text-xs text-slate-500">Sapataria Alves</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent-strong)]">{identidade.nomeFantasia}</p>
+              {identidade.nomeComplementar ? <p className="mt-0.5 text-xs text-slate-500">{identidade.nomeComplementar}</p> : null}
             </div>
             <button
               type="button"
@@ -219,7 +232,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="font-semibold text-slate-800">UPA do Tênis</span>
+            <span className="font-semibold text-slate-800">{nomeExibicaoEmpresa(identidade)}</span>
           </div>
           {action && !header ? (
             <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color:var(--accent-strong)]" href={action.href}>

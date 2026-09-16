@@ -17,6 +17,7 @@
     "seed": "tsx prisma/seed.ts",
     "seed:catalogo": "tsx prisma/catalog-seed.ts",
     "bootstrap:admin": "tsx --env-file=.env scripts/bootstrap-admin.ts",
+    "config:empresa:inicializar": "tsx --env-file=.env scripts/persistir-dados-empresa-padrao.ts",
     "saneamento:forma-dinheiro": "tsx scripts/saneamento-forma-pagamento-dinheiro.ts",
     "desbloquear:login": "tsx --env-file=.env scripts/desbloquear-login.ts",
     "prisma:generate": "prisma generate",

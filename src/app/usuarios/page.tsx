@@ -5,7 +5,7 @@ import { listarUsuarios } from "@/lib/usuarios";
 import { UsuariosClient } from "./usuarios-client";
 
 export const metadata = {
-  title: "Usuários | UPA do Tênis",
+  title: "Usuários",
   description: "Cadastro e gestão dos usuários do sistema.",
 };
 

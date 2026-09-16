@@ -5,7 +5,7 @@ import { RelatorioEstoqueClient } from "@/components/relatorios/estoque/Relatori
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: "Relatório de Estoque - UPA do Tênis",
+  title: "Relatório de Estoque",
   description: "Visão global e alertas gerenciais do estoque.",
 };
 

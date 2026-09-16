@@ -6,9 +6,10 @@ import { formatCurrency } from "@/lib/formatters";
 import { BotaoImprimir } from "./botao-imprimir";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresa } from "@/lib/configuracoes";
 
 export const metadata = {
-  title: "Detalhes da Venda | UPA do Tênis",
+  title: "Detalhes da Venda",
 };
 
 export const dynamic = "force-dynamic";
@@ -19,7 +20,7 @@ export default async function VendaDetalhePage(props: {
   await exigirSessao();
   const { id } = await props.params;
 
-  const venda = await obterVendaPorId(id);
+  const [venda, dadosEmpresa] = await Promise.all([obterVendaPorId(id), obterDadosEmpresa()]);
 
   if (!venda) {
     notFound();
@@ -39,8 +40,8 @@ export default async function VendaDetalhePage(props: {
     >
       {/* Print-only receipt header */}
       <div className="hidden print:block mb-8 text-center border-b pb-4">
-        <h1 className="text-2xl font-bold text-slate-900 uppercase">Sapataria Alves</h1>
-        <p className="text-sm text-slate-600">UPA do Tênis</p>
+        <h1 className="text-2xl font-bold text-slate-900 uppercase">{dadosEmpresa.nomeComplementar ?? dadosEmpresa.nomeFantasia}</h1>
+        <p className="text-sm text-slate-600">{dadosEmpresa.nomeFantasia}</p>
         <p className="mt-4 text-lg font-semibold">Recibo de Venda de Balcão</p>
         <p className="text-sm text-slate-500">
           Venda {venda.numero} - {date}

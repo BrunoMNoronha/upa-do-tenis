@@ -5,7 +5,7 @@ import { AppShell } from '@/components/app-shell';
 import { exigirSessao } from "@/lib/auth-server";
 
 export const metadata = {
-  title: 'Relatório Financeiro de OS - UPA do Tênis',
+  title: 'Relatório Financeiro de OS',
   description: 'Visão analítica e filtrável das Ordens de Serviço',
 };
 
