@@ -52,11 +52,11 @@ describe("/api/configuracoes/dados-empresa", () => {
     const entrada = {
       ...DADOS_EMPRESA_PADRAO,
       telefone: "(61) 3562-8447",
-      endereco: { ...DADOS_EMPRESA_PADRAO.endereco, uf: "df", cep: "72015-510" },
+      endereco: { ...DADOS_EMPRESA_PADRAO.endereco, uf: "df", cep: "72010-120" },
     };
     const resposta = await PUT(requisicao("PUT", entrada));
     expect(resposta.status).toBe(200);
-    expect(await resposta.json()).toMatchObject({ telefone: "6135628447", endereco: { uf: "DF", cep: "72015510" } });
+    expect(await resposta.json()).toMatchObject({ telefone: "6135628447", endereco: { uf: "DF", cep: "72010120" } });
     const chamada = vi.mocked(prisma.configuracaoSistema.upsert).mock.calls[0][0];
     expect(chamada.where).toEqual({ chave: "dadosEmpresa" });
     expect(chamada.create.chave).toBe("dadosEmpresa");
