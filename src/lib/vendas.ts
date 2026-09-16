@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
+import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
 import {
   baixarEstoqueProdutoVenda,
   MovimentacaoEstoqueProdutoError,
@@ -210,13 +211,19 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
   return normalizarValoresDecimalParaClient(resultado);
 }
 
-export async function listarVendasBalcao(filtros?: {
+export type FiltrosListagemVendas = {
   dataInicial?: string;
   dataFinal?: string;
   formaPagamentoId?: string;
-}) {
+};
+
+/**
+ * Monta o `where` da listagem de vendas. Compartilhado entre a listagem
+ * completa e a paginada, para que `count` e `findMany` vejam o mesmo filtro.
+ */
+async function montarWhereVendasBalcao(filtros?: FiltrosListagemVendas) {
   const { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } = await import("@/lib/date-range");
-  
+
   const where: any = {};
 
   if (filtros?.dataInicial || filtros?.dataFinal) {
@@ -232,7 +239,7 @@ export async function listarVendasBalcao(filtros?: {
       inicioData = inicioDoDia(parsed);
       where.dataVenda.gte = inicioData;
     }
-    
+
     if (filtros.dataFinal) {
       const parsed = parseDataLocal(filtros.dataFinal);
       if (isNaN(parsed.getTime())) {
@@ -255,21 +262,18 @@ export async function listarVendasBalcao(filtros?: {
     where.formaPagamentoId = filtros.formaPagamentoId;
   }
 
-  const vendas = await prisma.venda.findMany({
-    where,
-    orderBy: { dataVenda: "desc" },
-    take: 100, // Limite seguro exigido pelo diagnóstico de PR
-    include: {
-      formaPagamento: true,
-      _count: {
-        select: { itens: true },
-      },
-    },
-  });
+  return where;
+}
 
-  const normalizadas = normalizarValoresDecimalParaClient(vendas);
+const includeListagemVenda = {
+  formaPagamento: true,
+  _count: {
+    select: { itens: true },
+  },
+};
 
-  return normalizadas.map((v: any) => ({
+function montarVendaListagem(v: any) {
+  return {
     id: v.id,
     numero: v.numero,
     dataVenda: v.dataVenda,
@@ -277,7 +281,52 @@ export async function listarVendasBalcao(filtros?: {
     formaPagamento: v.formaPagamento.nome,
     quantidadeItens: v._count.itens,
     observacoes: v.observacoes,
-  }));
+  };
+}
+
+export async function listarVendasBalcao(filtros?: FiltrosListagemVendas) {
+  const where = await montarWhereVendasBalcao(filtros);
+
+  const vendas = await prisma.venda.findMany({
+    where,
+    orderBy: { dataVenda: "desc" },
+    take: 100, // Limite seguro exigido pelo diagnóstico de PR
+    include: includeListagemVenda,
+  });
+
+  const normalizadas = normalizarValoresDecimalParaClient(vendas);
+
+  return normalizadas.map(montarVendaListagem);
+}
+
+/**
+ * Listagem paginada server-side (tela e API de histórico de vendas).
+ * Substitui o corte fixo de 100 registros: `count` e `findMany` usam o
+ * mesmo `where`; `criadoEm` e `id` desempatam vendas do mesmo instante.
+ */
+export async function listarVendasBalcaoPaginado(params: {
+  filtros?: FiltrosListagemVendas;
+  paginacao: PaginacaoNormalizada;
+}) {
+  const where = await montarWhereVendasBalcao(params.filtros);
+
+  const resultado = await paginarConsulta({
+    paginacao: params.paginacao,
+    contar: () => prisma.venda.count({ where }),
+    buscar: ({ skip, take }) =>
+      prisma.venda.findMany({
+        where,
+        orderBy: [{ dataVenda: "desc" }, { criadoEm: "desc" }, { id: "desc" }],
+        include: includeListagemVenda,
+        skip,
+        take,
+      }),
+  });
+
+  return {
+    data: normalizarValoresDecimalParaClient(resultado.data).map(montarVendaListagem),
+    pagination: resultado.pagination,
+  };
 }
 
 export async function obterVendaPorId(id: string) {

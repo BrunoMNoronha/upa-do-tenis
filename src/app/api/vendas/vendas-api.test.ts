@@ -25,7 +25,7 @@ const { registrarVendaBalcaoMock, listarVendasBalcaoMock, obterVendaPorIdMock, V
 
 vi.mock("@/lib/vendas", () => ({
   registrarVendaBalcao: registrarVendaBalcaoMock,
-  listarVendasBalcao: listarVendasBalcaoMock,
+  listarVendasBalcaoPaginado: listarVendasBalcaoMock,
   obterVendaPorId: obterVendaPorIdMock,
   VendaBalcaoError: VendaBalcaoErrorMock,
 }));
@@ -126,27 +126,34 @@ describe("GET /api/vendas", () => {
     vi.clearAllMocks();
   });
 
-  it("lista vendas sem filtros", async () => {
-    listarVendasBalcaoMock.mockResolvedValueOnce([{ id: "1" }]);
+  it("lista vendas sem filtros no contrato paginado", async () => {
+    const resultado = { data: [{ id: "1" }], pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 } };
+    listarVendasBalcaoMock.mockResolvedValueOnce(resultado);
     const req = new NextRequest("http://localhost/api/vendas");
     const response = await GET_VENDAS(req);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual([{ id: "1" }]);
-    expect(listarVendasBalcaoMock).toHaveBeenCalledWith({ dataInicial: undefined, dataFinal: undefined, formaPagamentoId: undefined });
+    expect(await response.json()).toEqual(resultado);
+    expect(listarVendasBalcaoMock).toHaveBeenCalledWith({
+      filtros: { dataInicial: undefined, dataFinal: undefined, formaPagamentoId: undefined },
+      paginacao: { page: 1, pageSize: 20, skip: 0, take: 20 },
+    });
   });
 
-  it("lista vendas com filtros de período", async () => {
-    listarVendasBalcaoMock.mockResolvedValueOnce([]);
-    const req = new NextRequest("http://localhost/api/vendas?dataInicial=2026-07-01&dataFinal=2026-07-31");
+  it("lista vendas com filtros de período e paginação", async () => {
+    listarVendasBalcaoMock.mockResolvedValueOnce({ data: [], pagination: { page: 2, pageSize: 10, total: 0, totalPages: 1 } });
+    const req = new NextRequest("http://localhost/api/vendas?dataInicial=2026-07-01&dataFinal=2026-07-31&page=2&pageSize=10");
     const response = await GET_VENDAS(req);
     expect(response.status).toBe(200);
     expect(listarVendasBalcaoMock).toHaveBeenCalledWith({
-      dataInicial: "2026-07-01",
-      dataFinal: "2026-07-31",
-      formaPagamentoId: undefined,
+      filtros: {
+        dataInicial: "2026-07-01",
+        dataFinal: "2026-07-31",
+        formaPagamentoId: undefined,
+      },
+      paginacao: { page: 2, pageSize: 10, skip: 10, take: 10 },
     });
   });
-  
+
   it("retorna 400 se listarVendasBalcao disparar VendaBalcaoError (data inválida)", async () => {
     listarVendasBalcaoMock.mockRejectedValueOnce(new VendaBalcaoErrorMock("Data inválida", 400));
     const req = new NextRequest("http://localhost/api/vendas?dataInicial=abc");

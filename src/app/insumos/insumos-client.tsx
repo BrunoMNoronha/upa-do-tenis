@@ -11,6 +11,8 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { insumoFormSchema, type InsumoFormValues } from "@/lib/insumos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
+import type { PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 export type InsumoListado = {
   id: string;
@@ -26,6 +28,7 @@ export type InsumoListado = {
 type InsumosClientProps = {
   insumos: InsumoListado[];
   mostrarAlerta: boolean;
+  pagination: PaginacaoInfo;
 };
 
 const defaultValues: InsumoFormValues = {
@@ -42,8 +45,9 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
+export function InsumosClient({ insumos, mostrarAlerta, pagination }: InsumosClientProps) {
   const router = useRouter();
+  const { criarHref } = usePaginacaoUrl();
   const [editando, setEditando] = useState<InsumoListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -248,7 +252,7 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
                 Limpar filtros
               </Link>
             ) : null}
-            <Badge tone="accent">Total: {insumos.length}</Badge>
+            <Badge tone="accent">Total: {pagination.total}</Badge>
           </div>
         </div>
 
@@ -355,6 +359,10 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
             })}
           </div>
         )}
+
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <Paginacao pagination={pagination} rotulo="itens" tone="dark" criarHref={criarHref} />
+        </div>
       </Card>
 
       <ConfirmDialog

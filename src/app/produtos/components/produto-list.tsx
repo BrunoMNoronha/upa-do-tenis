@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
+import type { PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 type ProdutoListado = {
   id: string;
@@ -17,6 +19,7 @@ type ProdutoListado = {
 
 type ProdutoListProps = {
   produtos: ProdutoListado[];
+  pagination: PaginacaoInfo;
   onEdit: (produto: ProdutoListado) => void;
   onDeleteCurrent: (id: string) => void;
 };
@@ -30,7 +33,8 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListProps) {
+export function ProdutoList({ produtos, pagination, onEdit, onDeleteCurrent }: ProdutoListProps) {
+  const { criarHref } = usePaginacaoUrl();
   const {
     listaError,
     isPending,
@@ -48,7 +52,7 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista</p>
           <h2 className="mt-2 text-2xl font-semibold">Produtos Cadastrados</h2>
         </div>
-        <Badge tone="accent">Total: {produtos.length}</Badge>
+        <Badge tone="accent">Total: {pagination.total}</Badge>
       </div>
 
       {listaError ? (
@@ -132,6 +136,10 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
           ))}
         </div>
       )}
+
+      <div className="mt-6 border-t border-white/10 pt-4">
+        <Paginacao pagination={pagination} rotulo="produtos" tone="dark" criarHref={criarHref} />
+      </div>
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}

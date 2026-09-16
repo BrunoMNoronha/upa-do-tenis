@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
 
 /**
  * Listagem operacional: só serviços ativos, para as telas que vinculam
@@ -22,5 +23,25 @@ export async function listarServicosParaGestao() {
     orderBy: {
       nome: "asc",
     },
+  });
+}
+
+/**
+ * Listagem de gestão paginada server-side (tela de Serviços). A ordenação
+ * por nome recebe `id` como desempate para que a paginação seja estável.
+ */
+export async function listarServicosParaGestaoPaginado(params: { paginacao: PaginacaoNormalizada }) {
+  const where = {};
+
+  return paginarConsulta({
+    paginacao: params.paginacao,
+    contar: () => prisma.servico.count({ where }),
+    buscar: ({ skip, take }) =>
+      prisma.servico.findMany({
+        where,
+        orderBy: [{ nome: "asc" }, { id: "asc" }],
+        skip,
+        take,
+      }),
   });
 }
