@@ -1,6 +1,7 @@
 import { AppShell } from "@/components/app-shell";
 
-import { listarProdutos } from "@/lib/produtos";
+import { listarProdutosPaginado } from "@/lib/produtos";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { ProdutosClient } from "./produtos-client";
 
 import { exigirSessao } from "@/lib/auth-server";
@@ -12,10 +13,15 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function ProdutosPage() {
+export default async function ProdutosPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await exigirSessao();
 
-  const produtos = await listarProdutos();
+  const searchParams = await props.searchParams;
+  const { data: produtos, pagination } = await listarProdutosPaginado({
+    paginacao: lerPaginacaoDeSearchParams(searchParams),
+  });
 
   return (
     <AppShell
@@ -25,6 +31,7 @@ export default async function ProdutosPage() {
       action={{ href: "/servicos", label: "Ir para Serviços" }}
     >
       <ProdutosClient
+        pagination={pagination}
         produtos={produtos.map((produto) => ({
           id: produto.id,
           nome: produto.nome,

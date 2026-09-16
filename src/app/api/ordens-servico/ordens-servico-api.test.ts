@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 import { GET, POST } from "./route";
-import { listarOrdensServico } from "@/lib/ordens-servico";
+import { listarOrdensServicoPaginado } from "@/lib/ordens-servico";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ vi.mock("@/lib/auth-server", () => ({
 }));
 
 vi.mock("@/lib/ordens-servico", () => ({
-  listarOrdensServico: vi.fn(),
+  listarOrdensServicoPaginado: vi.fn(),
 }));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -65,23 +65,61 @@ describe("GET /api/ordens-servico", () => {
     vi.clearAllMocks();
   });
 
-  it("retorna 200 com a lista de ordens de serviço", async () => {
-    const mockOrdens = [
-      { id: "os-1", numero: "OS-05092026-0001", status: "ABERTA" },
-    ];
-    vi.mocked(listarOrdensServico).mockResolvedValue(mockOrdens as any);
+  it("retorna 200 com a página de ordens no contrato { data, pagination }", async () => {
+    const mockResultado = {
+      data: [{ id: "os-1", numero: "OS-05092026-0001", status: "ABERTA" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    };
+    vi.mocked(listarOrdensServicoPaginado).mockResolvedValue(mockResultado as any);
 
     const req = new NextRequest("http://localhost/api/ordens-servico", { method: "GET" });
     const resposta = await GET(req);
 
     expect(resposta.status).toBe(200);
     const body = await resposta.json();
-    expect(body).toEqual(mockOrdens);
-    expect(listarOrdensServico).toHaveBeenCalledTimes(1);
+    expect(body).toEqual(mockResultado);
+    expect(listarOrdensServicoPaginado).toHaveBeenCalledTimes(1);
+    expect(listarOrdensServicoPaginado).toHaveBeenCalledWith({
+      filtros: { statusOperacional: "TODAS", statusFinanceiro: "TODAS", busca: "", atrasadas: false },
+      paginacao: { page: 1, pageSize: 20, skip: 0, take: 20 },
+    });
+  });
+
+  it("repassa page, pageSize, filtros e busca da query string", async () => {
+    vi.mocked(listarOrdensServicoPaginado).mockResolvedValue({
+      data: [],
+      pagination: { page: 2, pageSize: 50, total: 0, totalPages: 1 },
+    } as any);
+
+    const req = new NextRequest(
+      "http://localhost/api/ordens-servico?page=2&pageSize=50&statusOp=ABERTA&statusFin=PENDENTES&busca=cliente&atrasadas=true",
+      { method: "GET" },
+    );
+    const resposta = await GET(req);
+
+    expect(resposta.status).toBe(200);
+    expect(listarOrdensServicoPaginado).toHaveBeenCalledWith({
+      filtros: { statusOperacional: "ABERTA", statusFinanceiro: "PENDENTES", busca: "cliente", atrasadas: true },
+      paginacao: { page: 2, pageSize: 50, skip: 50, take: 50 },
+    });
+  });
+
+  it("normaliza page/pageSize inválidos e limita pageSize a 100", async () => {
+    vi.mocked(listarOrdensServicoPaginado).mockResolvedValue({
+      data: [],
+      pagination: { page: 1, pageSize: 100, total: 0, totalPages: 1 },
+    } as any);
+
+    const req = new NextRequest("http://localhost/api/ordens-servico?page=abc&pageSize=500", { method: "GET" });
+    await GET(req);
+
+    expect(listarOrdensServicoPaginado).toHaveBeenCalledWith(
+      expect.objectContaining({ paginacao: { page: 1, pageSize: 100, skip: 0, take: 100 } }),
+    );
   });
 
   it("retorna 500 se ocorrer um erro ao listar as ordens", async () => {
-    vi.mocked(listarOrdensServico).mockRejectedValue(new Error("Erro de banco de dados"));
+    vi.mocked(listarOrdensServicoPaginado).mockRejectedValue(new Error("Erro de banco de dados"));
 
     const req = new NextRequest("http://localhost/api/ordens-servico", { method: "GET" });
     const resposta = await GET(req);

@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { LoadingState } from "@/components/ui";
 import { VendasClient } from "./vendas-client";
-import { listarVendasBalcao } from "@/lib/vendas";
+import { listarVendasBalcaoPaginado } from "@/lib/vendas";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { listarFormasPagamento } from "@/lib/formas-pagamento";
 
 import { exigirSessao } from "@/lib/auth-server";
@@ -24,13 +25,13 @@ export default async function VendasPage(props: {
   const dataFinal = typeof searchParams.dataFinal === "string" ? searchParams.dataFinal : undefined;
   const formaPagamentoId = typeof searchParams.formaPagamentoId === "string" ? searchParams.formaPagamentoId : undefined;
 
-  const vendas = await listarVendasBalcao({
-    dataInicial,
-    dataFinal,
-    formaPagamentoId,
-  });
-  
-  const formasPagamento = await listarFormasPagamento();
+  const [{ data: vendas, pagination }, formasPagamento] = await Promise.all([
+    listarVendasBalcaoPaginado({
+      filtros: { dataInicial, dataFinal, formaPagamentoId },
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    listarFormasPagamento(),
+  ]);
 
   return (
     <AppShell
@@ -39,7 +40,7 @@ export default async function VendasPage(props: {
       description="Consulte as vendas realizadas no balcão, filtre por período e forma de pagamento."
     >
       <Suspense fallback={<LoadingState text="Carregando histórico de vendas..." />}>
-        <VendasClient vendas={vendas} formasPagamento={formasPagamento} />
+        <VendasClient vendas={vendas} formasPagamento={formasPagamento} pagination={pagination} />
       </Suspense>
     </AppShell>
   );

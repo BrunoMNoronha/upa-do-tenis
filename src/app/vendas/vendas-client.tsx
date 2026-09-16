@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Badge, Button, Card, Input, Label, EmptyState } from "@/components/ui";
 import { formatCurrency } from "@/lib/formatters";
+import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 type VendaSimples = {
   id: string;
@@ -23,39 +25,45 @@ type FormaPagamento = {
 export function VendasClient({
   vendas,
   formasPagamento,
+  pagination,
 }: {
   vendas: VendaSimples[];
   formasPagamento: FormaPagamento[];
+  pagination: PaginacaoInfo;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { criarHref } = usePaginacaoUrl();
 
   const [dataInicial, setDataInicial] = useState(searchParams.get("dataInicial") || "");
   const [dataFinal, setDataFinal] = useState(searchParams.get("dataFinal") || "");
   const [formaPagamentoId, setFormaPagamentoId] = useState(searchParams.get("formaPagamentoId") || "");
 
   const applyFilters = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString());
-    
+    // Alterar filtros volta para a página 1 (mantém pageSize).
+    const params = resetarPagina(searchParams.toString());
+
     if (dataInicial) params.set("dataInicial", dataInicial);
     else params.delete("dataInicial");
-    
+
     if (dataFinal) params.set("dataFinal", dataFinal);
     else params.delete("dataFinal");
-    
+
     if (formaPagamentoId) params.set("formaPagamentoId", formaPagamentoId);
     else params.delete("formaPagamentoId");
 
-    router.push(`${pathname}?${params.toString()}`);
+    const qs = params.toString();
+    router.push(qs ? `${pathname}?${qs}` : pathname);
   }, [dataInicial, dataFinal, formaPagamentoId, pathname, router, searchParams]);
 
   const clearFilters = useCallback(() => {
     setDataInicial("");
     setDataFinal("");
     setFormaPagamentoId("");
-    router.push(pathname);
-  }, [pathname, router]);
+    const pageSize = searchParams.get("pageSize");
+    router.push(pageSize ? `${pathname}?pageSize=${pageSize}` : pathname);
+  }, [pathname, router, searchParams]);
 
   return (
     <Card className="p-6">
@@ -158,6 +166,10 @@ export function VendasClient({
           ))}
         </div>
       )}
+
+      <div className="mt-6 border-t pt-4">
+        <Paginacao pagination={pagination} rotulo="vendas" criarHref={criarHref} />
+      </div>
     </Card>
   );
 }

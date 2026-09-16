@@ -5,7 +5,9 @@ import { ordemServicoFormSchema } from "@/lib/ordens-servico-schema";
 import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastreabilidade";
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
-import { listarOrdensServico } from "@/lib/ordens-servico";
+import { listarOrdensServicoPaginado } from "@/lib/ordens-servico";
+import { normalizarFiltrosListagemOrdensServico } from "@/lib/ordens-servico-listagem";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { formatarNumeroOS } from "@/lib/ordens-servico-numero";
 import { Prisma } from "@prisma/client";
 
@@ -14,8 +16,15 @@ export async function GET(req: NextRequest) {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const ordens = await listarOrdensServico();
-    return NextResponse.json(ordens, { status: 200 });
+    // Paginação server-side: ?page=2&pageSize=20 combinada com os filtros
+    // da tela (statusOp, statusFin, busca, atrasadas). Resposta no contrato
+    // padrão { data, pagination }.
+    const searchParams = req.nextUrl.searchParams;
+    const resultado = await listarOrdensServicoPaginado({
+      filtros: normalizarFiltrosListagemOrdensServico(searchParams),
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    });
+    return NextResponse.json(resultado, { status: 200 });
   } catch (error) {
     console.error("Erro ao listar ordens de serviço:", error);
     return NextResponse.json(

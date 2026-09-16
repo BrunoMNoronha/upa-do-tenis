@@ -6,6 +6,7 @@ import type {
   MovimentacaoCaixaValues,
 } from "@/lib/caixa-schema";
 import { Prisma } from "@prisma/client";
+import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
 
 export class CaixaError extends Error {
   status: number;
@@ -174,15 +175,21 @@ export async function registrarMovimentacaoAutomaticaCaixa(
   return normalizarValoresDecimalParaClient(movimentacao);
 }
 
-export async function listarCaixas(params?: { take?: number; skip?: number; dataInicio?: string; dataFim?: string }) {
+function montarWhereListagemCaixas(params?: { dataInicio?: string; dataFim?: string }) {
   const where: any = {};
-  
+
   if (params?.dataInicio && params?.dataFim) {
     where.dataAbertura = {
       gte: new Date(`${params.dataInicio}T00:00:00`),
       lte: new Date(`${params.dataFim}T23:59:59`)
     };
   }
+
+  return where;
+}
+
+export async function listarCaixas(params?: { take?: number; skip?: number; dataInicio?: string; dataFim?: string }) {
+  const where = montarWhereListagemCaixas(params);
 
   const caixas = await prisma.caixa.findMany({
     where,
@@ -192,6 +199,36 @@ export async function listarCaixas(params?: { take?: number; skip?: number; data
   });
 
   return normalizarValoresDecimalParaClient(caixas);
+}
+
+/**
+ * Histórico de caixas paginado server-side. Apenas leitura: nenhum total,
+ * saldo ou divergência é recalculado aqui — os valores exibidos são os
+ * persistidos no fechamento de cada caixa.
+ */
+export async function listarCaixasPaginado(params: {
+  dataInicio?: string;
+  dataFim?: string;
+  paginacao: PaginacaoNormalizada;
+}) {
+  const where = montarWhereListagemCaixas(params);
+
+  const resultado = await paginarConsulta({
+    paginacao: params.paginacao,
+    contar: () => prisma.caixa.count({ where }),
+    buscar: ({ skip, take }) =>
+      prisma.caixa.findMany({
+        where,
+        orderBy: [{ dataAbertura: "desc" }, { id: "desc" }],
+        skip,
+        take,
+      }),
+  });
+
+  return {
+    data: normalizarValoresDecimalParaClient(resultado.data),
+    pagination: resultado.pagination,
+  };
 }
 
 export async function obterDetalhesCaixa(id: string) {
@@ -252,7 +289,7 @@ function calcularTotaisCaixa(caixa: any) {
 
   const saldoInicial = Number(caixa.saldoInicial) || 0;
   const saldoFisicoCalculado = saldoInicial + entradasFisicas - saidasFisicas - sangrias + reforcos;
-  
+
   const totalGeralRecebido = Object.values(totaisPorFormaPagamento).reduce((acc, val) => acc + val, 0);
 
   return normalizarValoresDecimalParaClient({

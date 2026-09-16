@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { registrarVendaBalcaoSchema } from "@/lib/vendas-schema";
-import { registrarVendaBalcao, VendaBalcaoError, listarVendasBalcao } from "@/lib/vendas";
+import { registrarVendaBalcao, VendaBalcaoError, listarVendasBalcaoPaginado } from "@/lib/vendas";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,13 +15,18 @@ export async function GET(req: NextRequest) {
     const dataFinal = searchParams.get("dataFinal") || undefined;
     const formaPagamentoId = searchParams.get("formaPagamentoId") || undefined;
 
-    const vendas = await listarVendasBalcao({
-      dataInicial,
-      dataFinal,
-      formaPagamentoId,
+    // Paginação server-side (?page&pageSize) combinada com os filtros de
+    // período e forma de pagamento. Resposta no contrato { data, pagination }.
+    const resultado = await listarVendasBalcaoPaginado({
+      filtros: {
+        dataInicial,
+        dataFinal,
+        formaPagamentoId,
+      },
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
     });
 
-    return NextResponse.json(vendas, { status: 200 });
+    return NextResponse.json(resultado, { status: 200 });
   } catch (error) {
     if (error instanceof VendaBalcaoError) {
       return NextResponse.json(

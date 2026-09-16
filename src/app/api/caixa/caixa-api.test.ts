@@ -23,7 +23,7 @@ vi.mock("@/lib/auth-server", () => ({
 }));
 
 vi.mock("@/lib/caixa", () => ({
-  listarCaixas: mockListarCaixas,
+  listarCaixasPaginado: mockListarCaixas,
   abrirCaixa: mockAbrirCaixa,
   CaixaError,
 }));
@@ -54,39 +54,52 @@ describe("Caixa API (src/app/api/caixa/route.ts)", () => {
       expect(mockListarCaixas).not.toHaveBeenCalled();
     });
 
-    it("deve listar caixas e retornar 200", async () => {
+    it("deve listar caixas paginados com filtro de período e retornar 200", async () => {
       mockExigirSessaoApi.mockResolvedValueOnce(null); // Autenticado
-      const caixasMock = [{ id: "caixa-1" }, { id: "caixa-2" }];
-      mockListarCaixas.mockResolvedValueOnce(caixasMock);
+      const resultado = {
+        data: [{ id: "caixa-1" }, { id: "caixa-2" }],
+        pagination: { page: 2, pageSize: 10, total: 12, totalPages: 2 },
+      };
+      mockListarCaixas.mockResolvedValueOnce(resultado);
 
-      const req = criarRequest("GET", "http://localhost/api/caixa?take=10&skip=0&dataInicio=2023-01-01&dataFim=2023-12-31");
+      const req = criarRequest("GET", "http://localhost/api/caixa?page=2&pageSize=10&dataInicio=2023-01-01&dataFim=2023-12-31");
       const res = await GET(req);
       const json = await res.json();
 
       expect(res.status).toBe(200);
       expect(mockListarCaixas).toHaveBeenCalledWith({
-        take: 10,
-        skip: 0,
         dataInicio: "2023-01-01",
-        dataFim: "2023-12-31"
+        dataFim: "2023-12-31",
+        paginacao: { page: 2, pageSize: 10, skip: 10, take: 10 },
       });
-      expect(json).toEqual(caixasMock);
+      expect(json).toEqual(resultado);
     });
 
-    it("deve lidar com parametros opcionais vazios", async () => {
+    it("deve usar paginação padrão quando os parâmetros estão ausentes", async () => {
         mockExigirSessaoApi.mockResolvedValueOnce(null);
-        mockListarCaixas.mockResolvedValueOnce([]);
+        mockListarCaixas.mockResolvedValueOnce({ data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } });
 
         const req = criarRequest("GET", "http://localhost/api/caixa");
         const res = await GET(req);
 
         expect(res.status).toBe(200);
         expect(mockListarCaixas).toHaveBeenCalledWith({
-          take: undefined,
-          skip: undefined,
           dataInicio: undefined,
-          dataFim: undefined
+          dataFim: undefined,
+          paginacao: { page: 1, pageSize: 20, skip: 0, take: 20 },
         });
+    });
+
+    it("deve ignorar page/pageSize inválidos e limitar pageSize a 100", async () => {
+        mockExigirSessaoApi.mockResolvedValueOnce(null);
+        mockListarCaixas.mockResolvedValueOnce({ data: [], pagination: { page: 1, pageSize: 100, total: 0, totalPages: 1 } });
+
+        const req = criarRequest("GET", "http://localhost/api/caixa?page=0&pageSize=999");
+        await GET(req);
+
+        expect(mockListarCaixas).toHaveBeenCalledWith(
+          expect.objectContaining({ paginacao: { page: 1, pageSize: 100, skip: 0, take: 100 } }),
+        );
     });
 
     it("deve retornar 500 em caso de erro no servico", async () => {

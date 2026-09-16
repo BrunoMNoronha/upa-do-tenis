@@ -327,6 +327,57 @@ describe("listarVendasBalcao", () => {
     const { listarVendasBalcao } = await import("./vendas");
     await expect(listarVendasBalcao({ dataInicial: "invalida" })).rejects.toBeInstanceOf(VendaBalcaoError);
   });
+
+  describe("listarVendasBalcaoPaginado", () => {
+    it("primeira, intermediária e última página com total e totalPages", async () => {
+      const { listarVendasBalcaoPaginado } = await import("./vendas");
+      const { normalizarPaginacao } = await import("./paginacao");
+
+      const pagina1 = await listarVendasBalcaoPaginado({ paginacao: normalizarPaginacao({ page: 1, pageSize: 1 }) });
+      expect(pagina1.data).toHaveLength(1);
+      expect(pagina1.data[0].id).toBe(vendaId2); // mais recente primeiro
+      expect(pagina1.pagination).toEqual({ page: 1, pageSize: 1, total: 2, totalPages: 2 });
+
+      const pagina2 = await listarVendasBalcaoPaginado({ paginacao: normalizarPaginacao({ page: 2, pageSize: 1 }) });
+      expect(pagina2.data).toHaveLength(1);
+      expect(pagina2.data[0].id).toBe(vendaId1);
+      expect(pagina2.pagination).toEqual({ page: 2, pageSize: 1, total: 2, totalPages: 2 });
+
+      // Página além da última cai para a última válida.
+      const alem = await listarVendasBalcaoPaginado({ paginacao: normalizarPaginacao({ page: 9, pageSize: 1 }) });
+      expect(alem.pagination.page).toBe(2);
+      expect(alem.data[0].id).toBe(vendaId1);
+    });
+
+    it("filtros + paginação usam o mesmo where no count", async () => {
+      const { formatarDataLocal } = await import("./date-range");
+      const { listarVendasBalcaoPaginado } = await import("./vendas");
+      const { normalizarPaginacao } = await import("./paginacao");
+      const hoje = formatarDataLocal(new Date());
+
+      const resultado = await listarVendasBalcaoPaginado({
+        filtros: { dataInicial: hoje, formaPagamentoId },
+        paginacao: normalizarPaginacao({ page: 1, pageSize: 20 }),
+      });
+      expect(resultado.data).toHaveLength(1);
+      expect(resultado.data[0].id).toBe(vendaId2);
+      expect(resultado.pagination).toEqual({ page: 1, pageSize: 20, total: 1, totalPages: 1 });
+
+      const vazio = await listarVendasBalcaoPaginado({
+        filtros: { formaPagamentoId: "inexistente" },
+        paginacao: normalizarPaginacao({}),
+      });
+      expect(vazio).toEqual({ data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } });
+    });
+
+    it("propaga erro de data inválida", async () => {
+      const { listarVendasBalcaoPaginado } = await import("./vendas");
+      const { normalizarPaginacao } = await import("./paginacao");
+      await expect(
+        listarVendasBalcaoPaginado({ filtros: { dataInicial: "invalida" }, paginacao: normalizarPaginacao({}) }),
+      ).rejects.toBeInstanceOf(VendaBalcaoError);
+    });
+  });
 });
 
 describe("obterVendaPorId", () => {
