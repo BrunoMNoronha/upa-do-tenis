@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 import { SESSAO_COOKIE_NOME } from "@/lib/auth-constants";
 import { criarTokenSessao } from "@/lib/auth-session";
+import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 import { middleware } from "./middleware";
 
 function criarRequest(path: string, token?: string) {
@@ -85,5 +86,36 @@ describe("middleware de autenticação", () => {
       expect(response.status, `rota ${rota}`).toBe(200);
       expect(response.headers.get("location")).toBeNull();
     }
+  });
+
+  it("deixa a página pública de acompanhamento chegar à validação do token sem sessão", async () => {
+    for (const rota of [montarCaminhoAcompanhamento("os-1"), "/acompanhar/token-truncado"]) {
+      const response = await middleware(criarRequest(rota));
+
+      expect(response.status, `rota ${rota}`).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("não abre subrotas, a raiz de /acompanhar nem APIs com o prefixo público", async () => {
+    const caminho = montarCaminhoAcompanhamento("os-1");
+
+    for (const rota of ["/acompanhar", "/acompanhar/", `${caminho}/dashboard`, "/acompanhar/x/../../caixa"]) {
+      const response = await middleware(criarRequest(rota));
+      expect(response.status, `rota ${rota}`).toBe(307);
+      expect(response.headers.get("location")).toBe("http://localhost/login");
+    }
+
+    for (const rota of ["/api/acompanhar/x", `/api/ordens-servico${caminho}`]) {
+      const response = await middleware(criarRequest(rota));
+      expect(response.status, `rota ${rota}`).toBe(401);
+    }
+  });
+
+  it("token de acompanhamento não vale como sessão administrativa", async () => {
+    const token = montarCaminhoAcompanhamento("os-1").split("/").pop();
+
+    expect((await middleware(criarRequest("/api/ordens-servico/os-1", token))).status).toBe(401);
+    expect((await middleware(criarRequest("/ordens-servico/os-1", token))).status).toBe(307);
   });
 });

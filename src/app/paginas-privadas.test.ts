@@ -15,7 +15,10 @@ import { describe, expect, it } from "vitest";
 const RAIZ_APP = path.resolve(__dirname);
 
 // /login é pública por definição e faz o inverso: redireciona quem JÁ tem sessão.
-const PAGINAS_PUBLICAS = new Set([path.join("login", "page.tsx")]);
+// /acompanhar/[token] é a página pública do cliente: autoriza pela assinatura
+// do token (coberto em os-acompanhamento*.test.ts), nunca pela sessão.
+const PAGINA_ACOMPANHAMENTO = path.join("acompanhar", "[token]", "page.tsx");
+const PAGINAS_PUBLICAS = new Set([path.join("login", "page.tsx"), PAGINA_ACOMPANHAMENTO]);
 
 function listarPaginas(diretorio: string): string[] {
   const encontradas: string[] = [];
@@ -38,6 +41,19 @@ const paginas = listarPaginas(RAIZ_APP)
   .map((caminho) => path.relative(RAIZ_APP, caminho))
   .filter((relativo) => !PAGINAS_PUBLICAS.has(relativo))
   .sort();
+
+describe("página pública de acompanhamento da OS", () => {
+  const conteudo = () => readFileSync(path.join(RAIZ_APP, PAGINA_ACOMPANHAMENTO), "utf8");
+
+  it("valida o token no servidor e não é renderizada estaticamente", () => {
+    expect(conteudo()).toMatch(/obterAcompanhamentoPublico\(token\)/);
+    expect(conteudo()).toMatch(/export const dynamic\s*=\s*"force-dynamic"/);
+  });
+
+  it("não depende da sessão administrativa nem consulta o Prisma diretamente", () => {
+    expect(conteudo()).not.toMatch(/auth-server|@\/lib\/prisma/);
+  });
+});
 
 describe("enforcement de sessão nas páginas privadas", () => {
   it("encontra as páginas privadas do app", () => {

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 
 import { GET, POST } from "./route";
 import { listarOrdensServicoPaginado } from "@/lib/ordens-servico";
+import { montarCaminhoAcompanhamento, verificarTokenAcompanhamento } from "@/lib/os-acompanhamento-token";
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
@@ -154,6 +155,10 @@ describe("POST /api/ordens-servico", () => {
     expect(resposta.status).toBe(201);
     expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
 
+    const body = await resposta.json();
+    expect(body.caminhoAcompanhamento).toBe(montarCaminhoAcompanhamento("os-1"));
+    expect(verificarTokenAcompanhamento(body.caminhoAcompanhamento.split("/").pop())).toBe("os-1");
+
     const dataEntrada = argumentosDoCreate().data.dataEntrada as Date;
     expect(dataEntrada).toBeInstanceOf(Date);
     expect(dataEntrada.getTime()).toBe(new Date("2026-09-05T15:00:00Z").getTime());
@@ -249,7 +254,9 @@ describe("POST /api/ordens-servico", () => {
     const resposta = await POST(criarRequest(payloadBase));
 
     expect(resposta.status).toBe(409);
-    expect((await resposta.json()).message).toContain("OS-05092026-0001");
+    const body = await resposta.json();
+    expect(body.message).toContain("OS-05092026-0001");
+    expect(body.caminhoAcompanhamento).toBeUndefined();
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
@@ -279,5 +286,6 @@ describe("POST /api/ordens-servico", () => {
     );
 
     expect(resposta.status).toBe(500);
+    expect((await resposta.json()).caminhoAcompanhamento).toBeUndefined();
   });
 });

@@ -19,6 +19,10 @@ import {
 } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 import {
+  CompartilharAcompanhamentoDialog,
+  type DadosCompartilhamentoAcompanhamento,
+} from "@/components/compartilhar-acompanhamento-dialog";
+import {
   formatCurrency,
   formatPhone,
   maskCPFCNPJ,
@@ -495,10 +499,12 @@ function OrdemServicoForm({
   clientes,
   servicos,
   onClose,
+  onCriada,
 }: {
   clientes: Cliente[];
   servicos: Servico[];
   onClose: () => void;
+  onCriada: (dados: DadosCompartilhamentoAcompanhamento) => void;
 }) {
   const router = useRouter();
   const [clientesDisponiveis, setClientesDisponiveis] =
@@ -517,7 +523,7 @@ function OrdemServicoForm({
     reset,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<OrdemServicoFormValues>({
     resolver: zodResolver(ordemServicoFormSchema),
     defaultValues: criarDefaultValues(),
@@ -653,9 +659,26 @@ function OrdemServicoForm({
       return;
     }
 
+    // Só chega aqui com a criação confirmada (201): a sugestão de WhatsApp
+    // nunca aparece antes disso, e fechar a sugestão não afeta a OS.
+    const criada = (await response.json()) as {
+      numero: string;
+      caminhoAcompanhamento?: string;
+    };
+    const cliente = clientesDisponiveis.find((item) => item.id === values.clienteId);
+
     reset(criarDefaultValues());
     setServicosSelecionados([]);
     onClose();
+
+    if (criada.caminhoAcompanhamento) {
+      onCriada({
+        numeroOS: criada.numero,
+        nomeCliente: cliente?.nome ?? "",
+        telefone: cliente?.telefone,
+        caminhoAcompanhamento: criada.caminhoAcompanhamento,
+      });
+    }
 
     startTransition(() => {
       router.refresh();
@@ -1017,7 +1040,7 @@ function OrdemServicoForm({
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isPending}>
+            <Button type="submit" isLoading={isPending || isSubmitting}>
               Cadastrar ordem
             </Button>
           </div>
@@ -1272,6 +1295,9 @@ export function OrdensServicoClient({
   // App Router, que atualiza useSearchParams; um hash (#nova-ordem) não
   // dispara "hashchange" nessa navegação, por isso o hash não é mais usado.
   const drawerOpen = searchParams.get(NOVA_ORDEM_PARAM) === "1";
+  const [compartilhamento, setCompartilhamento] =
+    useState<DadosCompartilhamentoAcompanhamento | null>(null);
+  const fecharCompartilhamento = useCallback(() => setCompartilhamento(null), []);
 
   const closeDrawer = useCallback(() => {
     const url = new URL(window.location.href);
@@ -1338,10 +1364,15 @@ export function OrdensServicoClient({
               clientes={clientes}
               servicos={servicos}
               onClose={closeDrawer}
+              onCriada={setCompartilhamento}
             />
           </aside>
         </>
       ) : null}
+      <CompartilharAcompanhamentoDialog
+        dados={compartilhamento}
+        onFechar={fecharCompartilhamento}
+      />
     </section>
   );
 }
