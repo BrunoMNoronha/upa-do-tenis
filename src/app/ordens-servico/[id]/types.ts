@@ -22,6 +22,7 @@ export type ItemOS = {
   descricao: string;
   valor: number;
   observacoes?: string | null;
+  possuiFotoRecebimento: boolean;
   servicos: ServicoItem[];
   insumos: InsumoAplicado[];
 };

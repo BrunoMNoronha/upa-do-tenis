@@ -86,21 +86,22 @@ model OrdemServico {
 }
 
 model ItemOrdemServico {
-  id                   String                      @id @default(cuid())
-  ordemServicoId       String
-  ordemServico         OrdemServico                @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  tipoItem             String
-  descricao            String
-  marca                String?
-  cor                  String?
-  tamanho              String?
-  observacoes          String?
-  valor                Decimal                     @default(0)
-  criadoEm             DateTime                    @default(now())
-  atualizadoEm         DateTime                    @updatedAt
-  servicos             ServicoItemOrdem[]
-  insumos              InsumoItemOrdem[]
-  movimentacoesEstoque MovimentacaoEstoqueInsumo[]
+  id                      String                      @id @default(cuid())
+  ordemServicoId          String
+  ordemServico            OrdemServico                @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  tipoItem                String
+  descricao               String
+  marca                   String?
+  cor                     String?
+  tamanho                 String?
+  observacoes             String?
+  fotoRecebimentoPathname String?
+  valor                   Decimal                     @default(0)
+  criadoEm                DateTime                    @default(now())
+  atualizadoEm            DateTime                    @updatedAt
+  servicos                ServicoItemOrdem[]
+  insumos                 InsumoItemOrdem[]
+  movimentacoesEstoque    MovimentacaoEstoqueInsumo[]
 
   @@index([ordemServicoId])
 }
