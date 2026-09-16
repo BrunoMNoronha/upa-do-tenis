@@ -123,7 +123,7 @@ export function DashboardClient() {
         />
       )}
 
-      {/* KPIs: skeleton na primeira carga, dados anteriores visíveis nas seguintes. */}
+      {/* KPIs: skeleton só enquanto carrega (nunca junto ao erro), dados anteriores visíveis nas filtragens seguintes. */}
       <section aria-label="Indicadores do período" aria-busy={loading || undefined}>
         <div className={`grid gap-4 md:grid-cols-2 xl:grid-cols-4 transition-opacity ${atualizando ? 'opacity-60' : ''}`}>
           {viewModel ? (
@@ -152,14 +152,14 @@ export function DashboardClient() {
                 href="/ordens-servico"
               />
             </>
-          ) : (
+          ) : loading ? (
             <>
               <DashboardKpiCard loading label="Total recebido" value="" description="" />
               <DashboardKpiCard loading label="Total pendente" value="" description="" />
               <DashboardKpiCard loading label="Ticket médio" value="" description="" />
               <DashboardKpiCard loading label="OS ativas no período" value="" description="" />
             </>
-          )}
+          ) : null}
         </div>
       </section>
 
