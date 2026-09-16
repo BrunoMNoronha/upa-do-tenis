@@ -1,19 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi } from "@/lib/auth-server";
-import { criarCliente, listarClientes } from "@/lib/clientes";
+import { criarCliente, listarClientesPaginado } from "@/lib/clientes";
 import { clienteFormSchema } from "@/lib/clientes-schema";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 export async function GET(request: NextRequest) {
   try {
     const naoAutenticado = await exigirSessaoApi(request);
     if (naoAutenticado) return naoAutenticado;
 
+    // Paginação server-side: ?page=2&pageSize=20&search=nome. A busca é
+    // aplicada igualmente no count e na página. Resposta { data, pagination }.
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || undefined;
-    const clientes = await listarClientes(search);
+    const resultado = await listarClientesPaginado({
+      search,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    });
 
-    return NextResponse.json({ clientes });
+    return NextResponse.json(resultado);
   } catch (error) {
     console.error("Erro ao listar clientes:", error);
     return NextResponse.json(

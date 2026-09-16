@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback, useEffect } from "react";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -39,11 +39,13 @@ import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
-  filtrarOrdensServicoListagem,
-  ordemServicoCorrespondeBusca,
+  type FiltrosListagemOrdensServico,
   type StatusFinanceiroListagem,
   type StatusOperacionalListagem,
 } from "@/lib/ordens-servico-listagem";
+import type { EstatisticasOrdensServico } from "@/lib/ordens-servico";
+import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 type StatusFilter = StatusOperacionalListagem;
 
@@ -1024,63 +1026,79 @@ function OrdemServicoForm({
   );
 }
 
-function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
+type OrdemServicoListProps = {
+  ordens: OrdemServicoReal[];
+  pagination: PaginacaoInfo;
+  estatisticas: EstatisticasOrdensServico;
+  filtros: FiltrosListagemOrdensServico;
+};
+
+const BUSCA_DEBOUNCE_MS = 350;
+
+function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemServicoListProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const { criarHref } = usePaginacaoUrl();
 
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>(
-    (searchParams.get("statusOp") as StatusFilter) || "TODAS",
-  );
-  const [financeFilter, setFinanceFilter] = useState<StatusFinanceiroListagem>(
-    (searchParams.get("statusFin") as StatusFinanceiroListagem) || "TODAS",
-  );
-  const [searchTerm, setSearchTerm] = useState(searchParams.get("busca") || "");
-  const [showAtrasadas, setShowAtrasadas] = useState(
-    searchParams.get("atrasadas") === "true",
-  );
+  // Os filtros vigentes vêm do servidor (URL normalizada). O termo de busca
+  // mantém estado local para o input responder a cada tecla, enquanto a
+  // navegação para o servidor é feita com debounce.
+  const statusFilter: StatusFilter = filtros.statusOperacional ?? "TODAS";
+  const financeFilter: StatusFinanceiroListagem = filtros.statusFinanceiro ?? "TODAS";
+  const showAtrasadas = filtros.atrasadas === true;
+  const [searchTerm, setSearchTerm] = useState(filtros.busca ?? "");
+  const buscaTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
+  useEffect(() => {
+    // Sincroniza o input quando a URL muda por fora (voltar/avançar, limpar).
+    setSearchTerm(filtros.busca ?? "");
+  }, [filtros.busca]);
+
+  useEffect(() => {
+    return () => {
+      if (buscaTimeout.current) clearTimeout(buscaTimeout.current);
+    };
+  }, []);
+
+  /**
+   * Aplica um filtro na URL e volta para a página 1. `page` é sempre
+   * removido: mudar busca/filtro invalida a posição anterior.
+   */
+  const updateFilters = useCallback(
+    (key: string, value: string) => {
+      const params = resetarPagina(searchParams.toString());
       if (value && value !== "TODAS" && value !== "false") {
-        params.set(name, value);
+        params.set(key, value);
       } else {
-        params.delete(name);
+        params.delete(key);
       }
-      return params.toString();
+      const qs = params.toString();
+      startTransition(() => {
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
     },
-    [searchParams],
+    [pathname, router, searchParams],
   );
 
-  const updateFilters = (key: string, value: string) => {
-    const qs = createQueryString(key, value);
-    router.replace(`${pathname}?${qs}`, { scroll: false });
+  const limparFiltros = () => {
+    setSearchTerm("");
+    const params = new URLSearchParams(searchParams.toString());
+    ["statusOp", "statusFin", "busca", "atrasadas", "page"].forEach((chave) => params.delete(chave));
+    const qs = params.toString();
+    startTransition(() => {
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    });
   };
 
-  const filteredOrders = filtrarOrdensServicoListagem({
-    ordens,
-    statusOperacional: statusFilter,
-    statusFinanceiro: financeFilter,
-  }).filter((ordem) => {
-    if (searchTerm && !ordemServicoCorrespondeBusca(ordem, searchTerm)) {
-      return false;
-    }
-
-    if (showAtrasadas) {
-      if (
-        ordem.status === "CONCLUIDA" ||
-        ordem.status === "ENTREGUE" ||
-        ordem.status === "CANCELADA"
-      )
-        return false;
-      const prev = new Date(ordem.dataPrevisao);
-      prev.setHours(23, 59, 59, 999);
-      if (prev >= new Date()) return false;
-    }
-
-    return true;
-  });
+  const aoDigitarBusca = (valor: string) => {
+    setSearchTerm(valor);
+    if (buscaTimeout.current) clearTimeout(buscaTimeout.current);
+    buscaTimeout.current = setTimeout(() => {
+      updateFilters("busca", valor.trim());
+    }, BUSCA_DEBOUNCE_MS);
+  };
 
   const checkIsAtrasada = (ordem: OrdemServicoReal) => {
     if (
@@ -1094,15 +1112,8 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
     return prev < new Date();
   };
 
-  let totalAbertas = 0;
-  let totalEmAndamento = 0;
-  let totalComSaldo = 0;
-
-  for (const ordem of ordens) {
-    if (ordem.status === "ABERTA") totalAbertas++;
-    if (ordem.status === "EM_ANDAMENTO") totalEmAndamento++;
-    if (Number(ordem.saldo || 0) > 0) totalComSaldo++;
-  }
+  const possuiFiltroAtivo =
+    statusFilter !== "TODAS" || financeFilter !== "TODAS" || showAtrasadas || (filtros.busca ?? "") !== "";
 
   return (
     <Card className="overflow-hidden">
@@ -1110,63 +1121,60 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
         <PanelHeader
           eyebrow="Fila de atendimento"
           title="OS registradas"
-          description={`${filteredOrders.length} de ${ordens.length} ordens visíveis`}
-          action={<Badge tone="accent">{ordens.length} ordens</Badge>}
+          description={
+            possuiFiltroAtivo
+              ? `${pagination.total} ordens encontradas com os filtros atuais`
+              : `${pagination.total} ordens registradas`
+          }
+          action={<Badge tone="accent">{pagination.total} ordens</Badge>}
         />
       </div>
 
       <div className="grid gap-3 border-b border-[color:var(--border)] p-4 sm:grid-cols-3">
         <StatCard
           label="Abertas"
-          value={totalAbertas}
+          value={estatisticas.abertas}
           hint="Aguardando início"
           active={statusFilter === "ABERTA"}
-          onClick={() => {
-            setStatusFilter("ABERTA");
-            updateFilters("statusOp", "ABERTA");
-          }}
+          onClick={() => updateFilters("statusOp", "ABERTA")}
         />
         <StatCard
           label="Em andamento"
-          value={totalEmAndamento}
+          value={estatisticas.emAndamento}
           hint="Na oficina"
           active={statusFilter === "EM_ANDAMENTO"}
-          onClick={() => {
-            setStatusFilter("EM_ANDAMENTO");
-            updateFilters("statusOp", "EM_ANDAMENTO");
-          }}
+          onClick={() => updateFilters("statusOp", "EM_ANDAMENTO")}
         />
         <StatCard
           label="Com saldo"
-          value={totalComSaldo}
+          value={estatisticas.comSaldo}
           hint="A receber"
           active={financeFilter === "COM_SALDO_EM_ABERTO"}
-          onClick={() => {
-            setFinanceFilter("COM_SALDO_EM_ABERTO");
-            updateFilters("statusFin", "COM_SALDO_EM_ABERTO");
-          }}
+          onClick={() => updateFilters("statusFin", "COM_SALDO_EM_ABERTO")}
         />
       </div>
 
       <div className="border-b border-[color:var(--border)] p-4">
-        <Input
-          placeholder="Buscar por cliente ou número da OS..."
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            updateFilters("busca", e.target.value);
-          }}
-          className="max-w-md"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            placeholder="Buscar por cliente, telefone ou número da OS..."
+            value={searchTerm}
+            onChange={(e) => aoDigitarBusca(e.target.value)}
+            className="max-w-md"
+            aria-label="Buscar ordens de serviço"
+          />
+          {possuiFiltroAtivo ? (
+            <Button type="button" variant="ghost" onClick={limparFiltros}>
+              Limpar filtros
+            </Button>
+          ) : null}
+        </div>
         <div className="mt-3 flex flex-wrap gap-2">
           {filterOptions.map((option) => (
             <FilterChip
               key={option.value}
               active={statusFilter === option.value}
-              onClick={() => {
-                setStatusFilter(option.value as StatusFilter);
-                updateFilters("statusOp", option.value);
-              }}
+              onClick={() => updateFilters("statusOp", option.value)}
             >
               {option.label}
             </FilterChip>
@@ -1176,10 +1184,9 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
               key={option.value}
               tone="warning"
               active={financeFilter === option.value}
-              onClick={() => {
-                setFinanceFilter(option.value);
-                updateFilters("statusFin", option.value);
-              }}
+              onClick={() =>
+                updateFilters("statusFin", financeFilter === option.value ? "TODAS" : option.value)
+              }
             >
               Financeiro: {option.label}
             </FilterChip>
@@ -1187,23 +1194,26 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
           <FilterChip
             tone="danger"
             active={showAtrasadas}
-            onClick={() => {
-              setShowAtrasadas(!showAtrasadas);
-              updateFilters("atrasadas", (!showAtrasadas).toString());
-            }}
+            onClick={() => updateFilters("atrasadas", (!showAtrasadas).toString())}
           >
             Atrasadas
           </FilterChip>
         </div>
       </div>
 
-      {filteredOrders.length === 0 ? (
+      {isPending ? (
+        <p className="px-4 pt-3 text-xs text-slate-500" role="status" aria-live="polite">
+          Atualizando lista...
+        </p>
+      ) : null}
+
+      {ordens.length === 0 ? (
         <div className="m-4 rounded-[var(--r-field)] border border-dashed border-black/10 bg-[color:var(--surface-muted)] p-6 text-sm leading-6 text-slate-600">
           Nenhuma ordem encontrada.
         </div>
       ) : (
-        <div className="space-y-3 p-4">
-          {filteredOrders.map((ordem) => (
+        <div className={`space-y-3 p-4 ${isPending ? "opacity-60" : ""}`} aria-busy={isPending}>
+          {ordens.map((ordem) => (
             <OrdemServicoCard
               key={ordem.id}
               ordem={ordem}
@@ -1212,6 +1222,15 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
           ))}
         </div>
       )}
+
+      <div className="border-t border-[color:var(--border)] p-4">
+        <Paginacao
+          pagination={pagination}
+          rotulo="ordens"
+          criarHref={criarHref}
+          carregando={isPending}
+        />
+      </div>
     </Card>
   );
 }
@@ -1220,10 +1239,16 @@ const NOVA_ORDEM_PARAM = "nova";
 
 export function OrdensServicoClient({
   initialOrders,
+  pagination,
+  estatisticas,
+  filtros,
   clientes,
   servicos,
 }: {
   initialOrders: any[];
+  pagination: PaginacaoInfo;
+  estatisticas: EstatisticasOrdensServico;
+  filtros: FiltrosListagemOrdensServico;
   clientes: Cliente[];
   servicos: Servico[];
 }) {
@@ -1273,7 +1298,12 @@ export function OrdensServicoClient({
 
   return (
     <section>
-      <OrdemServicoList ordens={ordens} />
+      <OrdemServicoList
+        ordens={ordens}
+        pagination={pagination}
+        estatisticas={estatisticas}
+        filtros={filtros}
+      />
       {drawerOpen ? (
         <>
           <button

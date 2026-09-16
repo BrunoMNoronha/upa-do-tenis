@@ -4,14 +4,19 @@ import { clienteAtualizarSchema, clienteFormSchema, type ClienteAtualizarValues,
 
 const clienteOrderBy = [{ criadoEm: "desc" as const }, { nome: "asc" as const }];
 
+// Paginação exige ordem total: `id` fecha o desempate entre registros
+// criados no mesmo instante com o mesmo nome.
+const clienteOrderByPaginado = [...clienteOrderBy, { id: "desc" as const }];
+
 import { sanitizePhone } from "@/lib/sanitizers";
+import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
 
 type ListarClientesOpcoes = {
   /** Telas operacionais (ex.: abertura de OS) só podem oferecer clientes ativos. */
   apenasAtivos?: boolean;
 };
 
-export async function listarClientes(search?: string, opcoes?: ListarClientesOpcoes) {
+function montarFiltrosClientes(search?: string, opcoes?: ListarClientesOpcoes) {
   const filtros: Record<string, unknown> = {};
 
   if (opcoes?.apenasAtivos) {
@@ -27,9 +32,41 @@ export async function listarClientes(search?: string, opcoes?: ListarClientesOpc
     ];
   }
 
+  return filtros;
+}
+
+/**
+ * Listagem completa (sem paginação). Mantida para telas que precisam do
+ * conjunto inteiro como opções, ex.: seleção de cliente na abertura de OS.
+ */
+export async function listarClientes(search?: string, opcoes?: ListarClientesOpcoes) {
   return prisma.cliente.findMany({
-    where: filtros,
+    where: montarFiltrosClientes(search, opcoes),
     orderBy: clienteOrderBy,
+  });
+}
+
+/**
+ * Listagem paginada server-side da tela de Clientes e da API. `count` e
+ * `findMany` usam exatamente o mesmo filtro de busca.
+ */
+export async function listarClientesPaginado(params: {
+  search?: string;
+  paginacao: PaginacaoNormalizada;
+  opcoes?: ListarClientesOpcoes;
+}) {
+  const where = montarFiltrosClientes(params.search, params.opcoes);
+
+  return paginarConsulta({
+    paginacao: params.paginacao,
+    contar: () => prisma.cliente.count({ where }),
+    buscar: ({ skip, take }) =>
+      prisma.cliente.findMany({
+        where,
+        orderBy: clienteOrderByPaginado,
+        skip,
+        take,
+      }),
   });
 }
 

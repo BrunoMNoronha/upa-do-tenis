@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
-import { filtrarPorBusca } from "@/lib/busca-listagem";
+import type { PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 type ProdutoListado = {
   id: string;
@@ -20,6 +20,8 @@ type ProdutoListado = {
 
 type ProdutoListProps = {
   produtos: ProdutoListado[];
+  busca: string;
+  pagination: PaginacaoInfo;
   onEdit: (produto: ProdutoListado) => void;
   onDeleteCurrent: (id: string) => void;
 };
@@ -33,14 +35,8 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   dateStyle: "short",
 });
 
-export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListProps) {
-  const [busca, setBusca] = useState("");
-
-  const produtosFiltrados = useMemo(
-    () => filtrarPorBusca(produtos, busca, (produto) => [produto.nome, produto.descricao]),
-    [produtos, busca],
-  );
-
+export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurrent }: ProdutoListProps) {
+  const { criarHref } = usePaginacaoUrl();
   const {
     listaError,
     isPending,
@@ -58,16 +54,10 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista</p>
           <h2 className="mt-2 text-2xl font-semibold">Produtos Cadastrados</h2>
         </div>
-        <Badge tone="accent">Total: {produtos.length}</Badge>
+        <Badge tone="accent">Total: {pagination.total}</Badge>
       </div>
 
-      <BuscaListagem
-        id="busca-produtos"
-        label="Buscar produto"
-        placeholder="Buscar produto..."
-        valor={busca}
-        onChange={setBusca}
-      />
+      <BuscaListagem id="busca-produtos" label="Buscar produto" placeholder="Buscar produto..." busca={busca} />
 
       {listaError ? (
         <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
@@ -77,15 +67,13 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
 
       {produtos.length === 0 ? (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-          Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
-        </div>
-      ) : produtosFiltrados.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-          Nenhum produto encontrado para &quot;{busca.trim()}&quot;.
+          {busca
+            ? `Nenhum produto encontrado para "${busca}".`
+            : "Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
         </div>
       ) : (
         <div className="space-y-4">
-          {produtosFiltrados.map((produto) => (
+          {produtos.map((produto) => (
             <article
               key={produto.id}
               className={`rounded-3xl border p-5 ${
@@ -154,6 +142,10 @@ export function ProdutoList({ produtos, onEdit, onDeleteCurrent }: ProdutoListPr
           ))}
         </div>
       )}
+
+      <div className="mt-6 border-t border-white/10 pt-4">
+        <Paginacao pagination={pagination} rotulo="produtos" tone="dark" criarHref={criarHref} />
+      </div>
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}

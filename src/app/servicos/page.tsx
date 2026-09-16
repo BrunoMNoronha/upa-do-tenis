@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { ServicosClient } from "./servicos-client";
 
-import { listarServicosParaGestao } from "@/lib/servicos";
+import { listarServicosParaGestaoPaginado } from "@/lib/servicos";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
+import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
 import { exigirSessao } from "@/lib/auth-server";
 
@@ -12,10 +14,17 @@ export const metadata = {
   description: "Cadastro e consulta de serviços da sapataria.",
 };
 
-export default async function ServicosPage() {
+export default async function ServicosPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await exigirSessao();
 
-  const servicos = await listarServicosParaGestao();
+  const searchParams = await props.searchParams;
+  const busca = lerBuscaDeSearchParams(searchParams);
+  const { data: servicos, pagination } = await listarServicosParaGestaoPaginado({
+    busca,
+    paginacao: lerPaginacaoDeSearchParams(searchParams),
+  });
 
   return (
     <AppShell
@@ -25,6 +34,8 @@ export default async function ServicosPage() {
       action={{ href: "/ordens-servico", label: "Ir para OS" }}
     >
       <ServicosClient
+        busca={busca}
+        pagination={pagination}
         servicos={servicos.map((servico) => ({
           id: servico.id,
           nome: servico.nome,

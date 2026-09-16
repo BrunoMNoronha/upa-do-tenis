@@ -10,6 +10,8 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
 import { formatCPFCNPJ, formatPhone, maskCPFCNPJ, maskPhone, whatsappLink } from "@/lib/formatters";
+import type { PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 export type ClienteListado = {
   id: string;
@@ -25,6 +27,7 @@ export type ClienteListado = {
 type ClientesClientProps = {
   clientes: ClienteListado[];
   busca: string;
+  pagination: PaginacaoInfo;
 };
 
 const defaultValues: ClienteFormValues = {
@@ -40,8 +43,12 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-export function ClientesClient({ clientes, busca }: ClientesClientProps) {
+export function ClientesClient({ clientes, busca, pagination }: ClientesClientProps) {
   const router = useRouter();
+  const { criarHref, searchParams } = usePaginacaoUrl();
+  // O formulário de busca é GET: ao buscar, `page` é omitido (volta para 1)
+  // e o tamanho de página escolhido é preservado.
+  const pageSizeAtual = searchParams.get("pageSize");
   const [editando, setEditando] = useState<ClienteListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -200,10 +207,11 @@ export function ClientesClient({ clientes, busca }: ClientesClientProps) {
             </p>
             <h2 className="mt-2 text-2xl font-semibold">Clientes cadastrados</h2>
           </div>
-          <Badge tone="accent">Total: {clientes.length}</Badge>
+          <Badge tone="accent">Total: {pagination.total}</Badge>
         </div>
 
         <form className="mb-6 flex gap-2">
+          {pageSizeAtual ? <input type="hidden" name="pageSize" value={pageSizeAtual} /> : null}
           <Input
             name="busca"
             defaultValue={busca}
@@ -214,7 +222,11 @@ export function ClientesClient({ clientes, busca }: ClientesClientProps) {
             Buscar
           </Button>
           {busca ? (
-            <Button href="/clientes" variant="ghost" className="!border-white/20 !text-white hover:!bg-white/10">
+            <Button
+              href={pageSizeAtual ? `/clientes?pageSize=${pageSizeAtual}` : "/clientes"}
+              variant="ghost"
+              className="!border-white/20 !text-white hover:!bg-white/10"
+            >
               Limpar
             </Button>
           ) : null}
@@ -309,6 +321,10 @@ export function ClientesClient({ clientes, busca }: ClientesClientProps) {
             })}
           </div>
         )}
+
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <Paginacao pagination={pagination} rotulo="clientes" tone="dark" criarHref={criarHref} />
+        </div>
       </Card>
 
       <ConfirmDialog

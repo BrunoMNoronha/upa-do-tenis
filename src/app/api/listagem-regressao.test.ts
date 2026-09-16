@@ -25,7 +25,7 @@ vi.mock("@/lib/insumos", () => ({
 }));
 
 vi.mock("@/lib/ordens-servico", () => ({
-  listarOrdensServico: listarOrdensServicoMock,
+  listarOrdensServicoPaginado: listarOrdensServicoMock,
 }));
 
 import { GET as getServicos } from "./servicos/route";
@@ -71,14 +71,17 @@ describe("GET listagens da API", () => {
     expect(body).toEqual(insumos);
   });
 
-  it("lista ordens de serviço com status 200", async () => {
-    const ordens = [{ id: "os-1", numero: "OS-01012026-0001", status: "ABERTA" }];
-    listarOrdensServicoMock.mockResolvedValueOnce(ordens);
+  it("lista ordens de serviço com status 200 no contrato paginado", async () => {
+    const resultado = {
+      data: [{ id: "os-1", numero: "OS-01012026-0001", status: "ABERTA" }],
+      pagination: { page: 1, pageSize: 20, total: 1, totalPages: 1 },
+    };
+    listarOrdensServicoMock.mockResolvedValueOnce(resultado);
 
     const response = await getOrdens(new NextRequest("http://localhost/api/ordens-servico"));
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toEqual(ordens);
+    expect(body).toEqual(resultado);
   });
 });
