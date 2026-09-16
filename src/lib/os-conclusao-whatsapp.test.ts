@@ -76,6 +76,32 @@ describe("alterarStatusOS", () => {
     expect(resultado).toEqual({
       ok: true,
       sugestaoConclusao: { numeroOS: "OS-16092026-0001", nomeCliente: "Maria José", telefone: "(61) 98530-7168" },
+      sugestaoAvaliacao: null,
+    });
+  });
+
+  it("CONCLUIDA → ENTREGUE com sucesso devolve sugestaoAvaliacao e nao sugestaoConclusao", async () => {
+    const fetcher = vi.fn(async () => respostaJson(200, { id: "os-1", status: "ENTREGUE" }));
+
+    const resultado = await alterarStatusOS(
+      { ...ordemEmAndamento, status: "CONCLUIDA" },
+      "ENTREGUE",
+      fetcher as unknown as typeof fetch,
+    );
+
+    expect(fetcher).toHaveBeenCalledWith("/api/ordens-servico/os-1/status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statusNovo: "ENTREGUE" }),
+    });
+    expect(resultado).toEqual({
+      ok: true,
+      sugestaoConclusao: null,
+      sugestaoAvaliacao: {
+        numeroOS: "OS-16092026-0001",
+        nomeCliente: "Maria José",
+        telefone: "(61) 98530-7168",
+      },
     });
   });
 
@@ -116,11 +142,10 @@ describe("alterarStatusOS", () => {
 
   it.each<[OsStatus, OsStatus]>([
     ["ABERTA", "EM_ANDAMENTO"],
-    ["CONCLUIDA", "ENTREGUE"],
     ["ABERTA", "CANCELADA"],
-  ])("transição %s → %s não sugere WhatsApp", async (atual, novo) => {
+  ])("transição %s → %s não sugere conclusão nem avaliação", async (atual, novo) => {
     const fetcher = vi.fn(async () => respostaJson(200, {}));
     const resultado = await alterarStatusOS({ ...ordemEmAndamento, status: atual }, novo, fetcher as unknown as typeof fetch);
-    expect(resultado).toEqual({ ok: true, sugestaoConclusao: null });
+    expect(resultado).toEqual({ ok: true, sugestaoConclusao: null, sugestaoAvaliacao: null });
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency } from '../lib/formatters';
+import { formatPhone, formatCPFCNPJ, formatCEP, formatCurrency, whatsappLink, maskPhone, maskCPFCNPJ, maskCurrency, mensagemAvaliacaoOS } from '../lib/formatters';
 import { sanitizeCurrency } from '../lib/sanitizers';
 
 describe('Formatters', () => {
@@ -161,5 +161,24 @@ describe('maskCurrency (máscara monetária por centavos)', () => {
     expect(sanitizeCurrency(maskCurrency('25000'))).toBe(250);
     expect(sanitizeCurrency(maskCurrency('1250'))).toBe(12.5);
     expect(formatCurrency(maskCurrency('150050')).replace(/\xa0/g, ' ')).toBe('R$ 1.500,50');
+  });
+});
+
+describe('mensagemAvaliacaoOS', () => {
+  it('gera mensagem com cliente, número da OS e link de avaliação', () => {
+    const msg = mensagemAvaliacaoOS({
+      nomeCliente: 'Ana Paula',
+      numeroOS: 'OS-100',
+      linkAvaliacaoGoogle: 'https://g.page/r/test/review',
+    });
+    expect(msg).toContain('Olá, Ana Paula!');
+    expect(msg).toContain('Sua Ordem de Serviço OS-100 foi entregue.');
+    expect(msg).toContain('https://g.page/r/test/review');
+    expect(msg).toContain('Muito obrigado pela confiança!');
+  });
+
+  it('retorna string vazia se link for ausente ou vazio', () => {
+    expect(mensagemAvaliacaoOS({ nomeCliente: 'Ana', numeroOS: 'OS-100', linkAvaliacaoGoogle: null })).toBe('');
+    expect(mensagemAvaliacaoOS({ nomeCliente: 'Ana', numeroOS: 'OS-100', linkAvaliacaoGoogle: '   ' })).toBe('');
   });
 });

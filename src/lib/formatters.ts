@@ -117,6 +117,35 @@ export function mensagemConclusaoOS({
   );
 }
 
+/**
+ * Mensagem sugerida ao cliente após a entrega da OS para avaliação no Google.
+ * Sem valores, saldo ou dados financeiros: apenas agradecimento, identificação
+ * da OS e o link de avaliação configurado.
+ * Retorna string vazia se o link não estiver preenchido.
+ */
+export function mensagemAvaliacaoOS({
+  nomeCliente,
+  numeroOS,
+  linkAvaliacaoGoogle,
+}: {
+  nomeCliente: string;
+  numeroOS: string;
+  linkAvaliacaoGoogle?: string | null;
+}): string {
+  const link = linkAvaliacaoGoogle?.trim();
+  if (!link) {
+    return "";
+  }
+
+  const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
+  return (
+    `${saudacao} Agradecemos por escolher a UPA do Tênis - Sapataria Alves.\n\n` +
+    `Sua Ordem de Serviço ${numeroOS} foi entregue. Se puder, conte como foi sua experiência deixando uma avaliação no Google:\n` +
+    `${link}\n\n` +
+    `Muito obrigado pela confiança!`
+  );
+}
+
 const brlFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
