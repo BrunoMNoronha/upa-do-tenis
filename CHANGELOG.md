@@ -18,6 +18,11 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Serviços mais executados com barras proporcionais (maior = 100%); Insumos mais utilizados em ranking com posição, nome com unidade, quantidade formatada e link para o relatório de estoque (sem badges de estoque, que o contrato não traz).
   - Card "Ações rápidas" removido: "Nova OS" e "Venda de balcão" já estão no cabeçalho; "Ver estoque baixo" passou para o alerta de estoque; relatórios ficam nos cards correspondentes. Removidos `DashboardQuickActions`, `DashboardCardsOperacionais` e `TopList`.
   - Testes de renderização dos quatro blocos (links, resumo acessível, proporção das barras e estados vazios).
+- **Dashboard: alertas compactos, skeletons e acessibilidade (PR 3 da refatoração)**.
+  - `DashboardAlertCard`: linha de alertas de caixa e estoque com mesma altura, ícone SVG em caixa de 36px (sem emojis), título, descrição e link contextual; no mobile, empilhados com o link abaixo da descrição. Mesmos endpoints e textos de antes.
+  - Alerta de estoque passa a ter estados próprios (carregando, erro, sem alertas críticos, com alertas) usando apenas as contagens reais; tom de erro quando há insumo zerado e de atenção quando só há abaixo do mínimo.
+  - Skeletons dos blocos analíticos com a mesma moldura do conteúdo final na primeira carga; falhas dos alertas não bloqueiam as métricas.
+  - Testes do alerta de estoque (contagens, plural, estados e ausência de emoji).
 - **Múltiplos itens recebidos por OS** (issue #205): uma OS pode registrar vários objetos do mesmo cliente, cada um com descrição, foto e serviços próprios.
   - Cadastro com cards repetidores ("+ Adicionar outro item", até 10 itens), subtotal por item calculado dos serviços e total da OS derivado dos subtotais; não há mais valor total digitável.
   - Item pode ser cadastrado sem serviço e detalhado depois; o mesmo serviço é aceito em itens diferentes, mas não repetido no mesmo item.

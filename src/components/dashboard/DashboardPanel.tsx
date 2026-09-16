@@ -35,3 +35,22 @@ export function DashboardPanel({ title, description, action, className = "", chi
     </section>
   );
 }
+
+/** Skeleton com a mesma moldura e altura aproximada dos blocos analíticos. */
+export function DashboardPanelSkeleton({ label, className = "" }: { label: string; className?: string }) {
+  return (
+    <div
+      aria-busy="true"
+      aria-label={`Carregando ${label}`}
+      className={`flex min-h-[260px] animate-pulse flex-col gap-4 rounded-[var(--r-card)] border border-[color:var(--border)] bg-white p-5 sm:p-6 ${className}`}
+    >
+      <div className="h-4 w-48 rounded bg-[color:var(--surface-muted)]" />
+      <div className="h-3 w-64 max-w-full rounded bg-[color:var(--surface-muted)]" />
+      <div className="mt-2 h-3 w-full rounded-full bg-[color:var(--surface-muted)]" />
+      <div className="grid grid-cols-2 gap-2.5">
+        <div className="h-16 rounded-[14px] bg-[color:var(--background)]" />
+        <div className="h-16 rounded-[14px] bg-[color:var(--background)]" />
+      </div>
+    </div>
+  );
+}
