@@ -9,6 +9,7 @@ import { DashboardCardsOperacionais } from './DashboardCardsOperacionais';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
 import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
+import { DashboardAlertaCaixa } from './DashboardAlertaCaixa';
 import { DashboardQuickActions } from './DashboardQuickActions';
 import { LoadingState, EmptyState, ErrorState } from '@/components/ui';
 
@@ -64,6 +65,8 @@ export function DashboardClient() {
 
   return (
     <div className="space-y-6">
+      <DashboardAlertaCaixa />
+
       <DashboardAlertasEstoque />
       
       <DashboardQuickActions />
