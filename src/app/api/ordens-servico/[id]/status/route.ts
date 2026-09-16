@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { statusUpdateSchema } from "@/lib/ordens-servico-schema";
-import { OsStatus, transicoesPermitidas } from "@/lib/ordens-servico";
+import {
+  MENSAGEM_CANCELAMENTO_NAO_PERMITIDO,
+  OsStatus,
+  transicoesPermitidas,
+} from "@/lib/ordens-servico";
 import { prisma } from "@/lib/prisma";
+
+class TransicaoStatusConflitoError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "TransicaoStatusConflitoError";
+  }
+}
 
 export async function PATCH(
   req: NextRequest,
@@ -44,10 +55,10 @@ export async function PATCH(
     // Validar se transição é permitida
     const transicoesDaAtual = transicoesPermitidas[statusAtual] || [];
     if (!transicoesDaAtual.includes(novo)) {
-      return NextResponse.json(
-        { message: `Transição inválida: Não é possível mudar de ${statusAtual} para ${statusNovo}.` },
-        { status: 400 }
-      );
+      const mensagem = novo === "CANCELADA"
+        ? MENSAGEM_CANCELAMENTO_NAO_PERMITIDO
+        : `Transição inválida: Não é possível mudar de ${statusAtual} para ${statusNovo}.`;
+      return NextResponse.json({ message: mensagem }, { status: 400 });
     }
 
     // Definir dataConclusao se aplicável
@@ -55,14 +66,25 @@ export async function PATCH(
 
     // Executar transação atômica
     const osAtualizada = await prisma.$transaction(async (tx) => {
-      // 1. Atualiza OS
-      const osUpdated = await tx.ordemServico.update({
-        where: { id },
+      // 1. Atualiza OS condicionada ao status lido: se outra requisição mudou
+      //    o status entre a leitura e a escrita (tela obsoleta), nada é alterado.
+      const resultado = await tx.ordemServico.updateMany({
+        where: { id, status: statusAtual },
         data: {
           status: statusNovo,
           dataConclusao: isConcluida ? new Date() : osAtual.dataConclusao,
         },
       });
+
+      if (resultado.count !== 1) {
+        throw new TransicaoStatusConflitoError(
+          novo === "CANCELADA"
+            ? MENSAGEM_CANCELAMENTO_NAO_PERMITIDO
+            : "A ordem de serviço foi alterada por outra operação. Recarregue e tente novamente.",
+        );
+      }
+
+      const osUpdated = await tx.ordemServico.findUniqueOrThrow({ where: { id } });
 
       // 2. Cria registro de Histórico
       await tx.historicoStatus.create({
@@ -79,6 +101,10 @@ export async function PATCH(
 
     return NextResponse.json(osAtualizada, { status: 200 });
   } catch (error) {
+    if (error instanceof TransicaoStatusConflitoError) {
+      return NextResponse.json({ message: error.message }, { status: 409 });
+    }
+
     console.error("Erro ao atualizar status da OS:", error);
     return NextResponse.json(
       { message: "Ocorreu um erro interno ao atualizar o status." },

@@ -54,6 +54,11 @@ export function OrdemServicoDetalheClient({
   const [servicosErro, setServicosErro] = useState<string | null>(null);
   const [salvandoServicos, setSalvandoServicos] = useState(false);
 
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
+  const [cancelamentoErro, setCancelamentoErro] = useState<string | null>(null);
+  const [cancelamentoSucesso, setCancelamentoSucesso] = useState<string | null>(null);
+
   const carregarDetalhe = useCallback(async (silencioso = false) => {
     if (!silencioso) {
       setEstado("carregando");
@@ -136,6 +141,31 @@ export function OrdemServicoDetalheClient({
     }
   };
 
+  const cancelarOrdem = async () => {
+    setCancelando(true);
+    setCancelamentoErro(null);
+    setCancelamentoSucesso(null);
+    try {
+      const response = await fetch(`/api/ordens-servico/${ordemServicoId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statusNovo: "CANCELADA" }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setCancelamentoErro(payload?.message || "Não foi possível cancelar a ordem de serviço.");
+        return;
+      }
+      setConfirmandoCancelamento(false);
+      setCancelamentoSucesso("Ordem de serviço cancelada.");
+      await carregarDetalhe(true);
+    } catch {
+      setCancelamentoErro("Falha de comunicação ao cancelar a ordem de serviço.");
+    } finally {
+      setCancelando(false);
+    }
+  };
+
   const handleRefresh = async () => {
     await carregarDetalhe(true);
   };
@@ -185,10 +215,54 @@ export function OrdemServicoDetalheClient({
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge tone="accent">{formatarStatus(ordem.status)}</Badge>
+                <Badge tone={ordem.status === "CANCELADA" ? "danger" : "accent"}>{formatarStatus(ordem.status)}</Badge>
                 <Badge tone={obterTomStatusFinanceiro(resumo.statusFinanceiro)}>{formatarStatus(resumo.statusFinanceiro)}</Badge>
               </div>
             </div>
+            {ordem.status === "ABERTA" ? (
+              <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
+                {confirmandoCancelamento ? (
+                  <div className="flex w-full flex-col gap-3 rounded-2xl border border-rose-200 bg-rose-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="text-sm text-slate-700">
+                      <p className="font-semibold text-[color:var(--text)]">Cancelar esta ordem de serviço?</p>
+                      <p>A ordem de serviço será marcada como cancelada.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="secondary" onClick={() => setConfirmandoCancelamento(false)} disabled={cancelando}>
+                        Voltar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="border-rose-300 text-rose-700 hover:border-rose-400 hover:bg-rose-50"
+                        onClick={() => void cancelarOrdem()}
+                        isLoading={cancelando}
+                      >
+                        Cancelar OS
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setCancelamentoErro(null);
+                      setCancelamentoSucesso(null);
+                      setConfirmandoCancelamento(true);
+                    }}
+                  >
+                    Cancelar OS
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            {cancelamentoErro ? (
+              <p className="mt-3 text-sm text-red-600">{cancelamentoErro}</p>
+            ) : null}
+            {cancelamentoSucesso ? (
+              <p className="mt-3 text-sm text-emerald-700">{cancelamentoSucesso}</p>
+            ) : null}
           </div>
           <div className="grid gap-3 p-6 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
             <div><p className="text-xs uppercase tracking-[0.12em] text-slate-500">Cliente</p><p className="mt-1 font-semibold text-[color:var(--text)]">{ordem.cliente.nome}</p></div>

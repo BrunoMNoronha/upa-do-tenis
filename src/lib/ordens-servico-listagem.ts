@@ -1,6 +1,6 @@
 import { sanitizePhone } from "./sanitizers";
 
-export type StatusOperacionalListagem = "TODAS" | "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE";
+export type StatusOperacionalListagem = "TODAS" | "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE" | "CANCELADA";
 
 export type StatusFinanceiroListagem =
   | "TODAS"

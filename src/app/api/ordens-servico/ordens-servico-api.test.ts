@@ -39,6 +39,7 @@ vi.mock("@/lib/ordens-servico", () => ({
 
 const payloadBase = {
   clienteId: "cliente-1",
+      numeroOS: "0001",
   itemRecebido: "Tênis preto",
   prazoPrevisto: "2026-09-10",
   valorEstimado: 100,
@@ -147,16 +148,47 @@ describe("POST /api/ordens-servico", () => {
     expect(historico.observacao).toContain("queda de energia");
   });
 
-  it("mantém a numeração baseada na data de digitação mesmo com data retroativa", async () => {
+  it("compõe o número com a data de hoje e o número informado quando não há data retroativa", async () => {
+    await POST(criarRequest({ ...payloadBase, numeroOS: "0124" }));
+
+    expect(argumentosDoCreate().data.numero).toBe("OS-05092026-0124");
+  });
+
+  it("compõe o número com a Data de Entrada retroativa, não com a data de digitação", async () => {
     await POST(
       criarRequest({
         ...payloadBase,
+        numeroOS: "0124",
         dataEntrada: "2026-09-01",
         justificativaDataEntrada: "OS anotada no caderno durante a queda de energia.",
       }),
     );
 
-    expect(argumentosDoCreate().data.numero).toMatch(/^OS-05092026-\d{4}$/);
+    expect(argumentosDoCreate().data.numero).toBe("OS-01092026-0124");
+  });
+
+  it("preserva zeros à esquerda do número informado", async () => {
+    await POST(criarRequest({ ...payloadBase, numeroOS: "0007" }));
+
+    expect(argumentosDoCreate().data.numero).toBe("OS-05092026-0007");
+    expect(prismaMock.ordemServico.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { numero: "OS-05092026-0007" } }),
+    );
+  });
+
+  it("rejeita número da OS ausente sem abrir transação", async () => {
+    const { numeroOS: _ignorado, ...semNumero } = payloadBase;
+    const resposta = await POST(criarRequest(semNumero));
+
+    expect(resposta.status).toBe(400);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("rejeita número da OS com caracteres não numéricos sem abrir transação", async () => {
+    const resposta = await POST(criarRequest({ ...payloadBase, numeroOS: "12A" }));
+
+    expect(resposta.status).toBe(400);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
   it("rejeita data futura sem abrir transação", async () => {
@@ -173,13 +205,28 @@ describe("POST /api/ordens-servico", () => {
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
   });
 
-  it("retorna 500 quando não for possível gerar um número único", async () => {
+  it("retorna 409 quando já existe OS com o mesmo número composto", async () => {
     prismaMock.ordemServico.findUnique.mockResolvedValue({ id: "os-existente" });
 
     const resposta = await POST(criarRequest(payloadBase));
 
-    expect(resposta.status).toBe(500);
+    expect(resposta.status).toBe(409);
+    expect((await resposta.json()).message).toContain("OS-05092026-0001");
     expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("retorna 409 quando o banco rejeita o número duplicado na inserção (corrida)", async () => {
+    const { Prisma } = await import("@prisma/client");
+    prismaMock.ordemServico.create.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Unique constraint failed", {
+        code: "P2002",
+        clientVersion: "5.22.0",
+      }),
+    );
+
+    const resposta = await POST(criarRequest(payloadBase));
+
+    expect(resposta.status).toBe(409);
   });
 
   it("desfaz a criação quando o registro de rastreabilidade falha", async () => {

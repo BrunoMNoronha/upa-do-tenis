@@ -37,6 +37,7 @@ import {
 } from "@/lib/ordens-servico-schema";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico";
+import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
   filtrarOrdensServicoListagem,
   ordemServicoCorrespondeBusca,
@@ -55,6 +56,7 @@ const statusOptions: Array<{
   { value: "EM_ANDAMENTO", label: "Em andamento", tone: "warning" },
   { value: "CONCLUIDA", label: "Concluída", tone: "success" },
   { value: "ENTREGUE", label: "Entregue", tone: "neutral" },
+  { value: "CANCELADA", label: "Cancelada", tone: "danger" },
 ];
 
 const filterOptions: Array<{ value: StatusFilter; label: string }> = [
@@ -63,6 +65,7 @@ const filterOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "EM_ANDAMENTO", label: "Em andamento" },
   { value: "CONCLUIDA", label: "Concluídas" },
   { value: "ENTREGUE", label: "Entregues" },
+  { value: "CANCELADA", label: "Canceladas" },
 ];
 
 const financeFilterOptions: Array<{
@@ -92,6 +95,8 @@ function getStatusTone(
       return "success";
     case "ENTREGUE":
       return "neutral";
+    case "CANCELADA":
+      return "danger";
     default:
       return "neutral";
   }
@@ -103,6 +108,7 @@ const criarDefaultValues = (): OrdemServicoFormValues => ({
   servicoId: "",
   servicos: [],
   dataEntrada: dataOperacionalHoje(),
+  numeroOS: "",
   justificativaDataEntrada: "",
   prazoPrevisto: "",
   valorEstimado: 0,
@@ -155,6 +161,7 @@ function OrdemServicoCard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false);
 
   const statusLabel =
     statusOptions.find((o) => o.value === ordem.status)?.label ?? ordem.status;
@@ -194,6 +201,7 @@ function OrdemServicoCard({
       return;
     }
 
+    setConfirmandoCancelamento(false);
     startTransition(() => {
       router.refresh();
     });
@@ -201,14 +209,52 @@ function OrdemServicoCard({
 
   let actionButton = null;
   if (ordem.status === "ABERTA") {
-    actionButton = (
-      <Button
-        type="button"
-        onClick={() => handleStatusChange("EM_ANDAMENTO")}
-        isLoading={isPending}
-      >
-        Iniciar Serviço
-      </Button>
+    actionButton = confirmandoCancelamento ? (
+      <div className="flex flex-col items-end gap-2 text-right">
+        <p className="text-sm text-slate-700">
+          Cancelar esta ordem de serviço? Ela será marcada como cancelada.
+        </p>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => setConfirmandoCancelamento(false)}
+            disabled={isPending}
+          >
+            Voltar
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="border-rose-300 text-rose-700 hover:border-rose-400 hover:bg-rose-50"
+            onClick={() => handleStatusChange("CANCELADA")}
+            isLoading={isPending}
+          >
+            Cancelar OS
+          </Button>
+        </div>
+      </div>
+    ) : (
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => {
+            setError(null);
+            setConfirmandoCancelamento(true);
+          }}
+          disabled={isPending}
+        >
+          Cancelar OS
+        </Button>
+        <Button
+          type="button"
+          onClick={() => handleStatusChange("EM_ANDAMENTO")}
+          isLoading={isPending}
+        >
+          Iniciar Serviço
+        </Button>
+      </div>
     );
   } else if (ordem.status === "EM_ANDAMENTO") {
     actionButton = (
@@ -431,6 +477,11 @@ function OrdemServicoForm({
   const dataEntradaSelecionada = watch("dataEntrada");
   const exigeJustificativaDataEntrada =
     !!dataEntradaSelecionada && dataEntradaSelecionada !== hojeOperacional;
+  const numeroOSDigitado = watch("numeroOS");
+  const previaNumero = previaNumeroOS(
+    dataEntradaSelecionada || hojeOperacional,
+    numeroOSDigitado,
+  );
 
   const {
     register: registerCliente,
@@ -813,8 +864,28 @@ function OrdemServicoForm({
             ) : null}
             {exigeJustificativaDataEntrada ? (
               <p className="text-xs text-slate-500">
-                Registro retroativo — o número da OS continua sendo gerado com a
-                data de hoje.
+                Registro retroativo — o número da OS usa a data de entrada
+                informada.
+              </p>
+            ) : null}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="numeroOS">Número da OS</Label>
+            <Input
+              id="numeroOS"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Ex.: 0124"
+              {...register("numeroOS")}
+            />
+            {errors.numeroOS ? (
+              <p className="text-sm text-red-600">{errors.numeroOS.message}</p>
+            ) : null}
+            {previaNumero ? (
+              <p className="text-xs text-slate-500">
+                Identificador: <span className="font-semibold text-[color:var(--text)]">{previaNumero}</span>
               </p>
             ) : null}
           </div>

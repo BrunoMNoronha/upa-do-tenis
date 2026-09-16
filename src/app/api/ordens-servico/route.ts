@@ -6,7 +6,8 @@ import { montarObservacaoRegistroRetroativo } from "@/lib/ordens-servico-rastrea
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { listarOrdensServico } from "@/lib/ordens-servico";
-import { randomInt } from "crypto";
+import { formatarNumeroOS } from "@/lib/ordens-servico-numero";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: NextRequest) {
   try {
@@ -93,34 +94,20 @@ export async function POST(req: NextRequest) {
     const valorTotal = servicosInformados.length > 0 ? valorTotalServicos : arredondarMoeda(data.valorEstimado);
 
 
-    // Generate a unique number OS-DDMMAAAA-XXXX
-    const now = new Date();
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const aaaa = now.getFullYear();
-    const datePrefix = `OS-${dd}${mm}${aaaa}`;
+    // Identificador operacional: OS-<DDMMAAAA da Data de Entrada>-<número informado
+    // pelo operador>. Não há geração automática; a data usada é a operacional
+    // (retroativa ou não), nunca a data técnica de criação.
+    const numeroStr = formatarNumeroOS(dataOperacional, data.numeroOS);
 
-    let numeroStr = "";
-    let isUnique = false;
-    let attempts = 0;
-    const maxAttempts = 10;
+    const osExistente = await prisma.ordemServico.findUnique({
+      where: { numero: numeroStr },
+      select: { id: true },
+    });
 
-    while (!isUnique && attempts < maxAttempts) {
-      const randomSuffix = randomInt(10000).toString().padStart(4, '0');
-      numeroStr = `${datePrefix}-${randomSuffix}`;
-      const existingOs = await prisma.ordemServico.findUnique({
-        where: { numero: numeroStr },
-      });
-      if (!existingOs) {
-        isUnique = true;
-      }
-      attempts++;
-    }
-
-    if (!isUnique) {
+    if (osExistente) {
       return NextResponse.json(
-        { message: "Não foi possível gerar um número de OS único após várias tentativas." },
-        { status: 500 }
+        { message: `Já existe uma ordem de serviço com o número ${numeroStr}.` },
+        { status: 409 },
       );
     }
 
@@ -182,6 +169,15 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(novaOS, { status: 201 });
   } catch (error) {
+    // Corrida entre a verificação prévia e o insert: a unicidade de `numero`
+    // é garantida pelo banco; devolve conflito de negócio em vez de 500.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { message: "Já existe uma ordem de serviço com o número informado." },
+        { status: 409 },
+      );
+    }
+
     console.error("Erro ao criar ordem de serviço:", error);
     return NextResponse.json(
       { message: "Ocorreu um erro interno ao criar a ordem de serviço." },
