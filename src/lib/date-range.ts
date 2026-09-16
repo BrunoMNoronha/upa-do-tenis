@@ -101,3 +101,35 @@ export function dataOperacionalHoje(referencia: Date = new Date()): string {
 
   return `${buscar("year")}-${buscar("month")}-${buscar("day")}`;
 }
+
+/** Dia civil ("YYYY-MM-DD") de um instante qualquer no fuso da operação. */
+export const dataOperacional = dataOperacionalHoje;
+
+/**
+ * Instante da meia-noite (início do dia) no fuso da operação para o dia
+ * corrente de `referencia`, independente do fuso do processo. O deslocamento
+ * é lido do próprio `Intl` no instante de referência.
+ */
+export function inicioDoDiaOperacional(referencia: Date = new Date()): Date {
+  const partes = new Intl.DateTimeFormat("en-US", {
+    timeZone: FUSO_OPERACIONAL,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(referencia);
+
+  const numero = (tipo: string) => Number(partes.find((parte) => parte.type === tipo)?.value ?? 0);
+  const ano = numero("year");
+  const mes = numero("month") - 1;
+  const dia = numero("day");
+
+  const referenciaSegundos = Math.floor(referencia.getTime() / 1000) * 1000;
+  const relogioOperacionalComoUtc = Date.UTC(ano, mes, dia, numero("hour"), numero("minute"), numero("second"));
+  const deslocamento = relogioOperacionalComoUtc - referenciaSegundos;
+
+  return new Date(Date.UTC(ano, mes, dia) - deslocamento);
+}
