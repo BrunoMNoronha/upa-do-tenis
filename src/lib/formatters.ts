@@ -99,6 +99,24 @@ export function mensagemAberturaOS({
   );
 }
 
+/**
+ * Mensagem sugerida ao cliente na conclusão da OS. Sem valores, saldo ou
+ * cobrança: concluir operacionalmente não implica quitação financeira.
+ */
+export function mensagemConclusaoOS({
+  nomeCliente,
+  numeroOS,
+}: {
+  nomeCliente: string;
+  numeroOS: string;
+}): string {
+  const saudacao = nomeCliente.trim() ? `Olá, ${nomeCliente.trim()}!` : "Olá!";
+  return (
+    `${saudacao} Sua Ordem de Serviço ${numeroOS} foi concluída. Quando puder, entre em contato ` +
+    `ou venha até a UPA do Tênis - Sapataria Alves para seguirmos com o atendimento.`
+  );
+}
+
 const brlFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
