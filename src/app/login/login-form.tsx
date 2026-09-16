@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import Script from "next/script";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -44,9 +43,8 @@ async function obterTokenCaptcha(siteKey: string): Promise<string | undefined> {
 }
 
 export function LoginForm({ captchaSiteKey }: LoginFormProps) {
-  const router = useRouter();
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [redirecionando, setRedirecionando] = useState(false);
 
   const {
     register,
@@ -83,13 +81,15 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
       return;
     }
 
-    startTransition(() => {
-      router.replace("/dashboard");
-      router.refresh();
-    });
+    // Navegação completa, e não `router.replace`: uma troca client-side
+    // manteria o script do reCAPTCHA e o iframe do badge vivos no dashboard e
+    // em todas as telas seguintes. O captcha existe só na página de login
+    // (issue #123); recarregar o documento descarta o script.
+    setRedirecionando(true);
+    window.location.assign("/dashboard");
   });
 
-  const carregando = isSubmitting || isPending;
+  const carregando = isSubmitting || redirecionando;
 
   return (
     <Card className="p-6 sm:p-8">

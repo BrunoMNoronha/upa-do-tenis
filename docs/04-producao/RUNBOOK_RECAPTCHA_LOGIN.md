@@ -54,6 +54,14 @@ coberta pelo rate limiting. O evento `captcha_indisponivel` fica nos logs.
 Só é "indisponível" o que não teve resposta útil: erro de rede, timeout (5 s),
 HTTP não-2xx ou corpo ilegível. Quando o Google responde e recusa, é `403`.
 
+### O captcha existe só na página de login
+
+O script do Google é carregado pelo formulário de login e em nenhum outro
+lugar. Após o login bem-sucedido o formulário faz **navegação completa**
+(`window.location.assign`) para o dashboard, e não troca client-side: uma
+troca client-side manteria o script e o iframe do badge vivos em todas as
+telas seguintes. Nenhuma outra rota envia ou valida `captchaToken`.
+
 ## Variáveis de ambiente
 
 | Variável | Onde | Descrição |
