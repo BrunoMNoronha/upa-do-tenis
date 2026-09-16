@@ -1,14 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { calcularResumoFinanceiroOS, normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
 
-export type OsStatus = "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE";
-
-export const transicoesPermitidas: Record<OsStatus, OsStatus[]> = {
-  ABERTA: ["EM_ANDAMENTO"],
-  EM_ANDAMENTO: ["CONCLUIDA"],
-  CONCLUIDA: ["ENTREGUE"],
-  ENTREGUE: [], // Estado final
-};
+export {
+  transicoesPermitidas,
+  transicaoPermitida,
+  podeCancelarOrdemServico,
+} from "@/lib/ordens-servico-status";
+export type { OsStatus } from "@/lib/ordens-servico-status";
 
 export class OrdemServicoDetalheError extends Error {
   status: number;

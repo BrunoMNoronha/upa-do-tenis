@@ -36,7 +36,7 @@ import {
   type OrdemServicoServicoValues,
 } from "@/lib/ordens-servico-schema";
 import { dataOperacionalHoje } from "@/lib/date-range";
-import type { OsStatus } from "@/lib/ordens-servico";
+import type { OsStatus } from "@/lib/ordens-servico-status";
 import {
   filtrarOrdensServicoListagem,
   ordemServicoCorrespondeBusca,
@@ -55,6 +55,7 @@ const statusOptions: Array<{
   { value: "EM_ANDAMENTO", label: "Em andamento", tone: "warning" },
   { value: "CONCLUIDA", label: "Concluída", tone: "success" },
   { value: "ENTREGUE", label: "Entregue", tone: "neutral" },
+  { value: "CANCELADA", label: "Cancelada", tone: "danger" },
 ];
 
 const filterOptions: Array<{ value: StatusFilter; label: string }> = [
@@ -63,6 +64,7 @@ const filterOptions: Array<{ value: StatusFilter; label: string }> = [
   { value: "EM_ANDAMENTO", label: "Em andamento" },
   { value: "CONCLUIDA", label: "Concluídas" },
   { value: "ENTREGUE", label: "Entregues" },
+  { value: "CANCELADA", label: "Canceladas" },
 ];
 
 const financeFilterOptions: Array<{

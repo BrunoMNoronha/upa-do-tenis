@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { statusUpdateSchema } from "@/lib/ordens-servico-schema";
-import { OsStatus, transicoesPermitidas } from "@/lib/ordens-servico";
+import { OsStatus, transicaoPermitida } from "@/lib/ordens-servico-status";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
@@ -42,8 +42,7 @@ export async function PATCH(
     const novo = statusNovo as OsStatus;
 
     // Validar se transição é permitida
-    const transicoesDaAtual = transicoesPermitidas[statusAtual] || [];
-    if (!transicoesDaAtual.includes(novo)) {
+    if (!transicaoPermitida(statusAtual, novo)) {
       return NextResponse.json(
         { message: `Transição inválida: Não é possível mudar de ${statusAtual} para ${statusNovo}.` },
         { status: 400 }
@@ -55,14 +54,20 @@ export async function PATCH(
 
     // Executar transação atômica
     const osAtualizada = await prisma.$transaction(async (tx) => {
-      // 1. Atualiza OS
-      const osUpdated = await tx.ordemServico.update({
-        where: { id },
+      // 1. Atualiza OS condicionada ao status lido acima. Se outro operador
+      //    alterou o status entre a leitura e a gravação, nenhuma linha é
+      //    afetada e a transição é rejeitada (estado persistido prevalece).
+      const resultado = await tx.ordemServico.updateMany({
+        where: { id, status: statusAtual },
         data: {
           status: statusNovo,
           dataConclusao: isConcluida ? new Date() : osAtual.dataConclusao,
         },
       });
+
+      if (resultado.count === 0) {
+        return null;
+      }
 
       // 2. Cria registro de Histórico
       await tx.historicoStatus.create({
@@ -74,8 +79,15 @@ export async function PATCH(
         },
       });
 
-      return osUpdated;
+      return tx.ordemServico.findUnique({ where: { id } });
     });
+
+    if (!osAtualizada) {
+      return NextResponse.json(
+        { message: "A ordem de serviço foi alterada por outro operador. Atualize a página e tente novamente." },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json(osAtualizada, { status: 200 });
   } catch (error) {
