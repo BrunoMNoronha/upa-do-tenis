@@ -17,8 +17,15 @@
   --r-card: 20px;
   --r-field: 12px;
   --success: #166534;
+  --success-soft: #dcfce7;
   --warning: #b45309;
+  --warning-soft: #fef3c7;
   --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --ink: #1f2937;
+  --text-soft: #5b6472;
+  --neutral-bar: #d6ccc0;
+  --font-sans: var(--font-manrope), "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 html,
@@ -40,7 +47,18 @@ body {
     radial-gradient(circle at top right, rgba(31, 41, 55, 0.05), transparent 22%),
     linear-gradient(180deg, #fcf8f2 0%, #f6eee3 100%);
   color: var(--text);
-  font-family: "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 * {

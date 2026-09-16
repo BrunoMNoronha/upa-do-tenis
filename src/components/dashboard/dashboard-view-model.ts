@@ -1,0 +1,166 @@
+import type { DashboardMetrics } from "@/lib/dashboard-service";
+
+/**
+ * View model do Dashboard: derivações puras a partir de `DashboardMetrics`,
+ * concentrando somas, percentuais e proteções contra divisão por zero fora
+ * do JSX. Não altera nem recalcula regras financeiras: apenas agrega o que
+ * a API já devolve.
+ */
+
+export type StatusOperacionalId = "ABERTA" | "EM_ANDAMENTO" | "CONCLUIDA" | "ENTREGUE";
+export type StatusFinanceiroId = "PAGAS" | "PARCIAIS" | "PENDENTES";
+
+export type ItemFila = {
+  id: StatusOperacionalId;
+  rotulo: string;
+  descricao: string;
+  quantidade: number;
+  /** Percentual inteiro (0-100) sobre o total de OS ativas. */
+  percentual: number;
+  href: string;
+};
+
+export type ItemSituacaoFinanceira = {
+  id: StatusFinanceiroId;
+  rotulo: string;
+  quantidade: number;
+  /** Percentual inteiro (0-100) sobre o total de OS com situação financeira. */
+  percentual: number;
+  href: string;
+};
+
+export type ItemRanking = {
+  id: string;
+  nome: string;
+  quantidade: number;
+  /** Largura relativa da barra (0-100), normalizada pelo maior item. */
+  proporcao: number;
+};
+
+export type DashboardViewModel = {
+  totalRecebido: number;
+  totalPendente: number;
+  ticketMedio: number;
+  /** Soma de abertas, em andamento, concluídas e entregues (canceladas não incluídas). */
+  totalOrdensAtivas: number;
+  fila: ItemFila[];
+  /** Total de OS com situação financeira apurada (pagas + parciais + pendentes). */
+  totalOrdensFinanceiras: number;
+  percentualPagas: number;
+  /** OS que ainda têm saldo a receber: parcialmente pagas + sem pagamento. */
+  ordensComSaldo: number;
+  situacaoFinanceira: ItemSituacaoFinanceira[];
+  servicos: ItemRanking[];
+  insumos: ItemRanking[];
+  /** true quando nenhuma métrica do período tem valor. */
+  vazio: boolean;
+};
+
+export function percentualInteiro(parte: number, total: number): number {
+  if (!Number.isFinite(parte) || !Number.isFinite(total) || total <= 0) return 0;
+  return Math.round((parte / total) * 100);
+}
+
+function normalizarRanking(itens: DashboardMetrics["topServicos"]): ItemRanking[] {
+  const ordenados = [...itens].sort((a, b) => b.quantidade - a.quantidade);
+  const maior = ordenados[0]?.quantidade ?? 0;
+
+  return ordenados.map((item) => ({
+    id: item.id,
+    nome: item.nome,
+    quantidade: item.quantidade,
+    proporcao: percentualInteiro(item.quantidade, maior),
+  }));
+}
+
+export function montarDashboardViewModel(metrics: DashboardMetrics): DashboardViewModel {
+  const totalOrdensAtivas = metrics.osAbertas + metrics.osEmAndamento + metrics.osConcluidas + metrics.osEntregues;
+
+  const fila: ItemFila[] = [
+    {
+      id: "ABERTA",
+      rotulo: "Abertas",
+      descricao: "Aguardando análise",
+      quantidade: metrics.osAbertas,
+      percentual: percentualInteiro(metrics.osAbertas, totalOrdensAtivas),
+      href: "/ordens-servico?statusOp=ABERTA",
+    },
+    {
+      id: "EM_ANDAMENTO",
+      rotulo: "Em andamento",
+      descricao: "Em execução na oficina",
+      quantidade: metrics.osEmAndamento,
+      percentual: percentualInteiro(metrics.osEmAndamento, totalOrdensAtivas),
+      href: "/ordens-servico?statusOp=EM_ANDAMENTO",
+    },
+    {
+      id: "CONCLUIDA",
+      rotulo: "Concluídas",
+      descricao: "Prontas para entrega",
+      quantidade: metrics.osConcluidas,
+      percentual: percentualInteiro(metrics.osConcluidas, totalOrdensAtivas),
+      href: "/ordens-servico?statusOp=CONCLUIDA",
+    },
+    {
+      id: "ENTREGUE",
+      rotulo: "Entregues",
+      descricao: "Finalizadas com o cliente",
+      quantidade: metrics.osEntregues,
+      percentual: percentualInteiro(metrics.osEntregues, totalOrdensAtivas),
+      href: "/ordens-servico?statusOp=ENTREGUE",
+    },
+  ];
+
+  const totalOrdensFinanceiras = metrics.osPagas + metrics.osParcialmentePagas + metrics.osPendentesPagamento;
+
+  const situacaoFinanceira: ItemSituacaoFinanceira[] = [
+    {
+      id: "PAGAS",
+      rotulo: "Pagas",
+      quantidade: metrics.osPagas,
+      percentual: percentualInteiro(metrics.osPagas, totalOrdensFinanceiras),
+      href: "/ordens-servico?statusFin=PAGAS",
+    },
+    {
+      id: "PARCIAIS",
+      rotulo: "Parcialmente pagas",
+      quantidade: metrics.osParcialmentePagas,
+      percentual: percentualInteiro(metrics.osParcialmentePagas, totalOrdensFinanceiras),
+      href: "/ordens-servico?statusFin=PARCIAIS",
+    },
+    {
+      id: "PENDENTES",
+      rotulo: "Sem pagamento",
+      quantidade: metrics.osPendentesPagamento,
+      percentual: percentualInteiro(metrics.osPendentesPagamento, totalOrdensFinanceiras),
+      href: "/ordens-servico?statusFin=PENDENTES",
+    },
+  ];
+
+  const servicos = normalizarRanking(metrics.topServicos);
+  const insumos = normalizarRanking(metrics.topInsumos);
+
+  const vazio =
+    metrics.totalRecebido === 0 &&
+    metrics.totalPendente === 0 &&
+    metrics.ticketMedio === 0 &&
+    totalOrdensAtivas === 0 &&
+    totalOrdensFinanceiras === 0 &&
+    servicos.length === 0 &&
+    insumos.length === 0;
+
+  return {
+    totalRecebido: metrics.totalRecebido,
+    totalPendente: metrics.totalPendente,
+    ticketMedio: metrics.ticketMedio,
+    totalOrdensAtivas,
+    fila,
+    totalOrdensFinanceiras,
+    percentualPagas: percentualInteiro(metrics.osPagas, totalOrdensFinanceiras),
+    ordensComSaldo: metrics.osParcialmentePagas + metrics.osPendentesPagamento,
+    situacaoFinanceira,
+    servicos,
+    insumos,
+    vazio,
+  };
+}

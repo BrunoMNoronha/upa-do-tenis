@@ -5,6 +5,13 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 ## [Não lançado]
 
 ### Adicionado
+- **Dashboard: nova estrutura visual (PR 1 da refatoração)**: cabeçalho plano com saudação por horário, primeiro nome do usuário da sessão e data por extenso (fuso operacional); ações "Venda de balcão" e "Nova ordem de serviço" no cabeçalho.
+  - Presets de período (Hoje, 7 dias, Este mês, Mês anterior) com `aria-pressed`; edição manual das datas marca "Personalizado" e só consulta ao clicar em Filtrar. Uma única chamada à API por aplicação de período.
+  - Grade de quatro KPIs (`DashboardKpiCard`): Total recebido em destaque, Total pendente com a quantidade real de OS com saldo, Ticket médio e "OS ativas no período" (soma dos quatro status operacionais; canceladas não incluídas).
+  - View model puro (`dashboard-view-model.ts`) com totais, percentuais protegidos contra divisão por zero e rankings normalizados, coberto por testes; sem alteração no endpoint `/api/dashboard` nem nas regras financeiras.
+  - Durante uma nova filtragem, as métricas anteriores permanecem visíveis (estado de atualização discreto) e a falha mostra "Tentar novamente" sem desmontar o dashboard.
+  - `AppShell` ganha o slot opcional `header` (cabeçalho plano) sem alterar as demais telas; `DateRangePicker` ganha `hidePresets` e `variant="inline"` (padrões preservados).
+  - Fonte Manrope (via `next/font`) e tokens semânticos adicionais em `globals.css`; respeito a `prefers-reduced-motion`.
 - **Múltiplos itens recebidos por OS** (issue #205): uma OS pode registrar vários objetos do mesmo cliente, cada um com descrição, foto e serviços próprios.
   - Cadastro com cards repetidores ("+ Adicionar outro item", até 10 itens), subtotal por item calculado dos serviços e total da OS derivado dos subtotais; não há mais valor total digitável.
   - Item pode ser cadastrado sem serviço e detalhado depois; o mesmo serviço é aceito em itens diferentes, mas não repetido no mesmo item.

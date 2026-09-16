@@ -19,6 +19,10 @@ type DateRangePickerProps = {
   applyLabel?: string;
   applying?: boolean;
   className?: string;
+  /** Oculta os atalhos internos (Hoje, Última semana...) quando a tela já oferece presets próprios. */
+  hidePresets?: boolean;
+  /** "card" (padrão) desenha borda e fundo; "inline" só os campos, para compor com outros controles. */
+  variant?: "card" | "inline";
 };
 
 const periodoFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -31,6 +35,8 @@ export function DateRangePicker({
   applyLabel = "Filtrar",
   applying = false,
   className = "",
+  hidePresets = false,
+  variant = "card",
 }: DateRangePickerProps) {
   const idPrefix = useId();
   const [from, setFrom] = useState<string>(
@@ -69,14 +75,20 @@ export function DateRangePicker({
     : "Nenhum período selecionado";
 
   return (
-    <div className={`flex flex-col gap-4 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4 ${className}`}>
-      <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => handlePreset("hoje")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Hoje</button>
-        <button type="button" onClick={() => handlePreset("semana")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Última semana</button>
-        <button type="button" onClick={() => handlePreset("mes")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Último mês</button>
-        <button type="button" onClick={() => handlePreset("mesAtual")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Mês atual</button>
-        <button type="button" onClick={handleLimpar} className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Limpar</button>
-      </div>
+    <div
+      className={`flex flex-col gap-4 ${
+        variant === "card" ? "rounded-xl border border-[color:var(--border)] bg-[color:var(--surface)] p-4" : ""
+      } ${className}`}
+    >
+      {!hidePresets && (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => handlePreset("hoje")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Hoje</button>
+          <button type="button" onClick={() => handlePreset("semana")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Última semana</button>
+          <button type="button" onClick={() => handlePreset("mes")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Último mês</button>
+          <button type="button" onClick={() => handlePreset("mesAtual")} className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 transition hover:bg-sky-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Mês atual</button>
+          <button type="button" onClick={handleLimpar} className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-700 transition hover:bg-rose-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">Limpar</button>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="grid gap-1.5">
