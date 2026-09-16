@@ -129,6 +129,43 @@ describe("produtoFormSchema", () => {
 
       expect(result.success).toBe(false);
     });
+
+    it("converte string numérica vinda do formulário", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: " 12 ",
+      });
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.quantidadeInicial).toBe(12);
+      }
+    });
+
+    it("rejeita string não numérica", () => {
+      const result = produtoFormSchema.safeParse({
+        nome: "Graxa",
+        precoVenda: 10,
+        quantidadeInicial: "dez",
+      });
+
+      expect(result.success).toBe(false);
+    });
+
+    it("rejeita tipos não numéricos em vez de coagi-los", () => {
+      // `Number(true)` seria 1 e `Number([])` seria 0: a API criaria estoque
+      // diferente do informado em vez de responder 400.
+      for (const valor of [true, false, [], [5], {}, { quantidade: 5 }]) {
+        const result = produtoFormSchema.safeParse({
+          nome: "Graxa",
+          precoVenda: 10,
+          quantidadeInicial: valor,
+        });
+
+        expect(result.success, `valor ${JSON.stringify(valor)}`).toBe(false);
+      }
+    });
   });
 });
 

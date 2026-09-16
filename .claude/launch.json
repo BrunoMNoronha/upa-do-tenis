@@ -4,9 +4,26 @@
     {
       "name": "upa-do-tenis-dev",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "wt-cancel-os",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--dir",
+        "C:/Users/bruno/AppData/Local/Temp/claude/C--Development-Projects-upa-do-tenis/ddb47502-fcf9-4463-9017-cd64f7b1b102/scratchpad/wt-cancel-os",
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "port": 3100
     }
   ]
 }
