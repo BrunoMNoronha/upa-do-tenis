@@ -365,3 +365,9 @@ model MovimentacaoCaixa {
   @@index([ordemServicoId])
   @@index([vendaId])
 }
+
+model ConfiguracaoSistema {
+  chave        String   @id
+  valor        String
+  atualizadoEm DateTime @updatedAt
+}

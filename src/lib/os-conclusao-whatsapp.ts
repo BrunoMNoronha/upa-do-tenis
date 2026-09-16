@@ -33,13 +33,18 @@ export type OrdemParaMudancaStatus = {
 };
 
 export type ResultadoMudancaStatus =
-  | { ok: true; sugestaoConclusao: DadosSugestaoConclusao | null }
+  | {
+      ok: true;
+      sugestaoConclusao: DadosSugestaoConclusao | null;
+      sugestaoAvaliacao?: DadosSugestaoConclusao | null;
+    }
   | { ok: false; mensagem: string };
 
 /**
  * Persiste a mudança de status e só então decide se há sugestão de WhatsApp.
- * A sugestão existe apenas para `EM_ANDAMENTO -> CONCLUIDA` confirmada pelo
- * backend; falha na requisição nunca produz sugestão.
+ * - `EM_ANDAMENTO -> CONCLUIDA`: sugestaoConclusao (aviso operacional)
+ * - `CONCLUIDA -> ENTREGUE`: sugestaoAvaliacao (avaliação no Google)
+ * Falha na requisição nunca produz nenhuma sugestão.
  */
 export async function alterarStatusOS(
   ordem: OrdemParaMudancaStatus,
@@ -63,15 +68,17 @@ export async function alterarStatusOS(
   }
 
   const concluiu = ordem.status === "EM_ANDAMENTO" && novoStatus === "CONCLUIDA";
+  const entregou = ordem.status === "CONCLUIDA" && novoStatus === "ENTREGUE";
+
+  const dadosBasicos: DadosSugestaoConclusao = {
+    numeroOS: ordem.numero,
+    nomeCliente: ordem.cliente?.nome ?? "",
+    telefone: ordem.cliente?.telefone,
+  };
 
   return {
     ok: true,
-    sugestaoConclusao: concluiu
-      ? {
-          numeroOS: ordem.numero,
-          nomeCliente: ordem.cliente?.nome ?? "",
-          telefone: ordem.cliente?.telefone,
-        }
-      : null,
+    sugestaoConclusao: concluiu ? dadosBasicos : null,
+    sugestaoAvaliacao: entregou ? dadosBasicos : null,
   };
 }

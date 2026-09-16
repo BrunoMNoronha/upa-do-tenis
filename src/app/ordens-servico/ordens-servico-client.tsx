@@ -23,6 +23,8 @@ import {
   type DadosCompartilhamentoAcompanhamento,
 } from "@/components/compartilhar-acompanhamento-dialog";
 import { SugerirWhatsAppConclusaoDialog } from "@/components/sugerir-whatsapp-conclusao-dialog";
+import { SugerirWhatsAppAvaliacaoDialog } from "@/components/sugerir-whatsapp-avaliacao-dialog";
+import { type DadosSugestaoAvaliacao } from "@/lib/os-avaliacao-whatsapp";
 import {
   formatCurrency,
   formatPhone,
@@ -164,10 +166,12 @@ function OrdemServicoCard({
   ordem,
   isAtrasada,
   onConcluida,
+  onEntregue,
 }: {
   ordem: OrdemServicoReal;
   isAtrasada: boolean;
   onConcluida: (dados: DadosSugestaoConclusao) => void;
+  onEntregue: (dados: DadosSugestaoAvaliacao) => void;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -217,9 +221,25 @@ function OrdemServicoCard({
         return;
       }
 
-      // Sugestão de WhatsApp só depois de o backend confirmar a conclusão.
+      // Sugestão de WhatsApp só depois de o backend confirmar a conclusão/entrega.
       if (resultado.sugestaoConclusao) {
         onConcluida(resultado.sugestaoConclusao);
+      } else if (resultado.sugestaoAvaliacao) {
+        let linkAvaliacao: string | null = null;
+        try {
+          const resp = await fetch("/api/configuracoes");
+          if (resp.ok) {
+            const config = await resp.json();
+            linkAvaliacao = config?.linkAvaliacaoGoogle ?? null;
+          }
+        } catch {
+          // Erro de rede na busca do link não bloqueia a OS entregue
+        }
+
+        onEntregue({
+          ...resultado.sugestaoAvaliacao,
+          linkAvaliacaoGoogle: linkAvaliacao,
+        });
       }
 
       startTransition(() => {
@@ -1080,6 +1100,8 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
   // do filtro atual e desmontar, mas a sugestão de WhatsApp deve continuar aberta.
   const [sugestaoConclusao, setSugestaoConclusao] = useState<DadosSugestaoConclusao | null>(null);
   const fecharSugestaoConclusao = useCallback(() => setSugestaoConclusao(null), []);
+  const [sugestaoAvaliacao, setSugestaoAvaliacao] = useState<DadosSugestaoAvaliacao | null>(null);
+  const fecharSugestaoAvaliacao = useCallback(() => setSugestaoAvaliacao(null), []);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -1275,6 +1297,7 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
               ordem={ordem}
               isAtrasada={ordemServicoEstaAtrasada(ordem)}
               onConcluida={setSugestaoConclusao}
+              onEntregue={setSugestaoAvaliacao}
             />
           ))}
         </div>
@@ -1291,6 +1314,10 @@ function OrdemServicoList({ ordens, pagination, estatisticas, filtros }: OrdemSe
       <SugerirWhatsAppConclusaoDialog
         dados={sugestaoConclusao}
         onFechar={fecharSugestaoConclusao}
+      />
+      <SugerirWhatsAppAvaliacaoDialog
+        dados={sugestaoAvaliacao}
+        onFechar={fecharSugestaoAvaliacao}
       />
     </Card>
   );

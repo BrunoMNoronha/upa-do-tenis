@@ -67,6 +67,7 @@ import {
 import { GET as produtosMovimentacoesGet } from "@/app/api/produtos/[id]/movimentacoes/route";
 import { GET as vendasGet, POST as vendasPost } from "@/app/api/vendas/route";
 import { GET as vendasIdGet } from "@/app/api/vendas/[id]/route";
+import { GET as configuracoesGet, PUT as configuracoesPut } from "@/app/api/configuracoes/route";
 
 function criarRequest(path: string, method = "GET") {
   return new NextRequest(`http://localhost${path}`, {
@@ -203,6 +204,8 @@ const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/vendas", () => vendasGet(criarRequest("/api/vendas"))],
   ["POST /api/vendas", () => vendasPost(criarRequest("/api/vendas", "POST"))],
   ["GET /api/vendas/[id]", () => vendasIdGet(criarRequest("/api/vendas/abc"), params)],
+  ["GET /api/configuracoes", () => configuracoesGet(criarRequest("/api/configuracoes"))],
+  ["PUT /api/configuracoes", () => configuracoesPut(criarRequest("/api/configuracoes", "PUT"))],
 ];
 
 describe("enforcement de sessão nas APIs privadas (sem cookie)", () => {
