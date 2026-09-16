@@ -85,22 +85,31 @@ function SemDados() {
 /* ------------------------------------------------------------------ */
 
 interface GraficoComposicaoProps {
+  valorTotal: number;
   valorPago: number;
   saldoAberto: number;
   quantidadeOS: number;
 }
 
-export function GraficoComposicaoFinanceira({ valorPago, saldoAberto, quantidadeOS }: GraficoComposicaoProps) {
-  const total = valorPago + saldoAberto;
+export function GraficoComposicaoFinanceira({ valorTotal, valorPago, saldoAberto, quantidadeOS }: GraficoComposicaoProps) {
+  // Base do gráfico é o Valor Total consolidado (mesmo número do card), e não
+  // pago + saldo: OS legadas com sobrepagamento têm saldo zerado e pago maior
+  // que o total, e esse excedente é exibido à parte, nunca como fatia.
+  const total = valorTotal;
+  const pagoRepresentado = Math.min(Math.max(0, valorPago), total);
+  const excedente = Math.max(0, Math.round((valorPago - total) * 100) / 100);
   const semDados = quantidadeOS === 0;
 
   // Geometria da rosca (SVG viewBox 0 0 120 120, raio 45, traço 14).
   const raio = 45;
   const circunferencia = 2 * Math.PI * raio;
-  const fracaoPago = total > 0 ? Math.max(0, valorPago) / total : 0;
+  const fracaoPago = total > 0 ? pagoRepresentado / total : 0;
   const compPago = circunferencia * fracaoPago;
 
-  const descricaoTexto = `Valor pago ${formatCurrency(valorPago)} (${percentual(valorPago, total)}); saldo em aberto ${formatCurrency(saldoAberto)} (${percentual(saldoAberto, total)}).`;
+  const descricaoTexto =
+    `Valor total ${formatCurrency(total)}: valor pago ${formatCurrency(valorPago)} (${percentual(pagoRepresentado, total)}); ` +
+    `saldo em aberto ${formatCurrency(saldoAberto)} (${percentual(saldoAberto, total)}).` +
+    (excedente > 0 ? ` Excedente pago acima do total: ${formatCurrency(excedente)}.` : '');
 
   return (
     <GraficoCard
@@ -130,7 +139,7 @@ export function GraficoComposicaoFinanceira({ valorPago, saldoAberto, quantidade
               Pago
             </text>
             <text x="60" y="70" textAnchor="middle" className="fill-slate-900" fontSize="12" fontWeight="600">
-              {percentual(valorPago, total)}
+              {percentual(pagoRepresentado, total)}
             </text>
           </svg>
           <figcaption className="w-full">
@@ -142,7 +151,7 @@ export function GraficoComposicaoFinanceira({ valorPago, saldoAberto, quantidade
                 </span>
                 <span className="whitespace-nowrap font-semibold text-[color:var(--text)]">
                   {formatCurrency(valorPago)}
-                  <span className="ml-1 text-xs font-normal text-slate-500">({percentual(valorPago, total)})</span>
+                  <span className="ml-1 text-xs font-normal text-slate-500">({percentual(pagoRepresentado, total)})</span>
                 </span>
               </li>
               <li className="flex items-center justify-between gap-4">
@@ -155,8 +164,14 @@ export function GraficoComposicaoFinanceira({ valorPago, saldoAberto, quantidade
                   <span className="ml-1 text-xs font-normal text-slate-500">({percentual(saldoAberto, total)})</span>
                 </span>
               </li>
+              {excedente > 0 && (
+                <li className="flex items-center justify-between gap-4 text-xs text-slate-500">
+                  <span>Excedente pago acima do total</span>
+                  <span className="whitespace-nowrap font-medium">{formatCurrency(excedente)}</span>
+                </li>
+              )}
               <li className="flex items-center justify-between gap-4 border-t border-black/10 pt-2 text-xs text-slate-500">
-                <span>Total representado</span>
+                <span>Valor Total (base do gráfico)</span>
                 <span className="font-medium">{formatCurrency(total)}</span>
               </li>
             </ul>
@@ -263,6 +278,7 @@ export function RelatorioFinanceiroOSGraficos({ agregados, quantidadeOS, atualiz
       )}
       <div className="grid gap-4 lg:grid-cols-3">
         <GraficoComposicaoFinanceira
+          valorTotal={agregados.composicaoFinanceira.valorTotal}
           valorPago={agregados.composicaoFinanceira.valorPago}
           saldoAberto={agregados.composicaoFinanceira.saldoAberto}
           quantidadeOS={quantidadeOS}

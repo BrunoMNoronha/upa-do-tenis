@@ -56,9 +56,24 @@ describe('Agregações do Relatório Financeiro de OS', () => {
   it('composição financeira é coerente com o resumo (pago + saldo = valor total)', () => {
     const resumo = calcularResumoRelatorio(itens);
     const { composicaoFinanceira } = calcularAgregadosRelatorio(itens);
+    expect(composicaoFinanceira.valorTotal).toBe(resumo.valorTotal);
     expect(composicaoFinanceira.valorPago).toBe(resumo.valorPago);
     expect(composicaoFinanceira.saldoAberto).toBe(resumo.saldoAberto);
     expect(composicaoFinanceira.valorPago + composicaoFinanceira.saldoAberto).toBeCloseTo(resumo.valorTotal, 2);
+  });
+
+  it('OS legada com sobrepagamento mantém valorTotal como base e pago real acima do total', () => {
+    // Regra homologada: saldo zerado, valorPago real (120 sobre 100), status PAGO.
+    const comSobrepagamento = [
+      item({ statusOperacional: 'ENTREGUE', statusFinanceiro: 'PAGO', valorTotal: 100, valorPago: 120, saldo: 0 }),
+      item({ statusOperacional: 'ABERTA', statusFinanceiro: 'PENDENTE', valorTotal: 50, valorPago: 0, saldo: 50 }),
+    ];
+    const resumo = calcularResumoRelatorio(comSobrepagamento);
+    const { composicaoFinanceira } = calcularAgregadosRelatorio(comSobrepagamento);
+    expect(resumo.valorTotal).toBe(150);
+    expect(composicaoFinanceira).toEqual({ valorTotal: 150, valorPago: 120, saldoAberto: 50 });
+    // pago + saldo excede o total: o gráfico deve usar valorTotal como base.
+    expect(composicaoFinanceira.valorPago + composicaoFinanceira.saldoAberto).toBeGreaterThan(composicaoFinanceira.valorTotal);
   });
 
   it('a soma das contagens por status é igual à quantidade de OS', () => {
@@ -74,7 +89,7 @@ describe('Agregações do Relatório Financeiro de OS', () => {
     const resumo = calcularResumoRelatorio([]);
     const agregados = calcularAgregadosRelatorio([]);
     expect(resumo.quantidadeOS).toBe(0);
-    expect(agregados.composicaoFinanceira).toEqual({ valorPago: 0, saldoAberto: 0 });
+    expect(agregados.composicaoFinanceira).toEqual({ valorTotal: 0, valorPago: 0, saldoAberto: 0 });
     expect(agregados.porStatusFinanceiro).toHaveLength(4);
     expect(agregados.porStatusOperacional).toHaveLength(5);
     expect(agregados.porStatusFinanceiro.every((d) => d.quantidade === 0)).toBe(true);

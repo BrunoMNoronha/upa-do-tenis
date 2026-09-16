@@ -107,7 +107,7 @@ describe('Relatorio Financeiro OS Service', () => {
     expect(result.resumo.quantidadeComSaldoAberto).toBe(2);
 
     // Agregados coerentes com o resumo
-    expect(result.agregados.composicaoFinanceira).toEqual({ valorPago: 250, saldoAberto: 200 });
+    expect(result.agregados.composicaoFinanceira).toEqual({ valorTotal: 450, valorPago: 250, saldoAberto: 200 });
     expect(result.agregados.porStatusFinanceiro).toEqual([
       { status: 'PENDENTE', quantidade: 1, valorTotal: 150 },
       { status: 'PARCIAL', quantidade: 1, valorTotal: 100 },
@@ -185,7 +185,7 @@ describe('Relatorio Financeiro OS Service', () => {
     expect(result.resumo.saldoAberto).toBe(50);
 
     // Gráficos refletem o mesmo conjunto filtrado
-    expect(result.agregados.composicaoFinanceira).toEqual({ valorPago: 50, saldoAberto: 50 });
+    expect(result.agregados.composicaoFinanceira).toEqual({ valorTotal: 100, valorPago: 50, saldoAberto: 50 });
     expect(result.agregados.porStatusFinanceiro.find(d => d.status === 'PARCIAL')?.quantidade).toBe(1);
     expect(result.agregados.porStatusFinanceiro.reduce((a, d) => a + d.quantidade, 0)).toBe(1);
     expect(result.agregados.porStatusOperacional.find(d => d.status === 'ABERTA')?.quantidade).toBe(1);
@@ -208,7 +208,7 @@ describe('Relatorio Financeiro OS Service', () => {
     expect(result.resumo.quantidadeOS).toBe(2);
     expect(result.resumo.valorTotal).toBe(250);
     expect(result.agregados.porStatusFinanceiro.find(d => d.status === 'PAGO')?.quantidade).toBe(0);
-    expect(result.agregados.composicaoFinanceira).toEqual({ valorPago: 50, saldoAberto: 200 });
+    expect(result.agregados.composicaoFinanceira).toEqual({ valorTotal: 250, valorPago: 50, saldoAberto: 200 });
   });
 
   describe('universo maior que o limite da tabela', () => {
@@ -278,7 +278,7 @@ describe('Relatorio Financeiro OS Service', () => {
 
       expect(result.resumo.quantidadeOS).toBe(125);
       expect(result.resumo.quantidadeComSaldoAberto).toBe(125);
-      expect(result.agregados.composicaoFinanceira).toEqual({ valorPago: 0, saldoAberto: 1250 });
+      expect(result.agregados.composicaoFinanceira).toEqual({ valorTotal: 1250, valorPago: 0, saldoAberto: 1250 });
       expect(result.itens.every(i => i.saldo > 0)).toBe(true);
       expect(result.tabela.totalItens).toBe(125);
     });
