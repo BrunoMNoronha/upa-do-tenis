@@ -12,6 +12,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Durante uma nova filtragem, as métricas anteriores permanecem visíveis (estado de atualização discreto) e a falha mostra "Tentar novamente" sem desmontar o dashboard.
   - `AppShell` ganha o slot opcional `header` (cabeçalho plano) sem alterar as demais telas; `DateRangePicker` ganha `hidePresets` e `variant="inline"` (padrões preservados).
   - Fonte Manrope (via `next/font`) e tokens semânticos adicionais em `globals.css`; respeito a `prefers-reduced-motion`.
+- **Dashboard: componentes analíticos (PR 2 da refatoração)**: os sete cards operacionais isolados dão lugar a blocos compostos, alimentados pelo mesmo contrato de `/api/dashboard`.
+  - `DashboardFilaOrdens`: barra segmentada proporcional + mini cards de Abertas, Em andamento, Concluídas e Entregues (links filtrados preservados), "Ver todas" e "Ver OS atrasadas" no rodapé (sem contagem, pois o contrato não a fornece).
+  - `DashboardSituacaoFinanceira`: donut em SVG (sem biblioteca) com percentual de pagas no centro, legenda em texto com links para Pagas/Parciais/Sem pagamento, saldo em aberto e link para o relatório financeiro; resumo textual acessível no gráfico.
+  - Serviços mais executados com barras proporcionais (maior = 100%); Insumos mais utilizados em ranking com posição, nome com unidade, quantidade formatada e link para o relatório de estoque (sem badges de estoque, que o contrato não traz).
+  - Card "Ações rápidas" removido: "Nova OS" e "Venda de balcão" já estão no cabeçalho; "Ver estoque baixo" passou para o alerta de estoque; relatórios ficam nos cards correspondentes. Removidos `DashboardQuickActions`, `DashboardCardsOperacionais` e `TopList`.
+  - Testes de renderização dos quatro blocos (links, resumo acessível, proporção das barras e estados vazios).
 - **Múltiplos itens recebidos por OS** (issue #205): uma OS pode registrar vários objetos do mesmo cliente, cada um com descrição, foto e serviços próprios.
   - Cadastro com cards repetidores ("+ Adicionar outro item", até 10 itens), subtotal por item calculado dos serviços e total da OS derivado dos subtotais; não há mais valor total digitável.
   - Item pode ser cadastrado sem serviço e detalhado depois; o mesmo serviço é aceito em itens diferentes, mas não repetido no mesmo item.

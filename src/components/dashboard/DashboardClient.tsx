@@ -6,12 +6,12 @@ import { formatCurrency } from '@/lib/formatters';
 import { Button, EmptyState, ErrorState } from '@/components/ui';
 import { DashboardFiltros } from './DashboardFiltros';
 import { DashboardKpiCard } from './DashboardKpiCard';
-import { DashboardCardsOperacionais } from './DashboardCardsOperacionais';
+import { DashboardFilaOrdens } from './DashboardFilaOrdens';
+import { DashboardSituacaoFinanceira } from './DashboardSituacaoFinanceira';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
 import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
 import { DashboardAlertaCaixa } from './DashboardAlertaCaixa';
-import { DashboardQuickActions } from './DashboardQuickActions';
 import { calcularPeriodoPreset, type Periodo } from './dashboard-period-presets';
 import { montarDashboardViewModel } from './dashboard-view-model';
 
@@ -83,8 +83,6 @@ export function DashboardClient() {
         <DashboardAlertaCaixa />
         <DashboardAlertasEstoque />
       </div>
-
-      <DashboardQuickActions />
 
       <DashboardFiltros
         inicio={periodo.inicio}
@@ -165,18 +163,22 @@ export function DashboardClient() {
         </div>
       </section>
 
-      {metrics && (
-        <div className={`space-y-8 transition-opacity ${atualizando ? 'opacity-60' : ''}`}>
-          <section>
-            <h2 className="text-xl font-semibold mb-4">Métricas Operacionais</h2>
-            <DashboardCardsOperacionais metrics={metrics} />
-          </section>
+      {viewModel && (
+        <div className={`space-y-4 transition-opacity ${atualizando ? 'opacity-60' : ''}`}>
+          {/* Linha principal: a fila ocupa a largura toda até existir a série
+              diária de recebimentos (PR 4, depende de contrato de API). */}
+          <DashboardFilaOrdens fila={viewModel.fila} total={viewModel.totalOrdensAtivas} />
 
-          {/* Rankings */}
-          <section className="grid gap-6 md:grid-cols-2">
-            <DashboardServicosMaisExecutados servicos={metrics.topServicos} />
-            <DashboardInsumosMaisUtilizados insumos={metrics.topInsumos} />
-          </section>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <DashboardSituacaoFinanceira
+              itens={viewModel.situacaoFinanceira}
+              total={viewModel.totalOrdensFinanceiras}
+              percentualPagas={viewModel.percentualPagas}
+              totalPendente={viewModel.totalPendente}
+            />
+            <DashboardServicosMaisExecutados servicos={viewModel.servicos} />
+            <DashboardInsumosMaisUtilizados insumos={viewModel.insumos} />
+          </div>
         </div>
       )}
     </div>

@@ -78,9 +78,15 @@ export function DashboardAlertasEstoque() {
               </div>
             )}
           </div>
-          <div className="mt-4">
-            <Link 
-              href="/relatorios/estoque" 
+          <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+            <Link
+              href="/insumos?estoqueBaixo=true"
+              className="text-sm font-medium text-amber-800 hover:text-amber-900 underline underline-offset-2"
+            >
+              Ver estoque baixo
+            </Link>
+            <Link
+              href="/relatorios/estoque"
               className="text-sm font-medium text-amber-800 hover:text-amber-900 underline underline-offset-2"
             >
               Ver relatório global de estoque
