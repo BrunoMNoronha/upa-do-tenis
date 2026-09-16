@@ -79,3 +79,33 @@ export function ordemServicoCorrespondeBusca(ordem: OrdemServicoBusca, termo: st
 
   return matchCliente || matchNumero || matchTelefone;
 }
+
+const STATUS_FINALIZADOS = new Set(["CONCLUIDA", "ENTREGUE", "CANCELADA"]);
+
+type OrdemServicoPrazo = {
+  status: string;
+  dataPrevisao: Date | string | null | undefined;
+};
+
+/**
+ * Uma OS está atrasada quando ainda não foi finalizada (concluída, entregue
+ * ou cancelada) e o dia previsto já terminou (horário local). Uma OS com
+ * previsão para hoje ainda não é considerada atrasada.
+ */
+export function ordemServicoEstaAtrasada(ordem: OrdemServicoPrazo, agora: Date = new Date()): boolean {
+  if (STATUS_FINALIZADOS.has(ordem.status) || !ordem.dataPrevisao) {
+    return false;
+  }
+
+  const fimDoDiaPrevisto = new Date(ordem.dataPrevisao);
+  if (Number.isNaN(fimDoDiaPrevisto.getTime())) {
+    return false;
+  }
+  fimDoDiaPrevisto.setHours(23, 59, 59, 999);
+
+  return fimDoDiaPrevisto < agora;
+}
+
+export function contarOrdensServicoAtrasadas(ordens: OrdemServicoPrazo[], agora: Date = new Date()): number {
+  return ordens.reduce((total, ordem) => total + (ordemServicoEstaAtrasada(ordem, agora) ? 1 : 0), 0);
+}

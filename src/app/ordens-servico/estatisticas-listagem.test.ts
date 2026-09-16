@@ -19,6 +19,23 @@ describe("contadores exibidos na listagem de OS", () => {
     renderToStaticMarkup(createElement(OrdensServicoClient, { initialOrders, clientes: [], servicos: [] }));
     expect(captura.stats).toEqual({ Abertas: 2, "Em andamento": 1, "Com saldo": 3 });
   });
+  it("exibe alerta consolidado com o total de OS atrasadas", () => {
+    const base = { cliente: { nome: "Teste", telefone: "11987654321" }, valorTotal: 10, valorPago: 0, statusFinanceiro: "PENDENTE", itens: [], saldo: 0 };
+    const initialOrders = [
+      { status: "ABERTA", dataPrevisao: new Date("2026-01-01T12:00:00") },
+      { status: "EM_ANDAMENTO", dataPrevisao: new Date("2026-01-02T12:00:00") },
+      { status: "ENTREGUE", dataPrevisao: new Date("2026-01-01T12:00:00") },
+      { status: "ABERTA", dataPrevisao: new Date("2999-01-01T12:00:00") },
+    ].map((os, i) => ({ ...base, ...os, id: String(i), numero: String(i) }));
+    const html = renderToStaticMarkup(createElement(OrdensServicoClient, { initialOrders, clientes: [], servicos: [] }));
+    expect(html).toContain("2 ordens de serviço atrasadas");
+    expect(html).toContain("Ver atrasadas");
+    expect(html).toContain("Atrasadas (2)");
+  });
+  it("não exibe alerta quando não há OS atrasadas", () => {
+    const html = renderToStaticMarkup(createElement(OrdensServicoClient, { initialOrders: [], clientes: [], servicos: [] }));
+    expect(html).not.toContain("atrasada");
+  });
   it("exibe zeros quando não há ordens", () => {
     renderToStaticMarkup(createElement(OrdensServicoClient, { initialOrders: [], clientes: [], servicos: [] }));
     expect(captura.stats).toEqual({ Abertas: 0, "Em andamento": 0, "Com saldo": 0 });

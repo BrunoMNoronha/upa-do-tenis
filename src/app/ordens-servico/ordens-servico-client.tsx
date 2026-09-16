@@ -39,8 +39,10 @@ import { dataOperacionalHoje } from "@/lib/date-range";
 import type { OsStatus } from "@/lib/ordens-servico-status";
 import { previaNumeroOS } from "@/lib/ordens-servico-numero";
 import {
+  contarOrdensServicoAtrasadas,
   filtrarOrdensServicoListagem,
   ordemServicoCorrespondeBusca,
+  ordemServicoEstaAtrasada,
   type StatusFinanceiroListagem,
   type StatusOperacionalListagem,
 } from "@/lib/ordens-servico-listagem";
@@ -1067,31 +1069,18 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
       return false;
     }
 
-    if (showAtrasadas) {
-      if (
-        ordem.status === "CONCLUIDA" ||
-        ordem.status === "ENTREGUE" ||
-        ordem.status === "CANCELADA"
-      )
-        return false;
-      const prev = new Date(ordem.dataPrevisao);
-      prev.setHours(23, 59, 59, 999);
-      if (prev >= new Date()) return false;
+    if (showAtrasadas && !ordemServicoEstaAtrasada(ordem)) {
+      return false;
     }
 
     return true;
   });
 
-  const checkIsAtrasada = (ordem: OrdemServicoReal) => {
-    if (
-      ordem.status === "CONCLUIDA" ||
-      ordem.status === "ENTREGUE" ||
-      ordem.status === "CANCELADA"
-    )
-      return false;
-    const prev = new Date(ordem.dataPrevisao);
-    prev.setHours(23, 59, 59, 999);
-    return prev < new Date();
+  const totalAtrasadas = contarOrdensServicoAtrasadas(ordens);
+
+  const toggleAtrasadas = () => {
+    setShowAtrasadas(!showAtrasadas);
+    updateFilters("atrasadas", (!showAtrasadas).toString());
   };
 
   let totalAbertas = 0;
@@ -1114,6 +1103,25 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
           action={<Badge tone="accent">{ordens.length} ordens</Badge>}
         />
       </div>
+
+      {totalAtrasadas > 0 ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center justify-between gap-3 border-b border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+        >
+          <p>
+            <span className="font-semibold">
+              {totalAtrasadas === 1
+                ? "1 ordem de serviço atrasada"
+                : `${totalAtrasadas} ordens de serviço atrasadas`}
+            </span>{" "}
+            — prazo previsto vencido e ainda não concluídas.
+          </p>
+          <Button type="button" variant="secondary" onClick={toggleAtrasadas}>
+            {showAtrasadas ? "Mostrar todas" : "Ver atrasadas"}
+          </Button>
+        </div>
+      ) : null}
 
       <div className="grid gap-3 border-b border-[color:var(--border)] p-4 sm:grid-cols-3">
         <StatCard
@@ -1187,12 +1195,9 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
           <FilterChip
             tone="danger"
             active={showAtrasadas}
-            onClick={() => {
-              setShowAtrasadas(!showAtrasadas);
-              updateFilters("atrasadas", (!showAtrasadas).toString());
-            }}
+            onClick={toggleAtrasadas}
           >
-            Atrasadas
+            Atrasadas ({totalAtrasadas})
           </FilterChip>
         </div>
       </div>
@@ -1207,7 +1212,7 @@ function OrdemServicoList({ ordens }: { ordens: OrdemServicoReal[] }) {
             <OrdemServicoCard
               key={ordem.id}
               ordem={ordem}
-              isAtrasada={checkIsAtrasada(ordem)}
+              isAtrasada={ordemServicoEstaAtrasada(ordem)}
             />
           ))}
         </div>
