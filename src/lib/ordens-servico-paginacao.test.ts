@@ -171,7 +171,12 @@ describe("listarOrdensServicoPaginado", () => {
 
   it("usa o mesmo where no count e no findMany e aplica skip/take", async () => {
     prismaMock.ordemServico.count.mockResolvedValue(45);
-    prismaMock.ordemServico.findMany.mockResolvedValue([ordemBruta("a"), ordemBruta("b")]);
+    prismaMock.ordemServico.findMany.mockResolvedValue([
+      ordemBruta("a", {
+        itens: [{ valor: new Prisma.Decimal(100), fotoRecebimentoPathname: "caminho-privado.jpg", servicos: [] }],
+      }),
+      ordemBruta("b"),
+    ]);
 
     const resultado = await listarOrdensServicoPaginado({
       filtros: { statusOperacional: "ABERTA", busca: "Cliente" },
@@ -196,6 +201,7 @@ describe("listarOrdensServicoPaginado", () => {
     expect(resultado.data).toHaveLength(2);
     // Resumo financeiro continua derivado por OS (não vem do where).
     expect(resultado.data[0]).toMatchObject({ id: "a", statusFinanceiro: "PENDENTE", saldo: 100, valorPago: 0 });
+    expect(resultado.data[0].itens[0]).not.toHaveProperty("fotoRecebimentoPathname");
   });
 
   it("última página traz o restante e página além do fim cai para a última", async () => {

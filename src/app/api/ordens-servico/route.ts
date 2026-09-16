@@ -154,8 +154,9 @@ export async function POST(req: NextRequest) {
                 ? { create: servicosInformados }
                 : undefined,
             }
-          }
+          },
         },
+        include: { itens: { select: { id: true } } },
       });
 
       if (ehRetroativa) {

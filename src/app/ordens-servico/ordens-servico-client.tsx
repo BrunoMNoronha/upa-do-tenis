@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback, useEffect, useRef } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -53,6 +54,7 @@ import {
 import type { EstatisticasOrdensServico } from "@/lib/ordens-servico";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
+import { validarFotoRecebimentoNoCliente } from "@/lib/ordens-servico-foto";
 
 type StatusFilter = StatusOperacionalListagem;
 
@@ -528,6 +530,18 @@ function OrdemServicoForm({
   const [mostrarNovoCliente, setMostrarNovoCliente] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [clienteError, setClienteError] = useState<string | null>(null);
+  const [fotoRecebimento, setFotoRecebimento] = useState<File | null>(null);
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null);
+  const [fotoError, setFotoError] = useState<string | null>(null);
+  const [ordemPendenteFoto, setOrdemPendenteFoto] = useState<{
+    id: string;
+    itemId: string;
+    numero: string;
+    caminhoAcompanhamento?: string;
+    nomeCliente: string;
+    telefone?: string;
+  } | null>(null);
+  const [reenviandoFoto, setReenviandoFoto] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [servicosSelecionados, setServicosSelecionados] = useState<
     OrdemServicoServicoValues[]
@@ -555,6 +569,76 @@ function OrdemServicoForm({
     dataEntradaSelecionada || hojeOperacional,
     numeroOSDigitado,
   );
+
+  useEffect(() => {
+    if (!fotoRecebimento) {
+      setFotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(fotoRecebimento);
+    setFotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [fotoRecebimento]);
+
+  const selecionarFoto = (arquivo: File | null) => {
+    setFotoError(null);
+    if (!arquivo) {
+      setFotoRecebimento(null);
+      return;
+    }
+    const mensagem = validarFotoRecebimentoNoCliente(arquivo);
+    if (mensagem) {
+      setFotoError(mensagem);
+      setFotoRecebimento(null);
+      return;
+    }
+    setFotoRecebimento(arquivo);
+  };
+
+  const enviarFoto = async (ordemId: string, itemId: string, arquivo: File) => {
+    const dados = new FormData();
+    dados.set("foto", arquivo);
+    const response = await fetch(`/api/ordens-servico/${ordemId}/itens/${itemId}/foto`, {
+      method: "POST",
+      body: dados,
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload?.message || "A OS foi criada, mas não foi possível salvar a foto.");
+    }
+  };
+
+  const concluirCriacao = (criada: NonNullable<typeof ordemPendenteFoto>) => {
+    reset(criarDefaultValues());
+    setServicosSelecionados([]);
+    setFotoRecebimento(null);
+    setFotoError(null);
+    setOrdemPendenteFoto(null);
+    onClose();
+    if (criada.caminhoAcompanhamento) {
+      onCriada({
+        numeroOS: criada.numero,
+        nomeCliente: criada.nomeCliente,
+        telefone: criada.telefone,
+        caminhoAcompanhamento: criada.caminhoAcompanhamento,
+      });
+    }
+    startTransition(() => router.refresh());
+  };
+
+  const reenviarFoto = async () => {
+    if (!ordemPendenteFoto || !fotoRecebimento || reenviandoFoto) return;
+    setReenviandoFoto(true);
+    setSubmitError(null);
+    try {
+      await enviarFoto(ordemPendenteFoto.id, ordemPendenteFoto.itemId, fotoRecebimento);
+      concluirCriacao(ordemPendenteFoto);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Não foi possível salvar a foto.");
+    } finally {
+      setReenviandoFoto(false);
+    }
+  };
 
   const {
     register: registerCliente,
@@ -659,6 +743,10 @@ function OrdemServicoForm({
   };
 
   const onSubmit = handleSubmit(async (values) => {
+    if (ordemPendenteFoto) {
+      setSubmitError("Esta OS já foi criada. Reenvie a foto ou abra o detalhe para continuar.");
+      return;
+    }
     setSubmitError(null);
 
     const response = await fetch("/api/ordens-servico", {
@@ -678,27 +766,30 @@ function OrdemServicoForm({
     // Só chega aqui com a criação confirmada (201): a sugestão de WhatsApp
     // nunca aparece antes disso, e fechar a sugestão não afeta a OS.
     const criada = (await response.json()) as {
+      id: string;
       numero: string;
       caminhoAcompanhamento?: string;
+      itens: Array<{ id: string }>;
     };
     const cliente = clientesDisponiveis.find((item) => item.id === values.clienteId);
+    const criadaComCliente = {
+      ...criada,
+      itemId: criada.itens[0]?.id,
+      nomeCliente: cliente?.nome ?? "",
+      telefone: cliente?.telefone,
+    };
 
-    reset(criarDefaultValues());
-    setServicosSelecionados([]);
-    onClose();
-
-    if (criada.caminhoAcompanhamento) {
-      onCriada({
-        numeroOS: criada.numero,
-        nomeCliente: cliente?.nome ?? "",
-        telefone: cliente?.telefone,
-        caminhoAcompanhamento: criada.caminhoAcompanhamento,
-      });
+    if (fotoRecebimento && criadaComCliente.itemId) {
+      try {
+        await enviarFoto(criada.id, criadaComCliente.itemId, fotoRecebimento);
+      } catch (error) {
+        setOrdemPendenteFoto(criadaComCliente as NonNullable<typeof ordemPendenteFoto>);
+        setSubmitError(error instanceof Error ? error.message : "A OS foi criada, mas não foi possível salvar a foto.");
+        return;
+      }
     }
 
-    startTransition(() => {
-      router.refresh();
-    });
+    concluirCriacao(criadaComCliente as NonNullable<typeof ordemPendenteFoto>);
   });
 
   return (
@@ -884,6 +975,24 @@ function OrdemServicoForm({
             ) : null}
           </div>
 
+          <div className="grid gap-2">
+            <Label htmlFor="fotoRecebimento">Foto no recebimento (opcional)</Label>
+            <Input
+              id="fotoRecebimento"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              capture="environment"
+              onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
+            />
+            <p className="text-xs text-slate-500">JPEG, PNG ou WebP, até 4 MB.</p>
+            {fotoPreview ? (
+              <div className="relative aspect-[4/3] max-w-sm overflow-hidden rounded-xl border border-black/10 bg-slate-50">
+                <Image src={fotoPreview} alt="Prévia da foto de recebimento" fill unoptimized className="object-contain" />
+              </div>
+            ) : null}
+            {fotoError ? <p role="alert" className="text-sm text-red-600">{fotoError}</p> : null}
+          </div>
+
           <div className="grid gap-3">
             <Label htmlFor="servicoId">Serviços solicitados (opcional)</Label>
             <Combobox
@@ -1049,14 +1158,22 @@ function OrdemServicoForm({
           </div>
 
           {submitError ? (
-            <p className="text-sm text-red-600">{submitError}</p>
+            <div className="space-y-2 text-sm text-red-600">
+              <p role="alert">{submitError}</p>
+              {ordemPendenteFoto ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button type="button" isLoading={reenviandoFoto} onClick={() => void reenviarFoto()}>Reenviar foto</Button>
+                  <Button href={`/ordens-servico/${ordemPendenteFoto.id}`} variant="secondary">Abrir OS já criada</Button>
+                </div>
+              ) : null}
+            </div>
           ) : null}
 
           <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-wrap justify-between gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" isLoading={isPending || isSubmitting}>
+            <Button type="submit" isLoading={isPending || isSubmitting} disabled={Boolean(ordemPendenteFoto)}>
               Cadastrar ordem
             </Button>
           </div>

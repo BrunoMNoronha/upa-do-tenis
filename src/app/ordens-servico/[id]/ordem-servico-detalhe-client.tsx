@@ -28,6 +28,7 @@ import {
 import { ReceberPagamentoForm } from "./components/ReceberPagamentoForm";
 import { AplicarInsumoForm } from "./components/AplicarInsumoForm";
 import { HistoricoPagamentosList } from "./components/HistoricoPagamentosList";
+import { FotoRecebimentoItem } from "./components/FotoRecebimentoItem";
 
 function LinhaResumo({ label, valor }: { label: string; valor: number }) {
   return (
@@ -301,6 +302,15 @@ export function OrdemServicoDetalheClient({
                   </div>
                   <p className="mt-2 text-sm text-slate-700">Valor do item: {currencyFormatter.format(Number(item.valor || 0))}</p>
                   {item.observacoes ? <p className="mt-1 text-sm text-slate-600">{item.observacoes}</p> : null}
+
+                  <FotoRecebimentoItem
+                    ordemServicoId={ordem.id}
+                    itemId={item.id}
+                    descricaoItem={item.descricao}
+                    possuiFoto={item.possuiFotoRecebimento}
+                    editavel={ordem.status === "ABERTA"}
+                    onAtualizada={() => carregarDetalhe(true)}
+                  />
 
                   <div className="mt-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">

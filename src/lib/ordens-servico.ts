@@ -65,8 +65,14 @@ type OrdemServicoListagemBruta = {
   valorSinal: unknown;
   valorPago: unknown;
   pagamentos: Parameters<typeof calcularResumoFinanceiroOS>[0]["pagamentos"];
-  itens: Parameters<typeof calcularResumoFinanceiroOS>[0]["itens"];
+  itens: Parameters<typeof calcularResumoFinanceiroOS>[0]["itens"] &
+    Array<{ fotoRecebimentoPathname?: string | null }>;
 };
+
+function omitirCaminhoFotoRecebimento<T extends { fotoRecebimentoPathname?: string | null }>(item: T) {
+  const { fotoRecebimentoPathname: _caminhoPrivado, ...itemPublico } = item;
+  return itemPublico;
+}
 
 function montarOrdemServicoListagem<T extends OrdemServicoListagemBruta>(ordem: T) {
   const normalizada = normalizarValoresDecimalParaClient(ordem);
@@ -83,6 +89,7 @@ function montarOrdemServicoListagem<T extends OrdemServicoListagemBruta>(ordem: 
   return {
     ...normalizada,
     ...resumoFinanceiro,
+    itens: normalizada.itens.map(omitirCaminhoFotoRecebimento),
   };
 }
 
@@ -243,6 +250,10 @@ export async function obterDetalheOrdemServico(id: string) {
 
   return {
     ...ordemNormalizada,
+    itens: ordemNormalizada.itens.map((item) => ({
+      ...omitirCaminhoFotoRecebimento(item),
+      possuiFotoRecebimento: Boolean(item.fotoRecebimentoPathname),
+    })),
     resumoFinanceiro,
   };
 }
