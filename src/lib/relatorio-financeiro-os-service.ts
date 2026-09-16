@@ -1,6 +1,25 @@
 import { prisma } from './prisma';
 import { calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
 import { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } from './date-range';
+import {
+  calcularAgregadosRelatorio,
+  calcularResumoRelatorio,
+  RelatorioFinanceiroOSAgregados,
+  RelatorioFinanceiroOSResumo,
+} from './relatorio-financeiro-os-agregacoes';
+
+/**
+ * Limite de linhas devolvidas para a tabela. Resumo e gráficos NÃO são
+ * afetados por este limite: eles representam todo o conjunto filtrado.
+ */
+export const LIMITE_ITENS_TABELA = 100;
+
+/**
+ * Teto de segurança para o universo agregado (proteção contra consulta
+ * ilimitada). Se atingido, a resposta sinaliza `agregacaoTruncada = true`
+ * e a UI deve avisar que os números podem estar incompletos.
+ */
+export const LIMITE_UNIVERSO_AGREGACAO = 5000;
 
 export interface RelatorioFiltros {
   inicio: string;
@@ -30,14 +49,19 @@ export interface RelatorioFinanceiroOSResponse {
     inicio: string;
     fim: string;
   };
-  resumo: {
-    quantidadeOS: number;
-    valorTotal: number;
-    valorPago: number;
-    saldoAberto: number;
-    quantidadeComSaldoAberto: number;
-  };
+  /** Resumo de TODO o conjunto filtrado (não limitado pela tabela). */
+  resumo: RelatorioFinanceiroOSResumo;
+  /** Agregados para gráficos, calculados sobre o mesmo conjunto do resumo. */
+  agregados: RelatorioFinanceiroOSAgregados;
+  /** Itens da tabela: primeiras `limite` OS (ordenadas por dataEntrada desc). */
   itens: RelatorioOSItem[];
+  tabela: {
+    limite: number;
+    totalItens: number;
+    limitada: boolean;
+  };
+  /** true quando o universo filtrado ultrapassou LIMITE_UNIVERSO_AGREGACAO. */
+  agregacaoTruncada: boolean;
 }
 
 export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Promise<RelatorioFinanceiroOSResponse> {
@@ -89,8 +113,16 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     orderBy: {
       dataEntrada: 'desc',
     },
-    take: 100, // Limite seguro
+    // Teto de segurança do universo agregado. A limitação da tabela é
+    // aplicada DEPOIS dos filtros derivados (status financeiro / saldo),
+    // para que resumo e gráficos representem o conjunto filtrado completo.
+    take: LIMITE_UNIVERSO_AGREGACAO + 1,
   });
+
+  const agregacaoTruncada = ordens.length > LIMITE_UNIVERSO_AGREGACAO;
+  if (agregacaoTruncada) {
+    ordens.length = LIMITE_UNIVERSO_AGREGACAO;
+  }
 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -136,35 +168,25 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     itens = itens.filter(item => item.saldo === 0);
   }
 
-  // Calcula resumo financeiro final apenas sobre os itens filtrados
-  let quantidadeOS = 0;
-  let valorTotalSum = 0;
-  let valorPagoSum = 0;
-  let saldoAbertoSum = 0;
-  let quantidadeComSaldoAberto = 0;
-
-  for (const item of itens) {
-    quantidadeOS++;
-    valorTotalSum += item.valorTotal;
-    valorPagoSum += item.valorPago;
-    saldoAbertoSum += item.saldo;
-    if (item.saldo > 0) {
-      quantidadeComSaldoAberto++;
-    }
-  }
+  // Resumo e agregados sobre TODOS os itens filtrados; tabela limitada à parte.
+  const resumo = calcularResumoRelatorio(itens);
+  const agregados = calcularAgregadosRelatorio(itens);
+  const totalItens = itens.length;
+  const itensTabela = itens.slice(0, LIMITE_ITENS_TABELA);
 
   return {
     periodo: {
       inicio: filtros.inicio,
       fim: filtros.fim,
     },
-    resumo: {
-      quantidadeOS,
-      valorTotal: valorTotalSum,
-      valorPago: valorPagoSum,
-      saldoAberto: saldoAbertoSum,
-      quantidadeComSaldoAberto,
+    resumo,
+    agregados,
+    itens: itensTabela,
+    tabela: {
+      limite: LIMITE_ITENS_TABELA,
+      totalItens,
+      limitada: totalItens > LIMITE_ITENS_TABELA,
     },
-    itens,
+    agregacaoTruncada,
   };
 }
