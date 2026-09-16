@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { InsumosClient } from "./insumos-client";
 
-import { listarInsumos } from "@/lib/insumos";
+import { listarInsumosPaginado } from "@/lib/insumos";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
+import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
 import { exigirSessao } from "@/lib/auth-server";
 
@@ -20,7 +22,12 @@ export default async function InsumosPage(props: {
 
   const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
 
-  const insumosFetch = await listarInsumos(mostrarAlerta);
+  const busca = lerBuscaDeSearchParams(searchParams);
+  const { data: insumosFetch, pagination } = await listarInsumosPaginado({
+    estoqueBaixo: mostrarAlerta,
+    busca,
+    paginacao: lerPaginacaoDeSearchParams(searchParams),
+  });
   const insumosVisiveis = insumosFetch.map((insumo) => ({
     id: insumo.id,
     nome: insumo.nome,
@@ -39,7 +46,7 @@ export default async function InsumosPage(props: {
       description="Gerencie os materiais utilizados nos serviços ou produtos para venda no balcão."
       action={{ href: "/servicos", label: "Ir para Serviços" }}
     >
-      <InsumosClient insumos={insumosVisiveis} mostrarAlerta={mostrarAlerta} />
+      <InsumosClient insumos={insumosVisiveis} mostrarAlerta={mostrarAlerta} busca={busca} pagination={pagination} />
     </AppShell>
   );
 }

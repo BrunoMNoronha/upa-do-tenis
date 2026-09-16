@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ProdutoForm } from "./components/produto-form";
 import { ProdutoList } from "./components/produto-list";
+import type { PaginacaoInfo } from "@/lib/paginacao";
 
 type ProdutoListado = {
   id: string;
@@ -16,9 +17,11 @@ type ProdutoListado = {
 
 type ProdutosClientProps = {
   produtos: ProdutoListado[];
+  busca: string;
+  pagination: PaginacaoInfo;
 };
 
-export function ProdutosClient({ produtos }: ProdutosClientProps) {
+export function ProdutosClient({ produtos, busca, pagination }: ProdutosClientProps) {
   const [editando, setEditando] = useState<ProdutoListado | null>(null);
 
   const iniciarEdicao = (produto: ProdutoListado) => {
@@ -44,6 +47,8 @@ export function ProdutosClient({ produtos }: ProdutosClientProps) {
       />
       <ProdutoList
         produtos={produtos}
+        busca={busca}
+        pagination={pagination}
         onEdit={iniciarEdicao}
         onDeleteCurrent={onDeleteCurrent}
       />

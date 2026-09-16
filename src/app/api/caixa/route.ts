@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
-import { listarCaixas, abrirCaixa, CaixaError } from "@/lib/caixa";
+import { listarCaixasPaginado, abrirCaixa, CaixaError } from "@/lib/caixa";
 import { abrirCaixaSchema } from "@/lib/caixa-schema";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 export async function GET(req: NextRequest) {
   try {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
+    // Paginação server-side padronizada (?page&pageSize) com filtro de
+    // período. Resposta no contrato { data, pagination }.
     const searchParams = req.nextUrl.searchParams;
-    const take = searchParams.get("take") ? parseInt(searchParams.get("take")!, 10) : undefined;
-    const skip = searchParams.get("skip") ? parseInt(searchParams.get("skip")!, 10) : undefined;
     const dataInicio = searchParams.get("dataInicio") || undefined;
     const dataFim = searchParams.get("dataFim") || undefined;
-    
-    const caixas = await listarCaixas({ take, skip, dataInicio, dataFim });
-    return NextResponse.json(caixas);
+
+    const resultado = await listarCaixasPaginado({
+      dataInicio,
+      dataFim,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    });
+    return NextResponse.json(resultado);
   } catch (error) {
     console.error("Erro ao listar caixas:", error);
     return NextResponse.json(

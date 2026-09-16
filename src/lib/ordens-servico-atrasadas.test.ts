@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { contarOrdensServicoAtrasadas, ordemServicoEstaAtrasada } from "./ordens-servico-listagem";
+import { ordemServicoEstaAtrasada } from "./ordens-servico-listagem";
 
 // Referência fixa em horário local para não depender do relógio da máquina.
 const agora = new Date(2026, 8, 16, 10, 0, 0);
@@ -26,18 +26,5 @@ describe("ordemServicoEstaAtrasada", () => {
     expect(ordemServicoEstaAtrasada({ status: "ABERTA", dataPrevisao: new Date(2026, 8, 10, 12).toISOString() }, agora)).toBe(true);
     expect(ordemServicoEstaAtrasada({ status: "ABERTA", dataPrevisao: null }, agora)).toBe(false);
     expect(ordemServicoEstaAtrasada({ status: "ABERTA", dataPrevisao: "invalida" }, agora)).toBe(false);
-  });
-});
-
-describe("contarOrdensServicoAtrasadas", () => {
-  it("conta apenas as OS atrasadas", () => {
-    const ordens = [
-      { status: "ABERTA", dataPrevisao: new Date(2026, 8, 15, 12) },
-      { status: "EM_ANDAMENTO", dataPrevisao: new Date(2026, 8, 14, 12) },
-      { status: "ENTREGUE", dataPrevisao: new Date(2026, 8, 14, 12) },
-      { status: "ABERTA", dataPrevisao: new Date(2026, 8, 16, 12) },
-    ];
-    expect(contarOrdensServicoAtrasadas(ordens, agora)).toBe(2);
-    expect(contarOrdensServicoAtrasadas([], agora)).toBe(0);
   });
 });

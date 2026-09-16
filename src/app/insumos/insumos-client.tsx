@@ -8,9 +8,12 @@ import { useForm } from "react-hook-form";
 
 import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { insumoFormSchema, type InsumoFormValues } from "@/lib/insumos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
+import type { PaginacaoInfo } from "@/lib/paginacao";
+import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 
 export type InsumoListado = {
   id: string;
@@ -26,6 +29,8 @@ export type InsumoListado = {
 type InsumosClientProps = {
   insumos: InsumoListado[];
   mostrarAlerta: boolean;
+  busca: string;
+  pagination: PaginacaoInfo;
 };
 
 const defaultValues: InsumoFormValues = {
@@ -42,8 +47,9 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
-export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
+export function InsumosClient({ insumos, mostrarAlerta, busca, pagination }: InsumosClientProps) {
   const router = useRouter();
+  const { criarHref } = usePaginacaoUrl();
   const [editando, setEditando] = useState<InsumoListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -248,9 +254,11 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
                 Limpar filtros
               </Link>
             ) : null}
-            <Badge tone="accent">Total: {insumos.length}</Badge>
+            <Badge tone="accent">Total: {pagination.total}</Badge>
           </div>
         </div>
+
+        <BuscaListagem id="busca-insumos" label="Buscar insumo" placeholder="Buscar insumo..." busca={busca} />
 
         {listaError ? (
           <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
@@ -260,7 +268,9 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
 
         {insumos.length === 0 ? (
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            Nenhum item cadastrado ainda. Use o formulário ao lado para criar o primeiro registro.
+            {busca
+              ? `Nenhum insumo encontrado para "${busca}".`
+              : "Nenhum item cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
           </div>
         ) : (
           <div className="space-y-4">
@@ -355,6 +365,10 @@ export function InsumosClient({ insumos, mostrarAlerta }: InsumosClientProps) {
             })}
           </div>
         )}
+
+        <div className="mt-6 border-t border-white/10 pt-4">
+          <Paginacao pagination={pagination} rotulo="itens" tone="dark" criarHref={criarHref} />
+        </div>
       </Card>
 
       <ConfirmDialog

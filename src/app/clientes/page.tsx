@@ -2,7 +2,8 @@ import { AppShell } from "@/components/app-shell";
 import { Card, SectionTitle } from "@/components/ui";
 import { ClientesClient } from "./clientes-client";
 
-import { listarClientes } from "@/lib/clientes";
+import { listarClientesPaginado } from "@/lib/clientes";
+import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 import { exigirSessao } from "@/lib/auth-server";
 
@@ -13,12 +14,17 @@ export const metadata = {
   description: "Cadastro e consulta de clientes da sapataria.",
 };
 
-export default async function ClientesPage(props: { searchParams: Promise<{ busca?: string }> }) {
+export default async function ClientesPage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   await exigirSessao();
 
   const searchParams = await props.searchParams;
-  const busca = searchParams.busca || "";
-  const clientes = await listarClientes(busca);
+  const busca = typeof searchParams.busca === "string" ? searchParams.busca : "";
+  const { data: clientes, pagination } = await listarClientesPaginado({
+    search: busca || undefined,
+    paginacao: lerPaginacaoDeSearchParams(searchParams),
+  });
 
   return (
     <AppShell
@@ -49,6 +55,7 @@ export default async function ClientesPage(props: { searchParams: Promise<{ busc
 
       <ClientesClient
         busca={busca}
+        pagination={pagination}
         clientes={clientes.map((cliente) => ({
           id: cliente.id,
           nome: cliente.nome,
