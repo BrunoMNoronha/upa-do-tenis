@@ -22,3 +22,20 @@ export function obterTomStatusFinanceiro(status: ResumoFinanceiro["statusFinance
   if (status === "CANCELADO") return "danger" as const;
   return "neutral" as const;
 }
+
+/**
+ * Decide se a ação "Receber pagamento" deve ser exibida no detalhe da OS.
+ *
+ * Usa exclusivamente o `saldo` consolidado pelo backend (`resumoFinanceiro`),
+ * sem recalcular valores no frontend. Só oculta quando o saldo é um número
+ * válido igual a zero; dado ausente ou inválido NÃO é tratado como quitado.
+ */
+export function deveExibirReceberPagamento(
+  resumo: Pick<ResumoFinanceiro, "saldo"> | null | undefined,
+): boolean {
+  const saldo = resumo?.saldo;
+  if (typeof saldo !== "number" || !Number.isFinite(saldo)) {
+    return true;
+  }
+  return saldo > 0;
+}
