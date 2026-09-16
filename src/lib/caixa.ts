@@ -36,6 +36,14 @@ export async function obterCaixaAberto() {
   return null;
 }
 
+/** Consulta leve para alertas: só identifica o caixa aberto, sem movimentações nem totais. */
+export async function obterResumoCaixaAberto() {
+  return prisma.caixa.findFirst({
+    where: { status: "ABERTO" },
+    select: { id: true, dataAbertura: true },
+  });
+}
+
 export async function abrirCaixa(payload: AbrirCaixaValues) {
   const caixaAberto = await prisma.caixa.findFirst({
     where: { status: "ABERTO" },
