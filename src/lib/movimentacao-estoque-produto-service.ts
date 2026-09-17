@@ -112,6 +112,56 @@ export async function baixarEstoqueProdutoVenda(
   return movimentacao;
 }
 
+export interface DevolverEstoqueProdutoVendaParams {
+  produtoId: string;
+  quantidade: number;
+  vendaId: string;
+  itemVendaId: string;
+  motivo: string;
+}
+
+/**
+ * Devolve ao estoque a quantidade de um item de venda cancelada
+ * (`ESTORNO_VENDA`, entrada). Incremento atômico, com os saldos lidos da
+ * própria atualização. Vale também para produto inativado depois da venda:
+ * o que saiu fisicamente precisa voltar ao saldo.
+ *
+ * Deve ser chamada dentro da transação do cancelamento.
+ */
+export async function devolverEstoqueProdutoVenda(
+  params: DevolverEstoqueProdutoVendaParams,
+  tx: Prisma.TransactionClient,
+) {
+  if (params.quantidade <= 0) {
+    throw new MovimentacaoEstoqueProdutoError(
+      "A quantidade da devolução deve ser maior que zero.",
+      400,
+    );
+  }
+
+  const produto = await tx.produto.update({
+    where: { id: params.produtoId },
+    data: { quantidadeEstoque: { increment: params.quantidade } },
+    select: { quantidadeEstoque: true },
+  });
+
+  const saldoPosterior = Number(produto.quantidadeEstoque);
+
+  return tx.movimentacaoEstoqueProduto.create({
+    data: {
+      produtoId: params.produtoId,
+      tipo: TipoMovimentacaoProduto.ESTORNO_VENDA,
+      quantidade: params.quantidade,
+      saldoAnterior: saldoPosterior - params.quantidade,
+      saldoPosterior,
+      origem: OrigemMovimentacaoProduto.VENDA_BALCAO,
+      vendaId: params.vendaId,
+      itemVendaId: params.itemVendaId,
+      motivo: params.motivo,
+    },
+  });
+}
+
 export interface CriarProdutoComEstoqueParams {
   nome: string;
   descricao?: string | null;

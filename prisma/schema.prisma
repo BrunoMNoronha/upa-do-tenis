@@ -18,6 +18,7 @@ model Usuario {
 
   estornosPagamento   EstornoPagamento[]
   atendimentosRapidos AtendimentoRapido[]
+  vendasCanceladas    Venda[]             @relation("VendaCanceladaPor")
 
   @@index([nome])
   @@index([ativo])
@@ -177,6 +178,11 @@ model Venda {
   formaPagamento       FormaPagamento               @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
   dataVenda            DateTime                     @default(now())
   observacoes          String?
+  /// Cancelamento total: preenchidos juntos quando status = CANCELADA.
+  dataCancelamento     DateTime?
+  motivoCancelamento   String?
+  canceladoPorId       String?
+  canceladoPor         Usuario?                     @relation("VendaCanceladaPor", fields: [canceladoPorId], references: [id], onDelete: Restrict)
   criadoEm             DateTime                     @default(now())
   atualizadoEm         DateTime                     @updatedAt
   itens                ItemVenda[]
@@ -187,6 +193,7 @@ model Venda {
   @@index([status])
   @@index([clienteId])
   @@index([dataVenda])
+  @@index([canceladoPorId])
 }
 
 model ItemVenda {
