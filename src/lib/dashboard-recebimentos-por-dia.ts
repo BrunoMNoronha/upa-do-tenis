@@ -1,5 +1,3 @@
-import { dataOperacional } from './date-range';
-
 export interface RecebimentoDia {
   /** Dia "YYYY-MM-DD" no fuso da operação. */
   dia: string;
@@ -46,23 +44,13 @@ export function listarDiasDoPeriodo(dataInicio: string, dataFim: string): string
 }
 
 /**
- * Agrupa pagamentos por dia do fuso da operação e devolve um item para cada
- * dia do período, com zero nos dias sem recebimento. A soma é feita em
- * centavos inteiros para não acumular erro de ponto flutuante; pagamentos
- * fora dos dias informados são ignorados.
+ * Um item por dia do período, na ordem do período, com zero nos dias sem
+ * recebimento. `totaisPorDia` vem já somado no servidor (com precisão
+ * decimal); dias fora do período são ignorados.
  */
 export function montarRecebimentosPorDia(
   dias: string[],
-  pagamentos: { dataPagamento: Date; valor: unknown }[],
+  totaisPorDia: ReadonlyMap<string, number>,
 ): RecebimentoDia[] {
-  const centavosPorDia = new Map<string, number>(dias.map((dia) => [dia, 0]));
-
-  for (const { dataPagamento, valor } of pagamentos) {
-    const dia = dataOperacional(dataPagamento);
-    const acumulado = centavosPorDia.get(dia);
-    if (acumulado === undefined) continue;
-    centavosPorDia.set(dia, acumulado + Math.round(Number(valor) * 100));
-  }
-
-  return dias.map((dia) => ({ dia, valor: centavosPorDia.get(dia)! / 100 }));
+  return dias.map((dia) => ({ dia, valor: totaisPorDia.get(dia) ?? 0 }));
 }

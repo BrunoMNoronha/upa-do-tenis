@@ -5,6 +5,8 @@ import { prisma } from '../lib/prisma';
 
 vi.mock('../lib/prisma', () => ({
   prisma: {
+    // Transação em lote: executa as consultas (mockadas) e devolve os resultados.
+    $transaction: vi.fn((operacoes: Promise<unknown>[]) => Promise.all(operacoes)),
     pagamento: {
       aggregate: vi.fn(),
       findMany: vi.fn(),
@@ -157,6 +159,8 @@ describe('Dashboard Service', () => {
 
     const metrics = await getDashboardMetrics('2026-07-01', '2026-07-03');
 
+    // Total e série no mesmo snapshot.
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Array), { isolationLevel: 'RepeatableRead' });
     expect(prisma.pagamento.findMany).toHaveBeenCalledWith({
       where: { dataPagamento: { gte: new Date('2026-07-01T03:00:00.000Z'), lt: new Date('2026-07-04T03:00:00.000Z') } },
       select: { dataPagamento: true, valor: true },
@@ -175,5 +179,6 @@ describe('Dashboard Service', () => {
 
     expect(metrics.recebimentosPorDia).toBeNull();
     expect(prisma.pagamento.findMany).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });
