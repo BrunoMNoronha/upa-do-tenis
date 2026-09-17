@@ -132,6 +132,16 @@ Migrations são aplicadas pelo workflow manual [`.github/workflows/migracoes.yml
 
 Migrations devem ser **backward-compatible** com a versão anterior da aplicação: entre os passos 2 e 3 a versão antiga roda contra o schema novo.
 
+### Promoção manual e verificação de migrations pendentes (#224)
+
+- Deploy que traz migration nova vai para Production **somente** pelo workflow `Migrations (Neon)`, que aplica as migrations antes de criar e promover o deployment.
+- A promoção manual (`POST /v10/projects/{id}/promote/{dpl}`) fica restrita a deploys **sem** migration nova. Antes de promover, compare `prisma/migrations/` do commit com `_prisma_migrations` da branch `production`.
+- Smoke test pós-promoção, por qualquer caminho: `GET /api/saude/migrations` deve responder `200 {"ok":true}`.
+  - `503 {"ok":false,"pendentes":n}` indica código novo contra schema antigo: aplicar as migrations pelo workflow ou promover de novo o deployment anterior.
+  - Sem sessão a rota não expõe nomes; com sessão válida ela lista as migrations pendentes em `nomes`.
+  - `503 {"ok":false}` sem contagem indica falha ao consultar o banco.
+- A lista de migrations esperadas é resolvida no build (`next.config.mjs`, `env.MIGRATIONS_ESPERADAS`), sem acesso ao banco.
+
 ### Regras duras
 
 - **Nunca** `prisma migrate dev`, `prisma db push`, `prisma migrate reset` ou `pnpm run seed` contra Production.
