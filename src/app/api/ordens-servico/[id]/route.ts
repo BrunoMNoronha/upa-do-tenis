@@ -7,7 +7,7 @@ import {
   obterDetalheOrdemServico,
   OrdemServicoDetalheError,
 } from "@/lib/ordens-servico";
-import { calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
+import { INCLUDE_ESTORNO_PAGAMENTO, calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { ordemServicoServicosAtualizarSchema } from "@/lib/ordens-servico-schema";
 import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 
@@ -175,7 +175,7 @@ export async function PATCH(
 
       const ordem = await tx.ordemServico.findUnique({
         where: { id: parsedParams.data.id },
-        include: { pagamentos: true, itens: { include: { servicos: true } } },
+        include: { pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO }, itens: { include: { servicos: true } } },
       });
 
       if (!ordem) {

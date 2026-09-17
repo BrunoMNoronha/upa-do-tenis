@@ -16,6 +16,8 @@ model Usuario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
+  estornosPagamento EstornoPagamento[]
+
   @@index([nome])
   @@index([ativo])
 }
@@ -251,10 +253,30 @@ model Pagamento {
   observacoes       String?
   criadoEm          DateTime           @default(now())
   movimentacaoCaixa MovimentacaoCaixa?
+  estorno           EstornoPagamento?
 
   @@index([ordemServicoId])
   @@index([formaPagamentoId])
   @@index([tipo])
+}
+
+// Estorno de um pagamento de OS (#230). Um pagamento tem no máximo um estorno,
+// sempre do valor inteiro. O dia que conta no dashboard e nos relatórios é
+// dataEstorno; a saída correspondente no caixa aponta para este registro.
+model EstornoPagamento {
+  id                String             @id @default(cuid())
+  pagamentoId       String             @unique
+  pagamento         Pagamento          @relation(fields: [pagamentoId], references: [id], onDelete: Restrict)
+  valor             Decimal
+  motivo            String
+  usuarioId         String
+  usuario           Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  dataEstorno       DateTime           @default(now())
+  criadoEm          DateTime           @default(now())
+  movimentacaoCaixa MovimentacaoCaixa?
+
+  @@index([dataEstorno])
+  @@index([usuarioId])
 }
 
 model HistoricoStatus {
@@ -355,18 +377,20 @@ model MovimentacaoCaixa {
   caixaId          String
   caixa            Caixa           @relation(fields: [caixaId], references: [id], onDelete: Restrict)
   tipo             String // ENTRADA, SAIDA, SANGRIA, REFORCO
-  origem           String // MANUAL, PAGAMENTO_OS
+  origem           String // MANUAL, PAGAMENTO_OS, ESTORNO_PAGAMENTO_OS
   valor            Decimal
   descricao        String
   formaPagamentoId String?
   formaPagamento   FormaPagamento? @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
 
-  pagamentoId    String?       @unique
-  pagamento      Pagamento?    @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
-  ordemServicoId String?
-  ordemServico   OrdemServico? @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
-  vendaId        String?
-  venda          Venda?        @relation(fields: [vendaId], references: [id], onDelete: SetNull)
+  pagamentoId        String?           @unique
+  pagamento          Pagamento?        @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
+  estornoPagamentoId String?           @unique
+  estornoPagamento   EstornoPagamento? @relation(fields: [estornoPagamentoId], references: [id], onDelete: SetNull)
+  ordemServicoId     String?
+  ordemServico       OrdemServico?     @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+  vendaId            String?
+  venda              Venda?            @relation(fields: [vendaId], references: [id], onDelete: SetNull)
 
   criadoEm DateTime @default(now())
 

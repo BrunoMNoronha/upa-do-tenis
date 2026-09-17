@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { calcularResumoFinanceiroOS, normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
+import {
+  INCLUDE_ESTORNO_PAGAMENTO,
+  calcularResumoFinanceiroOS,
+  normalizarValoresDecimalParaClient,
+} from "@/lib/ordens-servico-financeiro";
 import {
   montarWhereListagemOrdensServico,
   type FiltrosListagemOrdensServico,
@@ -25,7 +29,7 @@ export class OrdemServicoDetalheError extends Error {
 
 const includeListagemOrdemServico = {
   cliente: true,
-  pagamentos: true,
+  pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO },
   itens: {
     include: {
       servicos: {
@@ -225,6 +229,7 @@ export async function obterDetalheOrdemServico(id: string) {
       pagamentos: {
         include: {
           formaPagamento: true,
+          ...INCLUDE_ESTORNO_PAGAMENTO,
         },
         orderBy: [{ dataPagamento: "desc" }, { criadoEm: "desc" }],
       },

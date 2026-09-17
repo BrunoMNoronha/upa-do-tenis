@@ -59,9 +59,10 @@ export async function PATCH(
 
     // Executar transação atômica
     const osAtualizada = await prisma.$transaction(async (tx) => {
-      // Cancelamento com pagamento é bloqueado até existir estorno (#229/#230).
+      // Cancelamento com pagamento ativo é bloqueado (#229); pagamento estornado
+      // não conta (#230).
       if (isCancelamento) {
-        const pagamentos = await tx.pagamento.count({ where: { ordemServicoId: id } });
+        const pagamentos = await tx.pagamento.count({ where: { ordemServicoId: id, estorno: null } });
         if (pagamentos > 0) {
           return "COM_PAGAMENTO" as const;
         }

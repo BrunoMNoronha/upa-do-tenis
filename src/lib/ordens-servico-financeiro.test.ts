@@ -106,6 +106,42 @@ describe("ordens-servico-financeiro", () => {
       ).toBe(50);
     });
 
+    it("ignora pagamentos estornados (#230)", () => {
+      expect(
+        calcularValorPago({
+          valorPago: 100,
+          pagamentos: [{ valor: 40 }, { valor: 60, estorno: { id: "est-1" } }],
+        })
+      ).toBe(40);
+    });
+
+    it("com estorno, a coluna valorPago desatualizada não prevalece (#230)", () => {
+      // Coluna ainda com o valor de antes do estorno.
+      expect(
+        calcularValorPago({
+          valorPago: new Prisma.Decimal("100"),
+          valorSinal: 10,
+          pagamentos: [{ valor: 90, estorno: { id: "est-1" } }],
+        })
+      ).toBe(10);
+      expect(
+        calcularValorPago({
+          valorPago: 50,
+          pagamentos: [{ valor: 50, estorno: { id: "est-1" } }],
+        })
+      ).toBe(0);
+    });
+
+    it("com todos os pagamentos ativos, a regra de compatibilidade não muda (#230)", () => {
+      expect(
+        calcularValorPago({
+          valorPago: 90,
+          valorSinal: 10,
+          pagamentos: [{ valor: 15, estorno: null }],
+        })
+      ).toBe(90);
+    });
+
     it("mantem compatibilidade com valorPago legado", () => {
       expect(
         calcularValorPago({
@@ -204,6 +240,25 @@ describe("ordens-servico-financeiro", () => {
       });
 
       expect(resumo.statusFinanceiro).toBe("CANCELADO");
+    });
+
+    it("estorno devolve saldo e status financeiro (#230)", () => {
+      const parcial = calcularResumoFinanceiroOS({
+        valorTotal: 100,
+        valorPago: 100,
+        pagamentos: [{ valor: 40 }, { valor: 60, estorno: { id: "est-1" } }],
+      });
+      expect(parcial).toMatchObject({ valorPago: 40, saldo: 60, statusFinanceiro: "PARCIAL" });
+
+      const pendente = calcularResumoFinanceiroOS({
+        valorTotal: 100,
+        valorPago: 100,
+        pagamentos: [
+          { valor: 40, estorno: { id: "est-1" } },
+          { valor: 60, estorno: { id: "est-2" } },
+        ],
+      });
+      expect(pendente).toMatchObject({ valorPago: 0, saldo: 100, statusFinanceiro: "PENDENTE" });
     });
 
     it("mantem compatibilidade com OS antiga usando valorPago legado", () => {
