@@ -75,17 +75,25 @@ Copy-Item .env.development.example .env.development
 Copy-Item .env.test.example .env.test
 ```
 
-Depois de subir o banco, sincronize o schema nos dois bancos antes de usar a
-aplicação ou executar os testes:
+Depois de subir o banco e sempre que atualizar o código, confira e aplique as
+migrations versionadas nos dois bancos antes de usar a aplicação ou executar
+os testes. `pnpm run dev` e `pnpm run test` não aplicam migrations:
 
 ```powershell
 $env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_dev?schema=public"
-pnpm exec prisma db push
+pnpm exec prisma migrate status
+pnpm exec prisma migrate deploy
 $env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_test?schema=public"
-pnpm exec prisma db push
+pnpm exec prisma migrate status
+pnpm exec prisma migrate deploy
+# Retorne ao banco de desenvolvimento antes de iniciar a aplicação.
+$env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_dev?schema=public"
 ```
 
 O banco de testes deve ser usado exclusivamente pela suíte automatizada.
+Confirme o banco/host exibidos pelo Prisma antes de aplicar. Não use `db push`
+para contornar migrations pendentes. Se houver divergência de histórico em
+um banco já existente, investigue antes de prosseguir; não resete os dados.
 
 ### Comandos de migration
 

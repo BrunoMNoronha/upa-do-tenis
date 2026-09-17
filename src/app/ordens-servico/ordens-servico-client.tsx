@@ -753,7 +753,6 @@ function OrdemServicoForm({
         caminhoAcompanhamento: criada.caminhoAcompanhamento,
       });
     }
-    startTransition(() => router.refresh());
   };
 
   const reenviarFoto = async () => {
@@ -919,6 +918,9 @@ function OrdemServicoForm({
       caminhoAcompanhamento?: string;
       itens: Array<{ id: string; clientKey?: string }>;
     };
+    // A OS já existe, mesmo se algum upload falhar. Atualiza a lista sem
+    // depender da conclusão das fotos e mantém o formulário para reenvio.
+    startTransition(() => router.refresh());
     const cliente = clientesDisponiveis.find((item) => item.id === values.clienteId);
     const criadaComCliente: OrdemCriadaComCliente = {
       id: criada.id,
