@@ -149,6 +149,18 @@ describe("cancelamento de OS com pagamento (#229)", () => {
     expect(antes).toEqual({ status: "ABERTA", valorPago: valor, pagamentos: 1, movimentos: 1, historico: 0 });
   });
 
+  it("OS com sinal legado (valorSinal > 0, sem Pagamento): 409 e nada muda", async () => {
+    const id = await cadastrar();
+    // Dado legado/importado: sinal gravado direto na OS, sem registro de Pagamento.
+    await prisma.ordemServico.update({ where: { id }, data: { valorSinal: 30 } });
+
+    const resposta = await cancelar(id);
+
+    expect(resposta.status).toBe(409);
+    expect((await resposta.json()).message).toBe(MENSAGEM_CANCELAMENTO_COM_PAGAMENTO);
+    expect(await estado(id)).toEqual({ status: "ABERTA", valorPago: 0, pagamentos: 0, movimentos: 0, historico: 0 });
+  });
+
   it("OS cancelada não recebe pagamento: 409 sem pagamento nem movimentação de caixa", async () => {
     const id = await cadastrar();
     expect((await cancelar(id)).status).toBe(200);

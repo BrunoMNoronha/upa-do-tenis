@@ -70,11 +70,14 @@ export async function PATCH(
       // 1. Atualiza OS condicionada ao status lido acima. Se outro operador
       //    alterou o status entre a leitura e a gravação, nenhuma linha é
       //    afetada e a transição é rejeitada (estado persistido prevalece).
-      //    No cancelamento, exige também valorPago = 0 na própria gravação: um
-      //    pagamento concorrente sempre grava valorPago na OS, então a corrida
-      //    não termina em OS cancelada com pagamento.
+      //    No cancelamento, exige também valorPago = 0 e valorSinal = 0 na
+      //    própria gravação: um pagamento concorrente sempre grava valorPago na
+      //    OS, e o sinal conta como recebido (calcularValorPago), então a
+      //    corrida não termina em OS cancelada com dinheiro recebido.
       const resultado = await tx.ordemServico.updateMany({
-        where: isCancelamento ? { id, status: statusAtual, valorPago: 0 } : { id, status: statusAtual },
+        where: isCancelamento
+          ? { id, status: statusAtual, valorPago: 0, valorSinal: 0 }
+          : { id, status: statusAtual },
         data: {
           status: statusNovo,
           dataConclusao: isConcluida ? new Date() : osAtual.dataConclusao,
@@ -85,9 +88,13 @@ export async function PATCH(
         if (isCancelamento) {
           const atual = await tx.ordemServico.findUnique({
             where: { id },
-            select: { status: true, valorPago: true },
+            select: { status: true, valorPago: true, valorSinal: true },
           });
-          if (atual && atual.status === statusAtual && Number(atual.valorPago) > 0) {
+          if (
+            atual &&
+            atual.status === statusAtual &&
+            (Number(atual.valorPago) > 0 || Number(atual.valorSinal) > 0)
+          ) {
             return "COM_PAGAMENTO" as const;
           }
         }
