@@ -90,6 +90,12 @@ pnpm exec prisma migrate deploy
 $env:DATABASE_URL = "postgresql://upa_dev:upa_dev_local_only@localhost:5434/upa_do_tenis_dev?schema=public"
 ```
 
+`pnpm run dev` compara `prisma/migrations` com o banco do `DATABASE_URL` local
+antes de subir e mostra um aviso destacado com as migrations pendentes. O aviso
+não aplica nada e não impede o servidor de iniciar. Com a aplicação rodando,
+`GET /api/saude/migrations` responde `200` quando o banco está em dia e `503`
+quando há pendência (nomes só com sessão).
+
 O banco de testes deve ser usado exclusivamente pela suíte automatizada.
 Confirme o banco/host exibidos pelo Prisma antes de aplicar. Não use `db push`
 para contornar migrations pendentes. Se houver divergência de histórico em

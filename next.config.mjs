@@ -1,7 +1,18 @@
+import path from "node:path";
+
+import { listarMigrationsDoDiretorio } from "./src/lib/migrations-esperadas.mjs";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  // Migrations versionadas, resolvidas no build (sem banco) e embutidas no
+  // bundle para /api/saude/migrations. Ver issue #224.
+  env: {
+    MIGRATIONS_ESPERADAS: JSON.stringify(
+      listarMigrationsDoDiretorio(path.join(process.cwd(), "prisma", "migrations"))
+    ),
+  },
   async headers() {
     return [
       {

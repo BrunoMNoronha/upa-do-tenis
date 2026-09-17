@@ -80,7 +80,7 @@ describe("middleware de autenticação", () => {
   });
 
   it("mantém rotas públicas acessíveis sem sessão", async () => {
-    for (const rota of ["/login", "/api/auth/login", "/api/auth/logout"]) {
+    for (const rota of ["/login", "/api/auth/login", "/api/auth/logout", "/api/saude/migrations"]) {
       const response = await middleware(criarRequest(rota));
 
       expect(response.status, `rota ${rota}`).toBe(200);
@@ -106,7 +106,7 @@ describe("middleware de autenticação", () => {
       expect(response.headers.get("location")).toBe("http://localhost/login");
     }
 
-    for (const rota of ["/api/acompanhar/x", `/api/ordens-servico${caminho}`]) {
+    for (const rota of ["/api/acompanhar/x", `/api/ordens-servico${caminho}`, "/api/saude", "/api/saude/migrations/detalhes"]) {
       const response = await middleware(criarRequest(rota));
       expect(response.status, `rota ${rota}`).toBe(401);
     }

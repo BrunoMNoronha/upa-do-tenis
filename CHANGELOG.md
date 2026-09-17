@@ -5,6 +5,9 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 ## [Não lançado]
 
 ### Adicionado
+- **Detecção de migrations pendentes (#224)**: `GET /api/saude/migrations` compara as migrations do código (lista embutida no build pelo `next.config.mjs`, sem acesso ao banco) com `_prisma_migrations`, só em leitura. Responde `200 {ok:true}` ou `503` com a contagem; os nomes só aparecem com sessão válida. Rota pública para o smoke test pós-promoção.
+  - `pnpm run dev` mostra um aviso destacado com as migrations pendentes do banco local, sem aplicar nada e sem impedir o servidor de subir.
+  - Documentado em `DECISOES.md`, README e `FATIA_PRODUCAO_04_VERCEL_NEON.md` (promoção manual só para deploys sem migration nova).
 - **Dashboard: nova estrutura visual (PR 1 da refatoração)**: cabeçalho plano com saudação por horário, primeiro nome do usuário da sessão e data por extenso (fuso operacional); ações "Venda de balcão" e "Nova ordem de serviço" no cabeçalho.
   - Presets de período (Hoje, 7 dias, Este mês, Mês anterior) com `aria-pressed`; edição manual das datas marca "Personalizado" e só consulta ao clicar em Filtrar. Uma única chamada à API por aplicação de período.
   - Grade de quatro KPIs (`DashboardKpiCard`): Total recebido em destaque, Total pendente com a quantidade real de OS com saldo, Ticket médio e "OS ativas no período" (soma dos quatro status operacionais; canceladas não incluídas).

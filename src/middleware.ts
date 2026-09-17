@@ -5,7 +5,9 @@ import { verificarTokenSessaoEdge } from "@/lib/auth-edge";
 
 // Rotas acessíveis sem sessão. Tudo que não estiver aqui exige token válido.
 const PAGINAS_PUBLICAS = new Set(["/login"]);
-const APIS_PUBLICAS = new Set(["/api/auth/login", "/api/auth/logout"]);
+// `/api/saude/migrations` é público para o smoke test pós-promoção; sem sessão
+// a própria rota devolve só `ok` e a contagem (#224).
+const APIS_PUBLICAS = new Set(["/api/auth/login", "/api/auth/logout", "/api/saude/migrations"]);
 
 // Página pública de acompanhamento da OS: exatamente um segmento (o token),
 // sem subrotas. A autorização é a assinatura do token, validada no servidor
