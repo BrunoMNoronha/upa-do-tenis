@@ -4,6 +4,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 
 ## [Não lançado]
 
+### Corrigido
+- **OS com pagamento não pode ser cancelada (#229)**: enquanto não existe estorno e devolução (#230), `PATCH /api/ordens-servico/[id]/status` recusa cancelar OS com pagamento registrado (409). A checagem acontece na mesma transação e a gravação exige `valorPago = 0`.
+  - OS cancelada não recebe mais pagamento (409): a gravação final do pagamento exige OS não cancelada, e a transação inteira (pagamento e caixa) é desfeita se um cancelamento concorrente for confirmado antes.
+  - Detalhe da OS: "Cancelar OS" some quando há valor pago, com a explicação; "Receber pagamento" some em OS cancelada.
+  - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
+
 ### Adicionado
 - **Detecção de migrations pendentes (#224)**: `GET /api/saude/migrations` compara as migrations do código (lista embutida no build pelo `next.config.mjs`, sem acesso ao banco) com `_prisma_migrations`, só em leitura. Responde `200 {ok:true}` ou `503` com a contagem; os nomes só aparecem com sessão válida. Rota pública para o smoke test pós-promoção.
   - `pnpm run dev` mostra um aviso destacado com as migrations pendentes do banco local, sem aplicar nada e sem impedir o servidor de subir.

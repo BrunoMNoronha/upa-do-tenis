@@ -10,6 +10,7 @@ const { prismaMock } = vi.hoisted(() => {
   const mock: any = {
     ordemServico: { findUnique: vi.fn(), updateMany: vi.fn() },
     historicoStatus: { create: vi.fn() },
+    pagamento: { count: vi.fn() },
     $transaction: vi.fn(async (callback: any) => callback(mock)),
   };
 
@@ -71,6 +72,7 @@ beforeEach(() => {
   vi.resetAllMocks();
   prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
   prismaMock.historicoStatus.create.mockResolvedValue({ id: "hist-1" });
+  prismaMock.pagamento.count.mockResolvedValue(0);
 });
 
 describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
@@ -85,7 +87,8 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
 
     expect(prismaMock.ordemServico.updateMany).toHaveBeenCalledTimes(1);
     const updateArgs = prismaMock.ordemServico.updateMany.mock.calls[0][0];
-    expect(updateArgs.where).toEqual({ id: OS_ID, status: "ABERTA" });
+    // Cancelamento exige valorPago = 0 na própria gravação (#229).
+    expect(updateArgs.where).toEqual({ id: OS_ID, status: "ABERTA", valorPago: 0, valorSinal: 0 });
     expect(updateArgs.data.status).toBe("CANCELADA");
     expect(updateArgs.data.dataConclusao).toBeNull();
 
@@ -99,9 +102,10 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
     });
 
     // Nenhuma exclusão física nem efeito colateral: a rota só toca em
-    // ordemServico (update) e historicoStatus (create).
+    // ordemServico (update), historicoStatus (create) e lê pagamento (count).
     expect(prismaMock.ordemServico).not.toHaveProperty("delete");
-    expect(Object.keys(prismaMock)).toEqual(["ordemServico", "historicoStatus", "$transaction"]);
+    expect(Object.keys(prismaMock)).toEqual(["ordemServico", "historicoStatus", "pagamento", "$transaction"]);
+    expect(prismaMock.pagamento.count).toHaveBeenCalledWith({ where: { ordemServicoId: OS_ID } });
   });
 
   it("propaga a observação do cancelamento para o histórico", async () => {
@@ -162,6 +166,57 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
     expect(payload.message).toContain("alterada por outro operador");
     expect(prismaMock.ordemServico.updateMany).toHaveBeenCalledTimes(1);
     expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
+  });
+
+  it("recusa com 409 cancelar OS que tem pagamento registrado, sem gravar nada (#229)", async () => {
+    configurarBanco("ABERTA");
+    prismaMock.pagamento.count.mockResolvedValue(1);
+
+    const response = await chamarPatch({ statusNovo: "CANCELADA" });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.message).toContain("possui pagamento registrado");
+    expect(prismaMock.ordemServico.updateMany).not.toHaveBeenCalled();
+    expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
+  });
+
+  it("recusa com 409 de pagamento quando um pagamento concorrente gravou valorPago antes (#229)", async () => {
+    prismaMock.ordemServico.findUnique
+      .mockResolvedValueOnce(ordemComStatus("ABERTA"))
+      .mockResolvedValueOnce({ status: "ABERTA", valorPago: 40 });
+    prismaMock.ordemServico.updateMany.mockResolvedValue({ count: 0 });
+
+    const response = await chamarPatch({ statusNovo: "CANCELADA" });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.message).toContain("possui pagamento registrado");
+    expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
+  });
+
+  it("recusa com 409 de pagamento quando a OS tem só sinal legado, sem Pagamento (#229)", async () => {
+    prismaMock.ordemServico.findUnique
+      .mockResolvedValueOnce(ordemComStatus("ABERTA"))
+      .mockResolvedValueOnce({ status: "ABERTA", valorPago: 0, valorSinal: 30 });
+    prismaMock.ordemServico.updateMany.mockResolvedValue({ count: 0 });
+
+    const response = await chamarPatch({ statusNovo: "CANCELADA" });
+    const payload = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(payload.message).toContain("possui pagamento registrado");
+    expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
+  });
+
+  it("não consulta pagamentos nem exige valorPago em transições que não são cancelamento", async () => {
+    configurarBanco("ABERTA", "ABERTA", "EM_ANDAMENTO");
+
+    const response = await chamarPatch({ statusNovo: "EM_ANDAMENTO" });
+
+    expect(response.status).toBe(200);
+    expect(prismaMock.pagamento.count).not.toHaveBeenCalled();
+    expect(prismaMock.ordemServico.updateMany.mock.calls[0][0].where).toEqual({ id: OS_ID, status: "ABERTA" });
   });
 
   it("retorna 404 quando a OS não existe", async () => {

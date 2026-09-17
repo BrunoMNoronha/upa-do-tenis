@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { statusUpdateSchema } from "@/lib/ordens-servico-schema";
-import { OsStatus, transicaoPermitida } from "@/lib/ordens-servico-status";
+import {
+  MENSAGEM_CANCELAMENTO_COM_PAGAMENTO,
+  OsStatus,
+  transicaoPermitida,
+} from "@/lib/ordens-servico-status";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
@@ -51,14 +55,29 @@ export async function PATCH(
 
     // Definir dataConclusao se aplicável
     const isConcluida = statusNovo === "CONCLUIDA";
+    const isCancelamento = statusNovo === "CANCELADA";
 
     // Executar transação atômica
     const osAtualizada = await prisma.$transaction(async (tx) => {
+      // Cancelamento com pagamento é bloqueado até existir estorno (#229/#230).
+      if (isCancelamento) {
+        const pagamentos = await tx.pagamento.count({ where: { ordemServicoId: id } });
+        if (pagamentos > 0) {
+          return "COM_PAGAMENTO" as const;
+        }
+      }
+
       // 1. Atualiza OS condicionada ao status lido acima. Se outro operador
       //    alterou o status entre a leitura e a gravação, nenhuma linha é
       //    afetada e a transição é rejeitada (estado persistido prevalece).
+      //    No cancelamento, exige também valorPago = 0 e valorSinal = 0 na
+      //    própria gravação: um pagamento concorrente sempre grava valorPago na
+      //    OS, e o sinal conta como recebido (calcularValorPago), então a
+      //    corrida não termina em OS cancelada com dinheiro recebido.
       const resultado = await tx.ordemServico.updateMany({
-        where: { id, status: statusAtual },
+        where: isCancelamento
+          ? { id, status: statusAtual, valorPago: 0, valorSinal: 0 }
+          : { id, status: statusAtual },
         data: {
           status: statusNovo,
           dataConclusao: isConcluida ? new Date() : osAtual.dataConclusao,
@@ -66,6 +85,19 @@ export async function PATCH(
       });
 
       if (resultado.count === 0) {
+        if (isCancelamento) {
+          const atual = await tx.ordemServico.findUnique({
+            where: { id },
+            select: { status: true, valorPago: true, valorSinal: true },
+          });
+          if (
+            atual &&
+            atual.status === statusAtual &&
+            (Number(atual.valorPago) > 0 || Number(atual.valorSinal) > 0)
+          ) {
+            return "COM_PAGAMENTO" as const;
+          }
+        }
         return null;
       }
 
@@ -81,6 +113,10 @@ export async function PATCH(
 
       return tx.ordemServico.findUnique({ where: { id } });
     });
+
+    if (osAtualizada === "COM_PAGAMENTO") {
+      return NextResponse.json({ message: MENSAGEM_CANCELAMENTO_COM_PAGAMENTO }, { status: 409 });
+    }
 
     if (!osAtualizada) {
       return NextResponse.json(

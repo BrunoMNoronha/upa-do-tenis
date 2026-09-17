@@ -31,8 +31,12 @@ export function obterTomStatusFinanceiro(status: ResumoFinanceiro["statusFinance
  * válido igual a zero; dado ausente ou inválido NÃO é tratado como quitado.
  */
 export function deveExibirReceberPagamento(
-  resumo: Pick<ResumoFinanceiro, "saldo"> | null | undefined,
+  resumo: (Pick<ResumoFinanceiro, "saldo"> & Partial<Pick<ResumoFinanceiro, "statusFinanceiro">>) | null | undefined,
 ): boolean {
+  // OS cancelada não recebe pagamento; a API também recusa (#229).
+  if (resumo?.statusFinanceiro === "CANCELADO") {
+    return false;
+  }
   const saldo = resumo?.saldo;
   if (typeof saldo !== "number" || !Number.isFinite(saldo)) {
     return true;

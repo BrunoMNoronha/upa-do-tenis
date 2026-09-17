@@ -23,4 +23,9 @@ describe("deveExibirReceberPagamento (detalhe da OS)", () => {
     expect(deveExibirReceberPagamento({ saldo: Number.NaN })).toBe(true);
     expect(deveExibirReceberPagamento({ saldo: "0" as unknown as number })).toBe(true);
   });
+
+  it("oculta a ação para OS cancelada, mesmo com saldo (#229)", () => {
+    expect(deveExibirReceberPagamento({ saldo: 100, statusFinanceiro: "CANCELADO" })).toBe(false);
+    expect(deveExibirReceberPagamento({ saldo: 100, statusFinanceiro: "PENDENTE" })).toBe(true);
+  });
 });
