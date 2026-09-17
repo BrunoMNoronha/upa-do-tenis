@@ -8,7 +8,7 @@ import { POST as pagarOS } from "@/app/api/ordens-servico/[id]/pagamentos/route"
 import { GET as carregarFoto } from "@/app/api/ordens-servico/[id]/itens/[itemId]/fotos/[fotoId]/route";
 import { abrirCaixa, obterDetalhesCaixa } from "@/lib/caixa";
 import { gerarRelatorioFinanceiroOS } from "@/lib/relatorio-financeiro-os-service";
-import { dataOperacionalHoje } from "@/lib/date-range";
+import { dataOperacionalHoje, formatarDataLocal } from "@/lib/date-range";
 
 // Apenas a sessão é simulada. Rotas, consultas, transações e cálculos são reais.
 vi.mock("@/lib/auth-server", () => ({
@@ -116,9 +116,11 @@ describe("regressão integrada dos bloqueadores de homologação", () => {
       }), { params: Promise.resolve({ id: osId! }) });
       expect(resposta.status).toBe(201);
       expect((await detalhe()).resumoFinanceiro).toMatchObject({ valorPago: pago, saldo });
-      const relatorio = await gerarRelatorioFinanceiroOS({
-        inicio: dataOperacionalHoje(), fim: dataOperacionalHoje(),
-      });
+      // O relatório filtra por dia no fuso do processo; o intervalo parte da
+      // dataEntrada persistida para não depender do fuso da máquina (CI em UTC).
+      const { dataEntrada } = await prisma.ordemServico.findUniqueOrThrow({ where: { id: osId! } });
+      const dia = formatarDataLocal(dataEntrada);
+      const relatorio = await gerarRelatorioFinanceiroOS({ inicio: dia, fim: dia });
       expect(relatorio.itens.find((item) => item.id === osId)).toMatchObject({ valorTotal: 100, valorPago: pago, saldo });
     }
     const excedente = await pagarOS(request(`ordens-servico/${osId}/pagamentos`, {
