@@ -18,6 +18,7 @@ type Movimentacao = {
   formaPagamento?: FormaPagamento | null;
   criadoEm: string;
   ordemServicoId?: string | null;
+  atendimentoRapidoId?: string | null;
 };
 
 type MovimentacoesCaixaProps = {
@@ -158,6 +159,7 @@ export function MovimentacoesCaixa({
                   <td className="px-4 py-3 font-medium">
                     {mov.descricao}
                     {mov.ordemServicoId && <span className="ml-2 text-xs text-slate-400 font-normal">(OS Vinculada)</span>}
+                    {mov.atendimentoRapidoId && <span className="ml-2 text-xs text-slate-400 font-normal">(Atendimento Rápido)</span>}
                   </td>
                   <td className="px-4 py-3 text-slate-600">{mov.origem}</td>
                   <td className="px-4 py-3 text-slate-600">

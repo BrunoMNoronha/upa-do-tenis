@@ -8,6 +8,9 @@ const { prismaMock } = vi.hoisted(() => ({
     servicoItemOrdem: {
       count: vi.fn(),
     },
+    itemAtendimentoRapido: {
+      count: vi.fn(),
+    },
     servico: {
       update: vi.fn(),
       delete: vi.fn(),
@@ -114,6 +117,7 @@ describe("PATCH /api/servicos/[id]", () => {
 describe("DELETE /api/servicos/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.itemAtendimentoRapido.count.mockResolvedValue(0);
   });
 
   it("bloqueia exclusão de serviço vinculado a ordem de serviço (409)", async () => {
@@ -122,6 +126,17 @@ describe("DELETE /api/servicos/[id]", () => {
     const response = await DELETE(criarRequest("srv-1", "DELETE"), wrapParams("srv-1"));
 
     expect(response.status).toBe(409);
+    expect(prismaMock.servico.delete).not.toHaveBeenCalled();
+  });
+
+  it("bloqueia exclusão de serviço usado em atendimento rápido (409)", async () => {
+    prismaMock.servicoItemOrdem.count.mockResolvedValueOnce(0);
+    prismaMock.itemAtendimentoRapido.count.mockResolvedValueOnce(2);
+
+    const response = await DELETE(criarRequest("srv-1", "DELETE"), wrapParams("srv-1"));
+
+    expect(response.status).toBe(409);
+    expect((await response.json()).message).toMatch(/atendimentos rápidos/);
     expect(prismaMock.servico.delete).not.toHaveBeenCalled();
   });
 

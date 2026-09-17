@@ -14,6 +14,7 @@ type Movimentacao = {
   formaPagamento?: FormaPagamento | null;
   criadoEm: string;
   ordemServicoId?: string | null;
+  atendimentoRapidoId?: string | null;
 };
 
 type TotaisCaixa = {
@@ -128,6 +129,7 @@ export function CaixaDetalheClient({ caixaId }: { caixaId: string }) {
                       {dateFormatter.format(new Date(mov.criadoEm))} • {mov.origem}
                       {mov.formaPagamento ? ` • ${mov.formaPagamento.nome}` : ""}
                       {mov.ordemServicoId ? ` • OS Vínculada` : ""}
+                      {mov.atendimentoRapidoId ? ` • Atendimento Rápido` : ""}
                     </p>
                   </div>
                   <div className={`font-semibold ${mov.tipo === "ENTRADA" || mov.tipo === "REFORCO" ? "text-emerald-600" : "text-rose-600"}`}>

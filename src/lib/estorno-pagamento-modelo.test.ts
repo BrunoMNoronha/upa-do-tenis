@@ -68,6 +68,8 @@ async function pagar(id: string, valor: number) {
 async function estornar(pagamentoId: string) {
   await prisma.$transaction(async (tx) => {
     const pagamento = await tx.pagamento.findUniqueOrThrow({ where: { id: pagamentoId } });
+    // Pagamento pode ter origem em Atendimento Rápido (sem OS); aqui só há pagamentos de OS.
+    if (!pagamento.ordemServicoId) throw new Error("Pagamento sem ordem de serviço.");
     await tx.estornoPagamento.create({
       data: { pagamentoId, valor: pagamento.valor, motivo: "Lançado errado", usuarioId },
     });

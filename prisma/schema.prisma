@@ -16,7 +16,8 @@ model Usuario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  estornosPagamento EstornoPagamento[]
+  estornosPagamento   EstornoPagamento[]
+  atendimentosRapidos AtendimentoRapido[]
 
   @@index([nome])
   @@index([ativo])
@@ -120,14 +121,15 @@ model FotoItemOrdem {
 }
 
 model Servico {
-  id           String             @id @default(cuid())
-  nome         String
-  descricao    String?
-  precoBase    Decimal            @default(0)
-  ativo        Boolean            @default(true)
-  criadoEm     DateTime           @default(now())
-  atualizadoEm DateTime           @updatedAt
-  itens        ServicoItemOrdem[]
+  id                     String                  @id @default(cuid())
+  nome                   String
+  descricao              String?
+  precoBase              Decimal                 @default(0)
+  ativo                  Boolean                 @default(true)
+  criadoEm               DateTime                @default(now())
+  atualizadoEm           DateTime                @updatedAt
+  itens                  ServicoItemOrdem[]
+  itensAtendimentoRapido ItemAtendimentoRapido[]
 
   @@index([nome])
   @@index([ativo])
@@ -241,23 +243,71 @@ model FormaPagamento {
   @@index([ativo])
 }
 
+/// Origem exclusiva: exatamente um entre `ordemServicoId` e
+/// `atendimentoRapidoId` é preenchido. Garantido no banco pela constraint
+/// `Pagamento_origem_exclusiva_check` (SQL manual na migration
+/// 20260917140000_add_atendimento_rapido; o Prisma não modela CHECK).
 model Pagamento {
-  id                String             @id @default(cuid())
-  ordemServicoId    String
-  ordemServico      OrdemServico       @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
-  tipo              String
-  valor             Decimal            @default(0)
-  formaPagamentoId  String
-  formaPagamento    FormaPagamento     @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
-  dataPagamento     DateTime
-  observacoes       String?
-  criadoEm          DateTime           @default(now())
-  movimentacaoCaixa MovimentacaoCaixa?
-  estorno           EstornoPagamento?
+  id                  String             @id @default(cuid())
+  ordemServicoId      String?
+  ordemServico        OrdemServico?      @relation(fields: [ordemServicoId], references: [id], onDelete: Cascade)
+  atendimentoRapidoId String?
+  atendimentoRapido   AtendimentoRapido? @relation(fields: [atendimentoRapidoId], references: [id], onDelete: Restrict)
+  tipo                String
+  valor               Decimal            @default(0)
+  formaPagamentoId    String
+  formaPagamento      FormaPagamento     @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
+  dataPagamento       DateTime
+  observacoes         String?
+  criadoEm            DateTime           @default(now())
+  movimentacaoCaixa   MovimentacaoCaixa?
+  estorno             EstornoPagamento?
 
   @@index([ordemServicoId])
+  @@index([atendimentoRapidoId])
   @@index([formaPagamentoId])
   @@index([tipo])
+}
+
+/// Serviço executado, entregue e pago integralmente no mesmo momento.
+/// Não é Ordem de Serviço: sem cliente, status ou saldo. Registro imutável
+/// (sem atualizadoEm); a soma dos Pagamentos é igual a `valorTotal`.
+model AtendimentoRapido {
+  id                 String                  @id @default(cuid())
+  /// AR-DDMMAAAA-NNNN, sequencial por dia em America/Sao_Paulo, gerado no backend.
+  codigo             String                  @unique
+  dataHora           DateTime                @default(now())
+  valorTotal         Decimal
+  observacoes        String?
+  /// Gerada pelo cliente por tentativa de registro; repetir a chave devolve o AR já criado.
+  chaveIdempotencia  String                  @unique
+  criadoPorId        String?
+  criadoPor          Usuario?                @relation(fields: [criadoPorId], references: [id], onDelete: Restrict)
+  criadoEm           DateTime                @default(now())
+  itens              ItemAtendimentoRapido[]
+  pagamentos         Pagamento[]
+  movimentacoesCaixa MovimentacaoCaixa[]
+
+  @@index([dataHora])
+  @@index([criadoPorId])
+}
+
+/// Serviço prestado no Atendimento Rápido (uma execução por linha, como
+/// ServicoItemOrdem). `descricao` e `valor` são snapshot do momento do
+/// atendimento: o preço pode diferir de `Servico.precoBase` e alterar o
+/// catálogo depois não muda este registro.
+model ItemAtendimentoRapido {
+  id                  String            @id @default(cuid())
+  atendimentoRapidoId String
+  atendimentoRapido   AtendimentoRapido @relation(fields: [atendimentoRapidoId], references: [id], onDelete: Restrict)
+  servicoId           String
+  servico             Servico           @relation(fields: [servicoId], references: [id], onDelete: Restrict)
+  descricao           String
+  valor               Decimal
+  criadoEm            DateTime          @default(now())
+
+  @@index([atendimentoRapidoId])
+  @@index([servicoId])
 }
 
 // Estorno de um pagamento de OS (#230). Um pagamento tem no máximo um estorno,
@@ -377,20 +427,22 @@ model MovimentacaoCaixa {
   caixaId          String
   caixa            Caixa           @relation(fields: [caixaId], references: [id], onDelete: Restrict)
   tipo             String // ENTRADA, SAIDA, SANGRIA, REFORCO
-  origem           String // MANUAL, PAGAMENTO_OS, ESTORNO_PAGAMENTO_OS
+  origem           String // MANUAL, PAGAMENTO_OS, ESTORNO_PAGAMENTO_OS, VENDA_BALCAO, ATENDIMENTO_RAPIDO
   valor            Decimal
   descricao        String
   formaPagamentoId String?
   formaPagamento   FormaPagamento? @relation(fields: [formaPagamentoId], references: [id], onDelete: Restrict)
 
-  pagamentoId        String?           @unique
-  pagamento          Pagamento?        @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
-  estornoPagamentoId String?           @unique
-  estornoPagamento   EstornoPagamento? @relation(fields: [estornoPagamentoId], references: [id], onDelete: SetNull)
-  ordemServicoId     String?
-  ordemServico       OrdemServico?     @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
-  vendaId            String?
-  venda              Venda?            @relation(fields: [vendaId], references: [id], onDelete: SetNull)
+  pagamentoId         String?            @unique
+  pagamento           Pagamento?         @relation(fields: [pagamentoId], references: [id], onDelete: SetNull)
+  estornoPagamentoId  String?            @unique
+  estornoPagamento    EstornoPagamento?  @relation(fields: [estornoPagamentoId], references: [id], onDelete: SetNull)
+  ordemServicoId      String?
+  ordemServico        OrdemServico?      @relation(fields: [ordemServicoId], references: [id], onDelete: SetNull)
+  vendaId             String?
+  venda               Venda?             @relation(fields: [vendaId], references: [id], onDelete: SetNull)
+  atendimentoRapidoId String?
+  atendimentoRapido   AtendimentoRapido? @relation(fields: [atendimentoRapidoId], references: [id], onDelete: Restrict)
 
   criadoEm DateTime @default(now())
 
@@ -400,6 +452,7 @@ model MovimentacaoCaixa {
   @@index([pagamentoId])
   @@index([ordemServicoId])
   @@index([vendaId])
+  @@index([atendimentoRapidoId])
 }
 
 model ConfiguracaoSistema {

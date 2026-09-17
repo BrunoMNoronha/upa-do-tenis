@@ -61,6 +61,13 @@ function ServicosIcon(props: IconProps) {
   );
 }
 
+function AtendimentoRapidoIcon(props: IconProps) {
+  return iconBase(
+    props,
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />,
+  );
+}
+
 function ProdutosIcon(props: IconProps) {
   return iconBase(
     props,
@@ -181,6 +188,8 @@ export const navGroups: NavGroup[] = [
     items: [
       { href: "/ordens-servico", label: "Ordens de Serviço", icon: OrdensIcon },
       { href: "/os/fotos", label: "Fotos da OS", icon: FotosIcon },
+      { href: "/atendimento-rapido", label: "Atendimento Rápido", icon: AtendimentoRapidoIcon },
+      { href: "/atendimentos-rapidos", label: "Histórico de Atendimentos", icon: AtendimentoRapidoIcon },
       { href: "/vendas-balcao", label: "Venda de Balcão", icon: VendasIcon },
       { href: "/vendas", label: "Histórico de Vendas", icon: VendasIcon },
       { href: "/clientes", label: "Clientes", icon: ClientesIcon },
