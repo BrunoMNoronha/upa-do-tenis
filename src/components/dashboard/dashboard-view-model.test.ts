@@ -124,4 +124,51 @@ describe("dashboard-view-model", () => {
       expect(montarDashboardViewModel({ ...zerado, osAbertas: 1 }).vazio).toBe(false);
     });
   });
+
+  describe("recebimentosPorDia", () => {
+    const serie = [
+      { dia: "2026-09-15", valor: 0 },
+      { dia: "2026-09-16", valor: 200 },
+      { dia: "2026-09-17", valor: 50 },
+    ];
+
+    it("gera rótulos, proporção pelo maior dia e melhor dia", () => {
+      const vm = montarDashboardViewModel({ ...base, recebimentosPorDia: serie }).recebimentosPorDia;
+      expect(vm.disponivel).toBe(true);
+      if (!vm.disponivel) return;
+      expect(vm.dias.map((d) => [d.rotuloCurto, d.rotuloCompleto, d.proporcao])).toEqual([
+        ["15/09", "ter., 15/09", 0],
+        ["16/09", "qua., 16/09", 100],
+        ["17/09", "qui., 17/09", 25],
+      ]);
+      expect(vm.melhorDia?.dia).toBe("2026-09-16");
+      expect(vm.diasComRecebimento).toBe(2);
+    });
+
+    it("dias da semana não dependem do fuso do processo", () => {
+      const tzOriginal = process.env.TZ;
+      try {
+        for (const tz of ["UTC", "America/Sao_Paulo", "Asia/Tokyo"]) {
+          process.env.TZ = tz;
+          const vm = montarDashboardViewModel({ ...base, recebimentosPorDia: serie }).recebimentosPorDia;
+          expect(vm.disponivel && vm.dias[1].rotuloCompleto).toBe("qua., 16/09");
+        }
+      } finally {
+        if (tzOriginal === undefined) delete process.env.TZ;
+        else process.env.TZ = tzOriginal;
+      }
+    });
+
+    it("sem recebimentos → melhor dia nulo e proporções zeradas", () => {
+      const vm = montarDashboardViewModel({ ...zerado, recebimentosPorDia: [{ dia: "2026-09-16", valor: 0 }] }).recebimentosPorDia;
+      expect(vm).toMatchObject({ disponivel: true, melhorDia: null, diasComRecebimento: 0 });
+      expect(vm.disponivel && vm.dias[0].proporcao).toBe(0);
+    });
+
+    it("null (período acima do limite) ou campo ausente → indisponível", () => {
+      expect(montarDashboardViewModel({ ...base, recebimentosPorDia: null }).recebimentosPorDia).toEqual({ disponivel: false });
+      const { recebimentosPorDia: _omitido, ...semCampo } = base;
+      expect(montarDashboardViewModel(semCampo as DashboardMetrics).recebimentosPorDia).toEqual({ disponivel: false });
+    });
+  });
 });

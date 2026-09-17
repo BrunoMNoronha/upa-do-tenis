@@ -7,6 +7,7 @@ import { Button, EmptyState, ErrorState } from '@/components/ui';
 import { DashboardFiltros } from './DashboardFiltros';
 import { DashboardKpiCard } from './DashboardKpiCard';
 import { DashboardFilaOrdens } from './DashboardFilaOrdens';
+import { DashboardRecebimentosPorDia } from './DashboardRecebimentosPorDia';
 import { DashboardPanelSkeleton } from './DashboardPanel';
 import { DashboardSituacaoFinanceira } from './DashboardSituacaoFinanceira';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
@@ -15,6 +16,8 @@ import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
 import { DashboardAlertaCaixa } from './DashboardAlertaCaixa';
 import { calcularPeriodoPreset, type Periodo } from './dashboard-period-presets';
 import { montarDashboardViewModel } from './dashboard-view-model';
+
+const LINHA_PRINCIPAL = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]';
 
 function descreverOrdensComSaldo(quantidade: number): string | undefined {
   if (quantidade <= 0) return undefined;
@@ -167,7 +170,10 @@ export function DashboardClient() {
       {/* Skeleton dos blocos analíticos na primeira carga, com a mesma moldura do conteúdo final. */}
       {!viewModel && loading && (
         <div className="space-y-4">
-          <DashboardPanelSkeleton label="fila de ordens de serviço" />
+          <div className={LINHA_PRINCIPAL}>
+            <DashboardPanelSkeleton label="recebimentos por dia" />
+            <DashboardPanelSkeleton label="fila de ordens de serviço" />
+          </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <DashboardPanelSkeleton label="situação financeira" />
             <DashboardPanelSkeleton label="serviços mais executados" />
@@ -178,9 +184,11 @@ export function DashboardClient() {
 
       {viewModel && (
         <div className={`space-y-4 transition-opacity ${atualizando ? 'opacity-60' : ''}`}>
-          {/* Linha principal: a fila ocupa a largura toda até existir a série
-              diária de recebimentos (PR 4, depende de contrato de API). */}
-          <DashboardFilaOrdens fila={viewModel.fila} total={viewModel.totalOrdensAtivas} />
+          {/* Linha principal: recebimentos por dia (mais larga) e fila de OS. */}
+          <div className={LINHA_PRINCIPAL}>
+            <DashboardRecebimentosPorDia recebimentos={viewModel.recebimentosPorDia} className="h-full" />
+            <DashboardFilaOrdens fila={viewModel.fila} total={viewModel.totalOrdensAtivas} />
+          </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <DashboardSituacaoFinanceira

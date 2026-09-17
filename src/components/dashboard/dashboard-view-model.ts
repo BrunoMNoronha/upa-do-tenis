@@ -37,6 +37,28 @@ export type ItemRanking = {
   proporcao: number;
 };
 
+export type ItemRecebimentoDia = {
+  /** "YYYY-MM-DD" no fuso da operação. */
+  dia: string;
+  /** "16/09" */
+  rotuloCurto: string;
+  /** "qua., 16/09" (dia da semana calculado sobre o calendário, sem fuso). */
+  rotuloCompleto: string;
+  valor: number;
+  /** Altura relativa da barra (0-100), normalizada pelo maior dia. */
+  proporcao: number;
+};
+
+export type RecebimentosPorDiaViewModel =
+  | { disponivel: false }
+  | {
+      disponivel: true;
+      dias: ItemRecebimentoDia[];
+      /** Maior recebimento diário, ou null quando nenhum dia teve valor. */
+      melhorDia: ItemRecebimentoDia | null;
+      diasComRecebimento: number;
+    };
+
 export type DashboardViewModel = {
   totalRecebido: number;
   totalPendente: number;
@@ -52,6 +74,8 @@ export type DashboardViewModel = {
   situacaoFinanceira: ItemSituacaoFinanceira[];
   servicos: ItemRanking[];
   insumos: ItemRanking[];
+  /** Série diária; indisponível quando a API devolve null (período acima do limite). */
+  recebimentosPorDia: RecebimentosPorDiaViewModel;
   /** true quando nenhuma métrica do período tem valor. */
   vazio: boolean;
 };
@@ -71,6 +95,37 @@ function normalizarRanking(itens: DashboardMetrics["topServicos"]): ItemRanking[
     quantidade: item.quantidade,
     proporcao: percentualInteiro(item.quantidade, maior),
   }));
+}
+
+const formatadorDiaDaSemana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
+
+function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"]): RecebimentosPorDiaViewModel {
+  // Respostas sem o campo (API anterior) são tratadas como indisponíveis.
+  if (!Array.isArray(serie)) return { disponivel: false };
+
+  const maior = serie.reduce((acc, item) => Math.max(acc, item.valor), 0);
+  let melhorDia: ItemRecebimentoDia | null = null;
+
+  const dias = serie.map((item) => {
+    const [ano, mes, dia] = item.dia.split("-");
+    const diaDaSemana = formatadorDiaDaSemana.format(new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia))));
+    const itemVm: ItemRecebimentoDia = {
+      dia: item.dia,
+      rotuloCurto: `${dia}/${mes}`,
+      rotuloCompleto: `${diaDaSemana}, ${dia}/${mes}`,
+      valor: item.valor,
+      proporcao: percentualInteiro(item.valor, maior),
+    };
+    if (item.valor > 0 && (melhorDia === null || item.valor > melhorDia.valor)) melhorDia = itemVm;
+    return itemVm;
+  });
+
+  return {
+    disponivel: true,
+    dias,
+    melhorDia,
+    diasComRecebimento: dias.filter((item) => item.valor > 0).length,
+  };
 }
 
 export function montarDashboardViewModel(metrics: DashboardMetrics): DashboardViewModel {
@@ -161,6 +216,7 @@ export function montarDashboardViewModel(metrics: DashboardMetrics): DashboardVi
     situacaoFinanceira,
     servicos,
     insumos,
+    recebimentosPorDia: montarRecebimentosPorDia(metrics.recebimentosPorDia),
     vazio,
   };
 }
