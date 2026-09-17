@@ -51,6 +51,7 @@ import {
   GET as osPagamentosGet,
   POST as osPagamentosPost,
 } from "@/app/api/ordens-servico/[id]/pagamentos/route";
+import { POST as osPagamentoEstornoPost } from "@/app/api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno/route";
 import {
   GET as osInsumosGet,
   POST as osInsumosPost,
@@ -97,6 +98,7 @@ function criarRequest(path: string, method = "GET") {
 
 const params = { params: Promise.resolve({ id: "abc" }) };
 const fotoParams = { params: Promise.resolve({ id: "abc", itemId: "item-1" }) };
+const estornoParams = { params: Promise.resolve({ id: "abc", pagamentoId: "pag-1" }) };
 const fotoIdParams = { params: Promise.resolve({ id: "abc", itemId: "item-1", fotoId: "foto-1" }) };
 
 const casos: Array<[string, () => Promise<Response>]> = [
@@ -192,6 +194,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "POST /api/ordens-servico/[id]/pagamentos",
     () => osPagamentosPost(criarRequest("/api/ordens-servico/abc/pagamentos", "POST"), params),
+  ],
+  [
+    "POST /api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno",
+    () => osPagamentoEstornoPost(criarRequest("/api/ordens-servico/abc/pagamentos/pag-1/estorno", "POST"), estornoParams),
   ],
   [
     "GET /api/ordens-servico/[id]/insumos",
