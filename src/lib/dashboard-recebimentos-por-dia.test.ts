@@ -5,6 +5,7 @@ import {
   listarDiasDoPeriodo,
   montarRecebimentosPorDia,
 } from "./dashboard-recebimentos-por-dia";
+import { somarPagamentosPorDiaOperacional } from "./dashboard-service";
 
 describe("listarDiasDoPeriodo", () => {
   it("lista todos os dias do período, inclusive as pontas", () => {
@@ -34,6 +35,17 @@ describe("listarDiasDoPeriodo", () => {
 });
 
 describe("montarRecebimentosPorDia", () => {
+  it("preenche com zero os dias sem recebimento, mantém a ordem e ignora dias fora do período", () => {
+    const totais = new Map([["2026-09-16", 50], ["2026-09-20", 99]]);
+    expect(montarRecebimentosPorDia(["2026-09-14", "2026-09-15", "2026-09-16"], totais)).toEqual([
+      { dia: "2026-09-14", valor: 0 },
+      { dia: "2026-09-15", valor: 0 },
+      { dia: "2026-09-16", valor: 50 },
+    ]);
+  });
+});
+
+describe("somarPagamentosPorDiaOperacional", () => {
   const tzOriginal = process.env.TZ;
 
   afterEach(() => {
@@ -41,32 +53,23 @@ describe("montarRecebimentosPorDia", () => {
     else process.env.TZ = tzOriginal;
   });
 
-  it("preenche com zero os dias sem recebimento e mantém a ordem do período", () => {
-    const dias = ["2026-09-14", "2026-09-15", "2026-09-16"];
-    const serie = montarRecebimentosPorDia(dias, [
-      { dataPagamento: new Date("2026-09-16T10:00:00-03:00"), valor: 50 },
-    ]);
-    expect(serie).toEqual([
-      { dia: "2026-09-14", valor: 0 },
-      { dia: "2026-09-15", valor: 0 },
-      { dia: "2026-09-16", valor: 50 },
-    ]);
-  });
-
-  it("soma em centavos sem erro de ponto flutuante e aceita Decimal do Prisma", () => {
-    const serie = montarRecebimentosPorDia(["2026-09-16"], [
+  it("soma com precisão decimal, sem erro de ponto flutuante", () => {
+    const totais = somarPagamentosPorDiaOperacional([
       { dataPagamento: new Date("2026-09-16T09:00:00-03:00"), valor: new Prisma.Decimal("0.10") },
       { dataPagamento: new Date("2026-09-16T10:00:00-03:00"), valor: new Prisma.Decimal("0.20") },
       { dataPagamento: new Date("2026-09-16T11:00:00-03:00"), valor: 19.99 },
     ]);
-    expect(serie).toEqual([{ dia: "2026-09-16", valor: 20.29 }]);
+    expect(totais.get("2026-09-16")).toBe(20.29);
   });
 
-  it("ignora pagamentos fora dos dias informados", () => {
-    const serie = montarRecebimentosPorDia(["2026-09-16"], [
-      { dataPagamento: new Date("2026-09-17T00:00:00-03:00"), valor: 10 },
-    ]);
-    expect(serie).toEqual([{ dia: "2026-09-16", valor: 0 }]);
+  it("preserva frações de centavo como o aggregate do total recebido", () => {
+    const valores = ["0.005", "0.004", "10.001"];
+    const totais = somarPagamentosPorDiaOperacional(
+      valores.map((valor) => ({ dataPagamento: new Date("2026-09-16T12:00:00-03:00"), valor: new Prisma.Decimal(valor) })),
+    );
+    const agregado = valores.reduce((acc, valor) => acc.plus(valor), new Prisma.Decimal(0)).toNumber();
+    expect(totais.get("2026-09-16")).toBe(agregado);
+    expect(totais.get("2026-09-16")).toBe(10.01);
   });
 
   it.each([
@@ -77,13 +80,13 @@ describe("montarRecebimentosPorDia", () => {
     process.env.TZ = tz;
     expect(new Date("2026-09-16T12:00:00Z").getTimezoneOffset()).toBe(offsetMinutos);
 
-    const serie = montarRecebimentosPorDia(["2026-09-16", "2026-09-17"], [
+    const totais = somarPagamentosPorDiaOperacional([
       { dataPagamento: new Date("2026-09-16T23:30:00-03:00"), valor: 40 },
       { dataPagamento: new Date("2026-09-17T00:00:00-03:00"), valor: 15 },
     ]);
-    expect(serie).toEqual([
-      { dia: "2026-09-16", valor: 40 },
-      { dia: "2026-09-17", valor: 15 },
+    expect([...totais]).toEqual([
+      ["2026-09-16", 40],
+      ["2026-09-17", 15],
     ]);
   });
 });

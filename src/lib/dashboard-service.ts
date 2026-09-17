@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
 import {
@@ -5,6 +6,22 @@ import {
   montarRecebimentosPorDia,
   type RecebimentoDia,
 } from './dashboard-recebimentos-por-dia';
+
+/**
+ * Soma os pagamentos por dia do fuso da operação com `Prisma.Decimal`, a mesma
+ * precisão do `aggregate` de `totalRecebido` (a coluna aceita frações de
+ * centavo). A conversão para número acontece só no total de cada dia.
+ */
+export function somarPagamentosPorDiaOperacional(
+  pagamentos: { dataPagamento: Date; valor: Prisma.Decimal | number | string }[],
+): Map<string, number> {
+  const somas = new Map<string, Prisma.Decimal>();
+  for (const { dataPagamento, valor } of pagamentos) {
+    const dia = dataOperacional(dataPagamento);
+    somas.set(dia, (somas.get(dia) ?? new Prisma.Decimal(0)).plus(valor));
+  }
+  return new Map([...somas].map(([dia, soma]) => [dia, soma.toNumber()]));
+}
 
 export interface DashboardMetrics {
   totalRecebido: number;
@@ -27,6 +44,23 @@ export interface DashboardMetrics {
   recebimentosPorDia: RecebimentoDia[] | null;
 }
 
+async function lerRecebimentosDoPeriodo(inicio: Date, fimExclusivo: Date, comSerie: boolean) {
+  const where = { dataPagamento: { gte: inicio, lt: fimExclusivo } };
+
+  if (!comSerie) {
+    return { totalRecebidoAgg: await prisma.pagamento.aggregate({ _sum: { valor: true }, where }), pagamentosDoPeriodo: [] };
+  }
+
+  const [totalRecebidoAgg, pagamentosDoPeriodo] = await prisma.$transaction(
+    [
+      prisma.pagamento.aggregate({ _sum: { valor: true }, where }),
+      prisma.pagamento.findMany({ where, select: { dataPagamento: true, valor: true } }),
+    ],
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+  );
+  return { totalRecebidoAgg, pagamentosDoPeriodo };
+}
+
 /**
  * @param dataInicio dia inicial "YYYY-MM-DD" no fuso da operação
  * @param dataFim dia final "YYYY-MM-DD" no fuso da operação (inclusive)
@@ -43,7 +77,7 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
 
   // Execução paralela de todas as agregações independentes para reduzir tempo de resposta.
   const [
-    totalRecebidoAgg,
+    { totalRecebidoAgg, pagamentosDoPeriodo },
     totalPendenteAgg,
     osPorStatus,
     osPagas,
@@ -52,13 +86,12 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     ticketMedioAgg,
     topServicosAgg,
     topInsumosAgg,
-    pagamentosDoPeriodo
   ] = await Promise.all([
-    // 1. Total Recebido no período (Soma de todos os pagamentos)
-    prisma.pagamento.aggregate({
-      _sum: { valor: true },
-      where: { dataPagamento: { gte: inicio, lt: fimExclusivo } },
-    }),
+    // 1. Total Recebido no período (Soma de todos os pagamentos) e, quando o
+    //    período comporta a série diária, os pagamentos que a compõem. As duas
+    //    leituras usam o mesmo snapshot (REPEATABLE READ) para que a soma da
+    //    série seja igual ao total mesmo com pagamentos gravados no meio.
+    lerRecebimentosDoPeriodo(inicio, fimExclusivo, diasDoPeriodo !== null && diasDoPeriodo.length > 0),
     // 2. Total Pendente (Soma do saldo das OS que entraram no período e não estão canceladas)
     prisma.ordemServico.aggregate({
       _sum: { saldo: true },
@@ -140,13 +173,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
     }),
-    // 8. Pagamentos do período para a série diária (mesmo filtro do total recebido).
-    diasDoPeriodo && diasDoPeriodo.length > 0
-      ? prisma.pagamento.findMany({
-          where: { dataPagamento: { gte: inicio, lt: fimExclusivo } },
-          select: { dataPagamento: true, valor: true },
-        })
-      : Promise.resolve([]),
   ]);
 
   const totalRecebido = Number(totalRecebidoAgg._sum.valor || 0);
@@ -221,6 +247,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     ticketMedio,
     topServicos,
     topInsumos,
-    recebimentosPorDia: diasDoPeriodo === null ? null : montarRecebimentosPorDia(diasDoPeriodo, pagamentosDoPeriodo),
+    recebimentosPorDia: diasDoPeriodo === null ? null : montarRecebimentosPorDia(diasDoPeriodo, somarPagamentosPorDiaOperacional(pagamentosDoPeriodo)),
   };
 }
