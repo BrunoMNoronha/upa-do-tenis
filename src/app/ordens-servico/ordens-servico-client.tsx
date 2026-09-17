@@ -745,6 +745,9 @@ function OrdemServicoForm({
     setFotosPorItem({});
     setOrdemPendenteFoto(null);
     onClose();
+    // O replaceState de onClose pode descartar o refresh antecipado ainda em
+    // andamento; atualiza de novo depois de fechar o drawer.
+    startTransition(() => router.refresh());
     if (criada.caminhoAcompanhamento) {
       onCriada({
         numeroOS: criada.numero,
