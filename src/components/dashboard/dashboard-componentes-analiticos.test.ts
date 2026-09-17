@@ -196,6 +196,21 @@ describe("DashboardRecebimentosPorDia", () => {
     expect(markup).not.toContain("Nenhum recebimento no período.");
   });
 
+  it("extremos: nenhuma barra ultrapassa a área do seu lado do eixo", () => {
+    for (const serie of [
+      [{ dia: "2026-09-10", valor: 0.01 }, { dia: "2026-09-11", valor: -100 }],
+      [{ dia: "2026-09-10", valor: 100 }, { dia: "2026-09-11", valor: -0.01 }],
+    ]) {
+      const vm = montarDashboardViewModel({ ...metrics, recebimentosPorDia: serie });
+      const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: vm.recebimentosPorDia }));
+      const pos = [...markup.matchAll(/bottom:(\d+)%;height:(\d+)%/g)].map((m) => [Number(m[1]), Number(m[2])]);
+      const neg = [...markup.matchAll(/top:(\d+)%;height:(\d+)%/g)].map((m) => [Number(m[1]), Number(m[2])]);
+      expect(pos.length + neg.length).toBe(2);
+      for (const [base, altura] of pos) expect(base + altura).toBeLessThanOrEqual(100);
+      for (const [topo, altura] of neg) expect(topo + altura).toBeLessThanOrEqual(100);
+    }
+  });
+
   it("sem estorno → nenhuma barra vermelha", () => {
     expect(html).not.toContain("var(--danger)");
   });

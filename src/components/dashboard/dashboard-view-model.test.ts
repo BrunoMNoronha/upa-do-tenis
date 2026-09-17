@@ -182,6 +182,30 @@ describe("dashboard-view-model", () => {
       expect(vm.diasComRecebimento).toBe(1);
     });
 
+    it("valor muito menor de um lado ainda reserva a altura mínima da área (sem transbordar)", () => {
+      const pequenoPositivo = montarDashboardViewModel({
+        ...base,
+        recebimentosPorDia: [
+          { dia: "2026-09-10", valor: 0.01 },
+          { dia: "2026-09-11", valor: -100 },
+        ],
+      }).recebimentosPorDia;
+      expect(pequenoPositivo.disponivel && pequenoPositivo.alturaAreaPositiva).toBe(2);
+
+      const pequenoNegativo = montarDashboardViewModel({
+        ...base,
+        recebimentosPorDia: [
+          { dia: "2026-09-10", valor: 100 },
+          { dia: "2026-09-11", valor: -0.01 },
+        ],
+      }).recebimentosPorDia;
+      expect(pequenoNegativo.disponivel && pequenoNegativo.alturaAreaPositiva).toBe(98);
+
+      const soNegativo = montarDashboardViewModel({ ...base, recebimentosPorDia: [{ dia: "2026-09-11", valor: -50 }] })
+        .recebimentosPorDia;
+      expect(soNegativo.disponivel && soNegativo.alturaAreaPositiva).toBe(0);
+    });
+
     it("sem dia negativo a área positiva ocupa o gráfico inteiro", () => {
       const vm = montarDashboardViewModel({ ...base, recebimentosPorDia: serie }).recebimentosPorDia;
       expect(vm.disponivel && vm.alturaAreaPositiva).toBe(100);

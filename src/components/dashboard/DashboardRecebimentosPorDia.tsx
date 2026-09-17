@@ -1,7 +1,7 @@
 import { formatCurrency } from "@/lib/formatters";
 import { LIMITE_DIAS_RECEBIMENTOS_POR_DIA } from "@/lib/dashboard-recebimentos-por-dia";
 import { DashboardPanel } from "./DashboardPanel";
-import type { RecebimentosPorDiaViewModel } from "./dashboard-view-model";
+import { ALTURA_MINIMA_BARRA, type RecebimentosPorDiaViewModel } from "./dashboard-view-model";
 
 type DashboardRecebimentosPorDiaProps = {
   recebimentos: RecebimentosPorDiaViewModel;
@@ -9,6 +9,11 @@ type DashboardRecebimentosPorDiaProps = {
 };
 
 const TITULO = "Recebimentos por dia";
+
+/** Altura da barra com mínimo visível, sem ultrapassar a área do seu lado do eixo. */
+function alturaBarra(proporcao: number, areaDisponivel: number): number {
+  return Math.min(Math.max(proporcao, ALTURA_MINIMA_BARRA), areaDisponivel);
+}
 const DESCRICAO = "Pagamentos registrados em cada dia do período, descontados os estornos";
 
 /**
@@ -72,12 +77,18 @@ export function DashboardRecebimentosPorDia({ recebimentos, className = "" }: Da
                 {item.valor > 0 ? (
                   <div
                     className="absolute inset-x-0 rounded-t-[3px] bg-[color:var(--accent)]"
-                    style={{ bottom: `${100 - alturaAreaPositiva}%`, height: `${Math.max(item.proporcao, 2)}%` }}
+                    style={{
+                      bottom: `${100 - alturaAreaPositiva}%`,
+                      height: `${alturaBarra(item.proporcao, alturaAreaPositiva)}%`,
+                    }}
                   />
                 ) : item.valor < 0 ? (
                   <div
                     className="absolute inset-x-0 rounded-b-[3px] bg-[color:var(--danger)]"
-                    style={{ top: `${alturaAreaPositiva}%`, height: `${Math.max(item.proporcao, 2)}%` }}
+                    style={{
+                      top: `${alturaAreaPositiva}%`,
+                      height: `${alturaBarra(item.proporcao, 100 - alturaAreaPositiva)}%`,
+                    }}
                   />
                 ) : null}
               </div>
