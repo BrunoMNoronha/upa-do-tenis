@@ -93,6 +93,16 @@ describe("filtros de período no fuso da operação com processo em UTC", () => 
     expect(noDiaSeguinte.osAbertas).toBe(0);
   });
 
+  it("dashboard agrupa recebimentosPorDia pelo dia de São Paulo e soma igual ao total recebido", async () => {
+    const periodo = await metricas(DIA, DIA_SEGUINTE);
+    expect(periodo.recebimentosPorDia).toEqual([
+      { dia: DIA, valor: 40 },
+      { dia: DIA_SEGUINTE, valor: 0 },
+    ]);
+    const soma = periodo.recebimentosPorDia.reduce((acc: number, item: { valor: number }) => acc + item.valor, 0);
+    expect(soma).toBe(periodo.totalRecebido);
+  });
+
   it("relatório financeiro de OS lista a OS das 22:30 no dia de São Paulo, não no dia UTC", async () => {
     const noDia = await gerarRelatorioFinanceiroOS({ inicio: DIA, fim: DIA });
     expect(noDia.itens.map((item) => item.id)).toContain(osId);

@@ -25,6 +25,7 @@ const metrics: DashboardMetrics = {
     { id: "s2", nome: "Lavagem de tênis", quantidade: 2 },
   ],
   topInsumos: [{ id: "i1", nome: "Cola de sapateiro (ml)", quantidade: 85.5 }],
+  recebimentosPorDia: [],
 };
 
 const zerado: DashboardMetrics = {

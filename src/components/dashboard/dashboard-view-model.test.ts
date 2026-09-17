@@ -19,6 +19,7 @@ const base: DashboardMetrics = {
     { id: "s3", nome: "Colagem", quantidade: 4 },
   ],
   topInsumos: [{ id: "i1", nome: "Cola (ml)", quantidade: 250 }],
+  recebimentosPorDia: [],
 };
 
 const zerado: DashboardMetrics = {
@@ -34,6 +35,7 @@ const zerado: DashboardMetrics = {
   ticketMedio: 0,
   topServicos: [],
   topInsumos: [],
+  recebimentosPorDia: [],
 };
 
 describe("dashboard-view-model", () => {

@@ -1,5 +1,27 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
-import { intervaloDoDiaOperacional } from './date-range';
+import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
+import {
+  listarDiasDoPeriodo,
+  montarRecebimentosPorDia,
+  type RecebimentoDia,
+} from './dashboard-recebimentos-por-dia';
+
+/**
+ * Soma os pagamentos por dia do fuso da operação com `Prisma.Decimal`, a mesma
+ * precisão do `aggregate` de `totalRecebido` (a coluna aceita frações de
+ * centavo). A conversão para número acontece só no total de cada dia.
+ */
+export function somarPagamentosPorDiaOperacional(
+  pagamentos: { dataPagamento: Date; valor: Prisma.Decimal | number | string }[],
+): Map<string, number> {
+  const somas = new Map<string, Prisma.Decimal>();
+  for (const { dataPagamento, valor } of pagamentos) {
+    const dia = dataOperacional(dataPagamento);
+    somas.set(dia, (somas.get(dia) ?? new Prisma.Decimal(0)).plus(valor));
+  }
+  return new Map([...somas].map(([dia, soma]) => [dia, soma.toNumber()]));
+}
 
 export interface DashboardMetrics {
   totalRecebido: number;
@@ -14,6 +36,29 @@ export interface DashboardMetrics {
   ticketMedio: number;
   topServicos: { id: string; nome: string; quantidade: number }[];
   topInsumos: { id: string; nome: string; quantidade: number }[];
+  /**
+   * Um item por dia do período (fuso da operação), com zero nos dias sem
+   * recebimento; a soma dos valores é igual a `totalRecebido`. `null` quando o
+   * período passa de `LIMITE_DIAS_RECEBIMENTOS_POR_DIA`.
+   */
+  recebimentosPorDia: RecebimentoDia[] | null;
+}
+
+async function lerRecebimentosDoPeriodo(inicio: Date, fimExclusivo: Date, comSerie: boolean) {
+  const where = { dataPagamento: { gte: inicio, lt: fimExclusivo } };
+
+  if (!comSerie) {
+    return { totalRecebidoAgg: await prisma.pagamento.aggregate({ _sum: { valor: true }, where }), pagamentosDoPeriodo: [] };
+  }
+
+  const [totalRecebidoAgg, pagamentosDoPeriodo] = await prisma.$transaction(
+    [
+      prisma.pagamento.aggregate({ _sum: { valor: true }, where }),
+      prisma.pagamento.findMany({ where, select: { dataPagamento: true, valor: true } }),
+    ],
+    { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+  );
+  return { totalRecebidoAgg, pagamentosDoPeriodo };
 }
 
 /**
@@ -25,11 +70,14 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
   // processo): >= início do dia inicial e < início do dia seguinte ao final,
   // incluindo registros criados hoje.
   const { inicio } = intervaloDoDiaOperacional(dataInicio);
-  const { fimExclusivo } = intervaloDoDiaOperacional(dataFim);
+  const { inicio: inicioDoDiaFinal, fimExclusivo } = intervaloDoDiaOperacional(dataFim);
+
+  // Dias do período normalizados para "YYYY-MM-DD" (a rota também aceita ISO completo).
+  const diasDoPeriodo = listarDiasDoPeriodo(dataOperacional(inicio), dataOperacional(inicioDoDiaFinal));
 
   // Execução paralela de todas as agregações independentes para reduzir tempo de resposta.
   const [
-    totalRecebidoAgg,
+    { totalRecebidoAgg, pagamentosDoPeriodo },
     totalPendenteAgg,
     osPorStatus,
     osPagas,
@@ -37,13 +85,13 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     osParcialmentePagas,
     ticketMedioAgg,
     topServicosAgg,
-    topInsumosAgg
+    topInsumosAgg,
   ] = await Promise.all([
-    // 1. Total Recebido no período (Soma de todos os pagamentos)
-    prisma.pagamento.aggregate({
-      _sum: { valor: true },
-      where: { dataPagamento: { gte: inicio, lt: fimExclusivo } },
-    }),
+    // 1. Total Recebido no período (Soma de todos os pagamentos) e, quando o
+    //    período comporta a série diária, os pagamentos que a compõem. As duas
+    //    leituras usam o mesmo snapshot (REPEATABLE READ) para que a soma da
+    //    série seja igual ao total mesmo com pagamentos gravados no meio.
+    lerRecebimentosDoPeriodo(inicio, fimExclusivo, diasDoPeriodo !== null && diasDoPeriodo.length > 0),
     // 2. Total Pendente (Soma do saldo das OS que entraram no período e não estão canceladas)
     prisma.ordemServico.aggregate({
       _sum: { saldo: true },
@@ -124,7 +172,7 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
       },
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
-    })
+    }),
   ]);
 
   const totalRecebido = Number(totalRecebidoAgg._sum.valor || 0);
@@ -199,5 +247,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     ticketMedio,
     topServicos,
     topInsumos,
+    recebimentosPorDia: diasDoPeriodo === null ? null : montarRecebimentosPorDia(diasDoPeriodo, somarPagamentosPorDiaOperacional(pagamentosDoPeriodo)),
   };
 }
