@@ -23,7 +23,14 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Diálogo com valor, forma, data e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API (sem caixa aberto, já estornado) aparecem no diálogo em `role="alert"`.
   - Depois do estorno, o detalhe é recarregado: pago, saldo, status financeiro e histórico se atualizam sem recarregar a página. Com todos os pagamentos estornados, "Cancelar OS" volta a aparecer.
   - Pagamento estornado aparece riscado, com a etiqueta "Estornado em … por … — motivo". O detalhe da OS passa a devolver data, motivo e usuário do estorno.
-  - A mensagem da OS com pagamento passa a orientar: "Estorne os pagamentos para poder cancelá-la."
+  - A mensagem da OS com pagamento passa a orientar: "Estorne os pagamentos para poder cancelá-la." OS bloqueada só por sinal legado recebe mensagem própria, sem orientar estorno (na tela e no 409 da rota de status).
+  - Com o estorno aceito, o diálogo fecha e confirma o estorno antes de recarregar; uma falha na recarga não aparece como falha do estorno.
+- **Estorno de pagamentos de OS — dashboard, relatórios e caixa (#230, fatia 3)**: o dashboard passa a mostrar o recebido líquido. Pagamentos contam no dia de `dataPagamento` e estornos são descontados no dia de `dataEstorno`, sem alterar dias anteriores.
+  - `totalRecebido` e `recebimentosPorDia` saem das mesmas leituras (pagamentos e estornos) num único snapshot `REPEATABLE READ`, inclusive quando o período passa do limite da série. A soma da série continua igual ao total.
+  - Gráfico "Recebimentos por dia": um dia com mais estorno que pagamento aparece com barra vermelha abaixo do eixo, na mesma escala das barras positivas. Sem estorno, o gráfico fica idêntico. "Melhor dia" e "Dias com recebimento" consideram só dias positivos.
+  - Caixa: a origem das movimentações aparece com rótulo legível ("Pagamento de OS", "Estorno de pagamento de OS", "Atendimento Rápido", "Manual", "Venda de balcão").
+  - Relatório financeiro de OS: já era líquido pela fatia 1; teste de integração confirma a coerência com o detalhe da OS depois do estorno.
+  - Sem alteração de schema e sem mudança no cálculo do caixa.
 - **Estorno de pagamentos de OS — API com caixa (#230, fatia 2)**: `POST /api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno` com `{ motivo }` (5 a 500 caracteres, aparado). Estorna o pagamento inteiro, uma única vez, registrando o usuário da sessão.
   - Uma transação grava o estorno, lança SAÍDA `ESTORNO_PAGAMENTO_OS` no caixa aberto na forma do pagamento original e regrava `valorPago`/`saldo` da OS. A linha da OS é travada no início, e estornos concorrentes da mesma OS ficam em fila.
   - Recusas sem gravar nada: pagamento inexistente ou de outra OS (404, inclusive pagamentos de Atendimento Rápido, fora de escopo), OS cancelada (409), pagamento já estornado (409, também na corrida, pela restrição única), sem caixa aberto (400), motivo inválido (400).

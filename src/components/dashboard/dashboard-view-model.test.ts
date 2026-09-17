@@ -165,6 +165,52 @@ describe("dashboard-view-model", () => {
       expect(vm.disponivel && vm.dias[0].proporcao).toBe(0);
     });
 
+    it("dia negativo (estorno, #230): mesma escala para as duas áreas e melhor dia só entre positivos", () => {
+      const vm = montarDashboardViewModel({
+        ...base,
+        recebimentosPorDia: [
+          { dia: "2026-09-10", valor: 300 },
+          { dia: "2026-09-11", valor: 0 },
+          { dia: "2026-09-12", valor: -100 },
+        ],
+      }).recebimentosPorDia;
+      expect(vm.disponivel).toBe(true);
+      if (!vm.disponivel) return;
+      expect(vm.dias.map((d) => d.proporcao)).toEqual([75, 0, 25]);
+      expect(vm.alturaAreaPositiva).toBe(75);
+      expect(vm.melhorDia?.dia).toBe("2026-09-10");
+      expect(vm.diasComRecebimento).toBe(1);
+    });
+
+    it("valor muito menor de um lado ainda reserva a altura mínima da área (sem transbordar)", () => {
+      const pequenoPositivo = montarDashboardViewModel({
+        ...base,
+        recebimentosPorDia: [
+          { dia: "2026-09-10", valor: 0.01 },
+          { dia: "2026-09-11", valor: -100 },
+        ],
+      }).recebimentosPorDia;
+      expect(pequenoPositivo.disponivel && pequenoPositivo.alturaAreaPositiva).toBe(2);
+
+      const pequenoNegativo = montarDashboardViewModel({
+        ...base,
+        recebimentosPorDia: [
+          { dia: "2026-09-10", valor: 100 },
+          { dia: "2026-09-11", valor: -0.01 },
+        ],
+      }).recebimentosPorDia;
+      expect(pequenoNegativo.disponivel && pequenoNegativo.alturaAreaPositiva).toBe(98);
+
+      const soNegativo = montarDashboardViewModel({ ...base, recebimentosPorDia: [{ dia: "2026-09-11", valor: -50 }] })
+        .recebimentosPorDia;
+      expect(soNegativo.disponivel && soNegativo.alturaAreaPositiva).toBe(0);
+    });
+
+    it("sem dia negativo a área positiva ocupa o gráfico inteiro", () => {
+      const vm = montarDashboardViewModel({ ...base, recebimentosPorDia: serie }).recebimentosPorDia;
+      expect(vm.disponivel && vm.alturaAreaPositiva).toBe(100);
+    });
+
     it("null (período acima do limite) ou campo ausente → indisponível", () => {
       expect(montarDashboardViewModel({ ...base, recebimentosPorDia: null }).recebimentosPorDia).toEqual({ disponivel: false });
       const { recebimentosPorDia: _omitido, ...semCampo } = base;

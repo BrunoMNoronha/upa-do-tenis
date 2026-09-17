@@ -1,7 +1,10 @@
 export interface RecebimentoDia {
   /** Dia "YYYY-MM-DD" no fuso da operação. */
   dia: string;
-  /** Soma dos pagamentos do dia (mesma base do KPI "Total recebido"). */
+  /**
+   * Recebido líquido do dia: pagamentos menos estornos feitos no dia (mesma
+   * base do KPI "Total recebido"). Pode ser negativo num dia só com estorno.
+   */
   valor: number;
 }
 

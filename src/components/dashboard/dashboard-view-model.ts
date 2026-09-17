@@ -44,8 +44,13 @@ export type ItemRecebimentoDia = {
   rotuloCurto: string;
   /** "qua., 16/09" (dia da semana calculado sobre o calendário, sem fuso). */
   rotuloCompleto: string;
+  /** Recebido líquido do dia; negativo num dia em que os estornos superam os pagamentos (#230). */
   valor: number;
-  /** Altura relativa da barra (0-100), normalizada pelo maior dia. */
+  /**
+   * Altura da barra (0-100) em relação à altura do gráfico. Sem dia negativo,
+   * normalizada pelo maior dia; com dia negativo, pela soma do maior positivo e
+   * do maior negativo, para que as duas áreas usem a mesma escala.
+   */
   proporcao: number;
 };
 
@@ -57,6 +62,11 @@ export type RecebimentosPorDiaViewModel =
       /** Maior recebimento diário, ou null quando nenhum dia teve valor. */
       melhorDia: ItemRecebimentoDia | null;
       diasComRecebimento: number;
+      /**
+       * Altura (0-100) da área acima do eixo. 100 quando não há dia negativo;
+       * abaixo disso, a área restante recebe as barras negativas.
+       */
+      alturaAreaPositiva: number;
     };
 
 export type DashboardViewModel = {
@@ -99,11 +109,28 @@ function normalizarRanking(itens: DashboardMetrics["topServicos"]): ItemRanking[
 
 const formatadorDiaDaSemana = new Intl.DateTimeFormat("pt-BR", { weekday: "short", timeZone: "UTC" });
 
+/** Altura mínima (0-100) de uma barra visível, reservada nos dois lados do eixo. */
+export const ALTURA_MINIMA_BARRA = 2;
+
+/**
+ * Posição do eixo (0-100). Com os dois sinais, cada lado reserva ao menos a
+ * altura mínima de uma barra, para que um valor pequeno de um lado não
+ * arredonde a área para 0 e empurre a barra para fora do gráfico.
+ */
+function calcularAlturaAreaPositiva(maior: number, maiorNegativo: number): number {
+  if (maiorNegativo <= 0) return 100;
+  if (maior <= 0) return 0;
+  const altura = percentualInteiro(maior, maior + maiorNegativo);
+  return Math.min(Math.max(altura, ALTURA_MINIMA_BARRA), 100 - ALTURA_MINIMA_BARRA);
+}
+
 function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"]): RecebimentosPorDiaViewModel {
   // Respostas sem o campo (API anterior) são tratadas como indisponíveis.
   if (!Array.isArray(serie)) return { disponivel: false };
 
   const maior = serie.reduce((acc, item) => Math.max(acc, item.valor), 0);
+  const maiorNegativo = serie.reduce((acc, item) => Math.max(acc, -item.valor), 0);
+  const escala = maior + maiorNegativo;
   let melhorDia: ItemRecebimentoDia | null = null;
 
   const dias = serie.map((item) => {
@@ -114,7 +141,7 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
       rotuloCurto: `${dia}/${mes}`,
       rotuloCompleto: `${diaDaSemana}, ${dia}/${mes}`,
       valor: item.valor,
-      proporcao: percentualInteiro(item.valor, maior),
+      proporcao: percentualInteiro(Math.abs(item.valor), escala),
     };
     if (item.valor > 0 && (melhorDia === null || item.valor > melhorDia.valor)) melhorDia = itemVm;
     return itemVm;
@@ -125,6 +152,7 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
     dias,
     melhorDia,
     diasComRecebimento: dias.filter((item) => item.valor > 0).length,
+    alturaAreaPositiva: calcularAlturaAreaPositiva(maior, maiorNegativo),
   };
 }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Badge, Card, SectionTitle, LoadingState, ErrorState } from "@/components/ui";
+import { rotuloOrigemMovimentacaoCaixa } from "@/lib/caixa-origem";
 
 type FormaPagamento = { id: string; nome: string };
 
@@ -126,7 +127,7 @@ export function CaixaDetalheClient({ caixaId }: { caixaId: string }) {
                       <span className="font-medium text-sm">{mov.descricao}</span>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">
-                      {dateFormatter.format(new Date(mov.criadoEm))} • {mov.origem}
+                      {dateFormatter.format(new Date(mov.criadoEm))} • {rotuloOrigemMovimentacaoCaixa(mov.origem)}
                       {mov.formaPagamento ? ` • ${mov.formaPagamento.nome}` : ""}
                       {mov.ordemServicoId ? ` • OS Vínculada` : ""}
                       {mov.atendimentoRapidoId ? ` • Atendimento Rápido` : ""}
