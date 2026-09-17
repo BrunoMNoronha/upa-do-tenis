@@ -133,3 +133,14 @@ export function inicioDoDiaOperacional(referencia: Date = new Date()): Date {
 
   return new Date(Date.UTC(ano, mes, dia) - deslocamento);
 }
+
+/**
+ * Converte um dia operacional ("YYYY-MM-DD") informado pelo operador no
+ * instante a persistir: o próprio `agora` quando o dia é hoje (preserva a
+ * hora real do registro) ou meio-dia do dia informado quando retroativo.
+ * Evita `new Date("YYYY-MM-DD")`, que grava meia-noite UTC e desloca o
+ * registro para o dia anterior no fuso da operação.
+ */
+export function instanteDoDiaOperacional(dia: string, agora: Date = new Date()): Date {
+  return dia === dataOperacionalHoje(agora) ? agora : new Date(`${dia}T12:00:00`);
+}
