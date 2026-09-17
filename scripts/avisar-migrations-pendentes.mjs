@@ -18,6 +18,7 @@ for (const arquivo of [".env.development.local", ".env.local", ".env.development
 const { PrismaClient } = await import("@prisma/client");
 
 const TEMPO_LIMITE_MS = 5000;
+const TEMPO_LIMITE_DESCONEXAO_MS = 1000;
 
 function avisar(linhas) {
   const faixa = "=".repeat(72);
@@ -61,7 +62,12 @@ async function verificar() {
     const mensagem = texto.split("\n").map((linha) => linha.trim()).filter(Boolean).pop() ?? "erro desconhecido";
     avisar([`[migrations] Não foi possível verificar migrations pendentes: ${mensagem}`]);
   } finally {
-    await prisma.$disconnect().catch(() => {});
+    // Após o timeout a consulta pode seguir ativa, e o `$disconnect()` esperaria
+    // por ela: limita a espera. O `process.exit(0)` final encerra o que sobrar.
+    await Promise.race([
+      prisma.$disconnect().catch(() => {}),
+      new Promise((resolver) => setTimeout(resolver, TEMPO_LIMITE_DESCONEXAO_MS).unref()),
+    ]);
   }
 }
 
