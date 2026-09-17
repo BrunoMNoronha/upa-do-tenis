@@ -24,6 +24,7 @@ type Movimentacao = {
   formaPagamento?: FormaPagamento | null;
   criadoEm: string;
   ordemServicoId?: string | null;
+  atendimentoRapidoId?: string | null;
 };
 
 type TotaisCaixa = {

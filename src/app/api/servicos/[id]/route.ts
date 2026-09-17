@@ -75,6 +75,17 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       );
     }
 
+    const countAtendimentosRapidos = await prisma.itemAtendimentoRapido.count({
+      where: { servicoId }
+    });
+
+    if (countAtendimentosRapidos > 0) {
+      return NextResponse.json(
+        { message: "Este serviço não pode ser excluído porque possui atendimentos rápidos vinculados. Inative-o para tirá-lo de circulação." },
+        { status: 409 }
+      );
+    }
+
     await prisma.servico.delete({
       where: { id: servicoId }
     });

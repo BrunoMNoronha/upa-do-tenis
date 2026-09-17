@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
+import { combinarRankingServicos } from './dashboard-ranking-servicos';
 import {
   listarDiasDoPeriodo,
   montarRecebimentosPorDia,
@@ -87,7 +88,9 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     topServicosAgg,
     topInsumosAgg,
   ] = await Promise.all([
-    // 1. Total Recebido no período (Soma de todos os pagamentos) e, quando o
+    // 1. Total Recebido no período (Soma de todos os pagamentos: de OS e de
+    //    Atendimento Rápido; cada Pagamento tem exatamente uma origem, garantida
+    //    no banco, então não há dupla contagem) e, quando o
     //    período comporta a série diária, os pagamentos que a compõem. As duas
     //    leituras usam o mesmo snapshot (REPEATABLE READ) para que a soma da
     //    série seja igual ao total mesmo com pagamentos gravados no meio.
@@ -143,7 +146,8 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
         valorTotal: { gt: 0 },
       },
     }),
-    // 6. Top 5 Serviços mais executados
+    // 6. Execuções de serviço em OS (todas; o Top 5 é aplicado depois de somar
+    //    as execuções do Atendimento Rápido).
     prisma.servicoItemOrdem.groupBy({
       by: ['servicoId'],
       _count: { servicoId: true },
@@ -156,7 +160,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
         }
       },
       orderBy: { _count: { servicoId: 'desc' } },
-      take: 5,
     }),
     // 7. Top 5 Insumos mais utilizados
     prisma.insumoItemOrdem.groupBy({
@@ -193,7 +196,23 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     else if (status === 'ENTREGUE') osEntregues = _count.id;
   }
 
-  const servicosIds = topServicosAgg.map(s => s.servicoId);
+  // 6b. Execuções de serviço em Atendimentos Rápidos do período (um item = uma execução).
+  const execucoesAtendimentoRapidoAgg = await prisma.itemAtendimentoRapido.groupBy({
+    by: ['servicoId'],
+    _count: { servicoId: true },
+    where: {
+      atendimentoRapido: {
+        dataHora: { gte: inicio, lt: fimExclusivo },
+      },
+    },
+  });
+
+  const rankingServicos = combinarRankingServicos(
+    topServicosAgg.map(agg => ({ servicoId: agg.servicoId, quantidade: agg._count.servicoId })),
+    execucoesAtendimentoRapidoAgg.map(agg => ({ servicoId: agg.servicoId, quantidade: agg._count.servicoId })),
+  );
+
+  const servicosIds = rankingServicos.map(s => s.servicoId);
   const insumosIds = topInsumosAgg.map(i => i.insumoId);
 
   // Consultas secundárias paralelas baseadas nos IDs agregados
@@ -212,12 +231,12 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
   // Medição: Benchmark local de 100k iterações caiu de 183ms para ~6ms
   const servicosMap = new Map(servicos.map(s => [s.id, s]));
 
-  const topServicos = topServicosAgg.map(agg => {
-    const servico = servicosMap.get(agg.servicoId);
+  const topServicos = rankingServicos.map(item => {
+    const servico = servicosMap.get(item.servicoId);
     return {
-      id: agg.servicoId,
+      id: item.servicoId,
       nome: servico?.nome || 'Serviço Desconhecido',
-      quantidade: agg._count.servicoId,
+      quantidade: item.quantidade,
     };
   });
 

@@ -19,6 +19,9 @@ vi.mock('../lib/prisma', () => ({
     servicoItemOrdem: {
       groupBy: vi.fn(),
     },
+    itemAtendimentoRapido: {
+      groupBy: vi.fn(),
+    },
     servico: {
       findMany: vi.fn(),
     },
@@ -34,6 +37,7 @@ vi.mock('../lib/prisma', () => ({
 describe('Dashboard Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.itemAtendimentoRapido.groupBy as any).mockResolvedValue([]);
   });
 
   it('deve calcular corretamente as métricas gerais com dados mockados', async () => {
@@ -180,5 +184,56 @@ describe('Dashboard Service', () => {
     expect(metrics.recebimentosPorDia).toBeNull();
     expect(prisma.pagamento.findMany).not.toHaveBeenCalled();
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('ranking de serviços soma execuções de OS e de Atendimento Rápido antes de aplicar o Top 5', async () => {
+    (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 0 } });
+    (prisma.pagamento.findMany as any).mockResolvedValue([]);
+    (prisma.ordemServico.aggregate as any).mockResolvedValue({ _sum: { saldo: 0 }, _avg: { valorTotal: 0 } });
+    (prisma.ordemServico.groupBy as any).mockResolvedValue([]);
+    (prisma.ordemServico.count as any).mockResolvedValue(0);
+    (prisma.servicoItemOrdem.groupBy as any).mockResolvedValue([
+      { servicoId: 's1', _count: { servicoId: 6 } },
+      { servicoId: 's2', _count: { servicoId: 5 } },
+      { servicoId: 's3', _count: { servicoId: 4 } },
+      { servicoId: 's4', _count: { servicoId: 3 } },
+      { servicoId: 's5', _count: { servicoId: 2 } },
+      { servicoId: 's6', _count: { servicoId: 1 } },
+    ]);
+    (prisma.itemAtendimentoRapido.groupBy as any).mockResolvedValue([
+      { servicoId: 's6', _count: { servicoId: 9 } },
+      { servicoId: 's1', _count: { servicoId: 1 } },
+    ]);
+    (prisma.servico.findMany as any).mockImplementation(({ where }: any) =>
+      Promise.resolve(where.id.in.map((id: string) => ({ id, nome: `Serviço ${id}` }))),
+    );
+    (prisma.insumoItemOrdem.groupBy as any).mockResolvedValue([]);
+    (prisma.insumo.findMany as any).mockResolvedValue([]);
+
+    const metrics = await getDashboardMetrics('2026-07-01', '2026-07-31');
+
+    // s6: 1 execução em OS + 9 no AR = 10, entra em 1º; s5 sai do Top 5.
+    expect(metrics.topServicos.map((s) => [s.id, s.quantidade])).toEqual([
+      ['s6', 10],
+      ['s1', 7],
+      ['s2', 5],
+      ['s3', 4],
+      ['s4', 3],
+    ]);
+
+    // OS sem corte prévio; AR contando itens (um item = uma execução) no mesmo período.
+    expect((prisma.servicoItemOrdem.groupBy as any).mock.calls[0][0]).not.toHaveProperty('take');
+    expect(prisma.itemAtendimentoRapido.groupBy).toHaveBeenCalledWith({
+      by: ['servicoId'],
+      _count: { servicoId: true },
+      where: {
+        atendimentoRapido: {
+          dataHora: {
+            gte: new Date('2026-07-01T03:00:00.000Z'),
+            lt: new Date('2026-08-01T03:00:00.000Z'),
+          },
+        },
+      },
+    });
   });
 });

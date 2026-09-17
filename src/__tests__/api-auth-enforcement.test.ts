@@ -79,6 +79,10 @@ import {
 } from "@/app/api/produtos/[id]/route";
 import { GET as produtosMovimentacoesGet } from "@/app/api/produtos/[id]/movimentacoes/route";
 import { GET as vendasGet, POST as vendasPost } from "@/app/api/vendas/route";
+import {
+  GET as atendimentosRapidosGet,
+  POST as atendimentosRapidosPost,
+} from "@/app/api/atendimentos-rapidos/route";
 import { GET as vendasIdGet } from "@/app/api/vendas/[id]/route";
 import { GET as configuracoesGet, PUT as configuracoesPut } from "@/app/api/configuracoes/route";
 import { GET as dadosEmpresaGet, PUT as dadosEmpresaPut } from "@/app/api/configuracoes/dados-empresa/route";
@@ -97,6 +101,11 @@ const fotoIdParams = { params: Promise.resolve({ id: "abc", itemId: "item-1", fo
 
 const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/dashboard", () => dashboardGet(criarRequest("/api/dashboard"))],
+  ["GET /api/atendimentos-rapidos", () => atendimentosRapidosGet(criarRequest("/api/atendimentos-rapidos"))],
+  [
+    "POST /api/atendimentos-rapidos",
+    () => atendimentosRapidosPost(criarRequest("/api/atendimentos-rapidos", "POST")),
+  ],
   ["GET /api/caixa", () => caixaGet(criarRequest("/api/caixa"))],
   ["POST /api/caixa", () => caixaPost(criarRequest("/api/caixa", "POST"))],
   ["GET /api/caixa/atual", () => caixaAtualGet(criarRequest("/api/caixa/atual"))],
