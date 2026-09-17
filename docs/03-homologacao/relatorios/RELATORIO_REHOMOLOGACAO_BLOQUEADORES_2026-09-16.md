@@ -32,7 +32,9 @@ Execução manual integrada no navegador, contra o servidor local, das correçõ
 | OS A | `OS-16092026-9101` (`cmu4ue4bm0004uij1d4352bhz`): foto real e fluxo financeiro |
 | OS B | `OS-16092026-9102` (`cmu4uflhi000euij15u7zrwkb`): falha de upload e captura mobile |
 | Caixa | `cmu4uick4000nuij17kg2je4a`: saldo inicial R$ 50,00, já fechado |
-| Fotos no Blob de teste | 3 (1 na OS A e 2 na OS B) |
+| OS C e D | `OS-16092026-9103` e `OS-16092026-9104`: cadastro sem foto antes do #219 (reprodução do defeito) |
+| OS E e F | `OS-16092026-9105` (sem foto) e `OS-16092026-9106` (com foto): validação do #219 |
+| Fotos no Blob de teste | 4 (1 na OS A, 2 na OS B e 1 na OS F) |
 
 ## Cenários executados
 
@@ -41,7 +43,8 @@ Execução manual integrada no navegador, contra o servidor local, das correçõ
 | Criação de cliente | Aprovado | `POST /api/clientes` → 201; lista passou de 1 para 2 | — |
 | Criação de serviço | Aprovado | `POST /api/servicos` → 201; R$ 100,00 exibido | — |
 | Criação da OS | Aprovado | `POST /api/ordens-servico` → 201 (OS A e OS B); banco com total 100, pago 0, saldo 100 | — |
-| Atualização visual da listagem | Aprovado | Contador de 1 para 2 (OS A) e de 2 para 3 (OS B) sem recarregar; única entrada de navegação do tipo `navigate`, anterior ao cadastro | Na OS B a lista atualizou com o formulário ainda aberto, após a falha do upload |
+| Atualização visual da listagem (com foto) | Aprovado | Contador de 1 para 2 (OS A) e de 2 para 3 (OS B) sem recarregar; única entrada de navegação do tipo `navigate`, anterior ao cadastro | Na OS B a lista atualizou com o formulário ainda aberto, após a falha do upload |
+| Atualização visual da listagem (sem foto) | **Reprovado na execução original; aprovado após o #219** | Ver [Adendo](#adendo--cadastro-de-os-sem-foto) | Não foi exercitado na execução original. Apontado no review do #217 e reproduzido depois do merge |
 | Detalhe da OS / HTTP 200 | Aprovado | `GET /api/ordens-servico/{id}` → 200; página de detalhe → 200 nas duas OS | — |
 | Dados persistidos | Aprovado | Consulta somente leitura: cliente, item, serviço, valores e observações conforme digitados | — |
 | Upload real de foto | Aprovado com ressalva | `POST …/itens/{item}/fotos` → 201; registro `FotoItemOrdem` criado; `GET …/fotos/{fotoId}` → 200; imagem renderizada em 1200×900 ao reabrir a OS | Imagem JPEG gerada no navegador (canvas) e anexada ao input real do formulário. Otimização no cliente, API, Blob e leitura foram reais; o conteúdo não é uma fotografia de câmera |
@@ -77,16 +80,24 @@ Executadas após a homologação manual:
 - **Causa.** `ordens-servico-pagamentos-schema.ts` usa `z.coerce.date()` com o valor `"2026-09-16"`, que é gravado como `2026-09-16T00:00:00Z`. `HistoricoPagamentosList.tsx` formata esse valor no fuso local (UTC−3).
 - **Origem.** Existe desde o commit `84db381` (2026-07-03). Não foi introduzido pelas correções em revisão, que não tocam esses arquivos.
 - **Impacto observado.** Somente na exibição. Valor, saldo, caixa, relatório e dashboard permaneceram corretos. Há risco de o pagamento cair no dia anterior em consultas que filtram por `dataPagamento` usando limites no horário local; o dashboard, no período padrão, não foi afetado.
-- **Ação.** Nada foi corrigido, conforme a restrição sobre regras financeiras. Recomenda-se tratar em uma tarefa própria, com teste.
+- **Ação.** Nada foi corrigido nesta execução, conforme a restrição sobre regras financeiras. O defeito foi tratado em tarefa própria, no PR #218 (`fc9f0f1`), que já está na `main`. Essa correção não foi re-homologada neste relatório.
 
-Nenhum defeito foi encontrado nas três correções re-homologadas.
+### P2 — Lista de OS não atualiza após cadastro sem foto (correção incompleta do bloqueador 3)
+
+- **Sintoma.** Ao cadastrar uma OS **sem foto**, a OS é persistida (201) e o aviso "Ordem de serviço criada" aparece, mas o contador e os cards da lista só mudam depois de recarregar a página.
+- **Causa.** `concluirCriacao()` fecha o drawer no mesmo ciclo da criação. O `window.history.replaceState` do fechamento é sincronizado pelo App Router e aborta a requisição RSC do `router.refresh()`, tanto a antecipada quanto a posterior. Com foto, o upload demora o suficiente para o refresh antecipado terminar antes do fechamento, por isso o defeito não apareceu na execução original.
+- **Como passou despercebido.** As duas OS da execução original tinham foto. O caso sem foto não foi exercitado. O review automatizado do PR #217 apontou o risco, e o defeito foi reproduzido no navegador depois do merge.
+- **Tentativa intermediária.** O commit `e4dd9e4`, que repetia o refresh logo após o fechamento, **não** resolveu. Na OS 9104, feita em página recém-carregada, a requisição continuou abortada. Esse commit entrou na `main` pelo #217.
+- **Correção.** PR #219 (`3b7e982`). Detalhes no [Adendo](#adendo--cadastro-de-os-sem-foto).
+- **Impacto.** Apenas visual e de conveniência: nenhum dado se perdeu e nenhuma OS foi duplicada. O comportamento anterior ao #217 era o mesmo, então não houve regressão em produção.
 
 ## Riscos remanescentes
 
 - Nenhuma fotografia real de câmera foi usada. O caminho técnico completo (otimização → API → Blob → leitura) foi exercitado com JPEG real gerado no navegador.
 - A falha de upload foi simulada no cliente, com resposta 503. Timeouts reais e erros do próprio Blob não foram provocados.
 - A captura mobile foi emulada. Recomenda-se um teste rápido em aparelho físico antes da liberação ao balcão.
-- O defeito P1 continua aberto.
+- A correção do P1 (#218) não foi re-homologada manualmente.
+- A correção do P2 (#219) foi validada no servidor local de desenvolvimento. A validação em produção depende de login e fica a cargo do usuário.
 - O processo de migration continua dependendo do preflight documentado no README; nenhum mecanismo automático impede subir a aplicação com migration pendente.
 - Os dados `REHOM-1609` permanecem no banco de desenvolvimento e as 3 fotos no store Blob de teste, para rastreabilidade. Não foi feita limpeza.
 
@@ -96,7 +107,41 @@ Nenhum defeito foi encontrado nas três correções re-homologadas.
 
 Os critérios obrigatórios foram efetivamente exercitados na interface:
 - upload real para o Blob, com persistência e exibição;
-- atualização da listagem sem recarregar, inclusive com upload falho;
+- atualização da listagem sem recarregar: com foto, sem foto (somente após o #219) e com upload falho;
 - fluxo pagamento → caixa → relatório, com bloqueios.
 
-As ressalvas são: conteúdo sintético da imagem, falha de upload simulada no cliente, captura mobile emulada e o defeito pré-existente P1.
+As ressalvas são:
+- conteúdo sintético da imagem;
+- falha de upload simulada no cliente;
+- captura mobile emulada;
+- correção do P1 sem re-homologação manual.
+
+**Correção do veredito original.** A execução original declarou a atualização da listagem como aprovada sem ter exercitado o cadastro sem foto, e esse caso estava com defeito (P2). O veredito só vale para o código que inclui o PR #219.
+
+## Adendo — cadastro de OS sem foto
+
+Executado em 2026-09-17, por volta de 01:45 UTC, no servidor local (`localhost:3000`, banco `upa_do_tenis_dev`, mesmo cliente e serviço `REHOM-1609`). Em cada cenário, um marcador colocado em `window` antes do cadastro foi conferido depois dele, para provar que a página não foi recarregada.
+
+| Cenário | Código | Resultado | Evidência |
+|---|---|---|---|
+| OS 9103, sem foto | `main` com `e4dd9e4` | Reprovado | `POST /api/ordens-servico` → 201; aviso de criação exibido; contador parado em "3 ordens registradas"; OS 9103 presente só no aviso, sem card; `GET /ordens-servico?nova=1&_rsc=…` → `ERR_ABORTED` |
+| OS 9104, sem foto, página recém-carregada | `main` com `e4dd9e4` | Reprovado | Mesmo comportamento: 201, contador parado em 4, sem card, refresh `ERR_ABORTED`. Descarta interferência de hot reload |
+| OS 9105, sem foto | Branch do #219 (`3b7e982`) | Aprovado | 201; contador de 5 para 6; card da OS 9105 na lista; marcador preservado; URL sem `?nova=1` |
+| OS 9106, com foto, segundo cadastro na mesma página | Branch do #219 | Aprovado | OS 201 e foto 201; contador de 6 para 7; card da OS 9106 na lista; marcador preservado |
+| Falha de upload (drawer aberto) | Branch do #219 | Sem alteração de código nesse caminho | O refresh antecipado após o 201 foi mantido; comportamento validado na execução original (OS B) |
+
+Validações automáticas da branch do #219:
+- `pnpm run typecheck`: sucesso;
+- `pnpm run lint`: sucesso;
+- `TZ=UTC pnpm run test`: 1.187 testes em 112 arquivos.
+
+Publicação:
+- o #219 foi mesclado como `078e18e`, com CI da `main` aprovada;
+- o deployment `dpl_CLCwttbXpxFhfpssDp68tBSTewkA` foi promovido para produção (HTTP 201), sem migration envolvida;
+- o alias `upa-do-tenis.vercel.app` e `targets.production` apontam para ele;
+- smoke test sem sessão: `/login` renderiza e `/api/ordens-servico` responde 401;
+- rollback: promover de novo `dpl_7k6mBnVhRRYYoYC4jgPPj8M1Q41H` (`0c75f28`).
+
+Validações no PR #217, junto com as correções dos testes para a CI:
+- os testes passaram com `TZ=UTC`, no fuso local e com `TZ=Asia/Tokyo`;
+- o CI do `8b45f73` passou.
