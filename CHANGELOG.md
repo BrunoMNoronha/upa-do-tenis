@@ -12,13 +12,17 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 
 ### Adicionado
 - **Atendimento Rápido**: registro de serviço executado, entregue e pago integralmente no mesmo momento, sem cliente, status, saldo ou número de OS. Código `AR-DDMMAAAA-NNNN` sequencial por dia (America/Sao_Paulo), gerado no backend sob advisory lock transacional e único no banco.
-  - **Migration `20260917120000_add_atendimento_rapido`**: tabelas `AtendimentoRapido` e `ItemAtendimentoRapido` (serviço, descrição e valor como snapshot; sem quantidade); `Pagamento.ordemServicoId` passa a opcional, com `atendimentoRapidoId` e CHECK de origem exclusiva (OS ou AR); `MovimentacaoCaixa.atendimentoRapidoId` e origem `ATENDIMENTO_RAPIDO`. FKs novas com `ON DELETE RESTRICT`; pagamentos existentes preservados.
+  - **Migration `20260917140000_add_atendimento_rapido`**: tabelas `AtendimentoRapido` e `ItemAtendimentoRapido` (serviço, descrição e valor como snapshot; sem quantidade); `Pagamento.ordemServicoId` passa a opcional, com `atendimentoRapidoId` e CHECK de origem exclusiva (OS ou AR); `MovimentacaoCaixa.atendimentoRapidoId` e origem `ATENDIMENTO_RAPIDO`. FKs novas com `ON DELETE RESTRICT`; pagamentos existentes preservados.
   - Uma única transação grava atendimento, itens, um `Pagamento` e uma entrada de caixa por forma de pagamento (pagamento dividido permitido; soma exatamente igual ao total, em centavos inteiros). Exige caixa aberto; qualquer falha desfaz tudo.
   - Preço do catálogo é só o valor inicial: o operador pode alterá-lo sem mudar `Servico.precoBase`.
   - Idempotência por chave de envio: reenvio ou duplo clique devolve o mesmo atendimento; a mesma chave com outro conteúdo retorna 409.
   - Telas `/atendimento-rapido` (registro) e `/atendimentos-rapidos` (histórico com busca por código e período); rótulo "Atendimento Rápido" nas movimentações do caixa.
   - Dashboard: total recebido e recebimentos por dia incluem os pagamentos de AR; "Serviços mais executados" soma as execuções de OS e de AR (um item = uma execução) antes do Top 5.
   - Serviço usado em atendimento rápido não pode ser excluído (409; inativar).
+- **Estorno de pagamentos de OS — modelo e cálculo (#230, fatia 1)**: modelo `EstornoPagamento` (um por pagamento, motivo, usuário e `dataEstorno`) e vínculo opcional `MovimentacaoCaixa.estornoPagamentoId`, com migration aditiva `20260917130000_add_estorno_pagamento`.
+  - O valor pago, o saldo e o status financeiro da OS desconsideram pagamentos estornados (detalhe, listagem, relatório financeiro, validação de pagamento acima do saldo). Com estorno, a coluna `valorPago` legada não prevalece; sem estorno, a regra atual continua idêntica.
+  - O bloqueio de cancelamento (#229) passa a contar só pagamentos não estornados.
+  - Ainda sem API nem tela de estorno (fatias 2 a 4).
 - **Detecção de migrations pendentes (#224)**: `GET /api/saude/migrations` compara as migrations do código (lista embutida no build pelo `next.config.mjs`, sem acesso ao banco) com `_prisma_migrations`, só em leitura. Responde `200 {ok:true}` ou `503` com a contagem; os nomes só aparecem com sessão válida. Rota pública para o smoke test pós-promoção.
   - `pnpm run dev` mostra um aviso destacado com as migrations pendentes do banco local, sem aplicar nada e sem impedir o servidor de subir.
   - Documentado em `DECISOES.md`, README e `FATIA_PRODUCAO_04_VERCEL_NEON.md` (promoção manual só para deploys sem migration nova).

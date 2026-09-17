@@ -6,6 +6,8 @@ type DecimalLike = Prisma.Decimal | number | string | null | undefined;
 
 type PagamentoFinanceiroInput = {
   valor?: DecimalLike;
+  /** Presente quando o pagamento foi estornado (#230). */
+  estorno?: { id: string } | null;
 } | null;
 
 type ServicoItemOrdemFinanceiroInput = {
@@ -29,6 +31,12 @@ export type OrdemServicoFinanceiroInput = {
   pagamentos?: PagamentoFinanceiroInput[] | null;
   itens?: ItemOrdemServicoFinanceiroInput[] | null;
 };
+
+/**
+ * `include` mínimo dos pagamentos para `calcularResumoFinanceiroOS`: sem o
+ * estorno, um pagamento estornado seria somado como recebido (#230).
+ */
+export const INCLUDE_ESTORNO_PAGAMENTO = { estorno: { select: { id: true } } } as const;
 
 export function arredondarMoeda(valor: number): number {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
@@ -55,6 +63,7 @@ export function normalizarDecimalParaNumero(valor: DecimalLike, fallback = 0): n
   return fallback;
 }
 
+/** Soma somente pagamentos não estornados. */
 function somarPagamentos(pagamentos: PagamentoFinanceiroInput[] | null | undefined): number {
   if (!pagamentos || pagamentos.length === 0) {
     return 0;
@@ -62,6 +71,9 @@ function somarPagamentos(pagamentos: PagamentoFinanceiroInput[] | null | undefin
 
   let total = 0;
   for (const pagamento of pagamentos) {
+    if (pagamento?.estorno) {
+      continue;
+    }
     total += normalizarDecimalParaNumero(pagamento?.valor, 0);
   }
 
@@ -137,6 +149,14 @@ export function calcularValorPago(ordem: OrdemServicoFinanceiroInput): number {
   const valorPagoLegado = normalizarDecimalParaNumero(ordem.valorPago, 0);
   const valorSinal = normalizarDecimalParaNumero(ordem.valorSinal, 0);
   const valorPagamentos = somarPagamentos(ordem.pagamentos);
+
+  // Com estorno, o valor pago é só pagamentos ativos + sinal. A coluna
+  // valorPago (compatibilidade com OS antigas) não pode prevalecer: guardaria o
+  // valor de antes do estorno e o saldo nunca voltaria (#230). Sem estorno, a
+  // regra homologada abaixo continua idêntica.
+  if (ordem.pagamentos?.some((pagamento) => pagamento?.estorno)) {
+    return arredondarMoeda(Math.max(valorPagamentos + valorSinal, 0));
+  }
 
   return arredondarMoeda(Math.max(valorPagoLegado, valorPagamentos + valorSinal, valorPagamentos, valorSinal, 0));
 }

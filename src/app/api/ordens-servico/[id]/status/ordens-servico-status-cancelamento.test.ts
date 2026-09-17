@@ -105,7 +105,7 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
     // ordemServico (update), historicoStatus (create) e lê pagamento (count).
     expect(prismaMock.ordemServico).not.toHaveProperty("delete");
     expect(Object.keys(prismaMock)).toEqual(["ordemServico", "historicoStatus", "pagamento", "$transaction"]);
-    expect(prismaMock.pagamento.count).toHaveBeenCalledWith({ where: { ordemServicoId: OS_ID } });
+    expect(prismaMock.pagamento.count).toHaveBeenCalledWith({ where: { ordemServicoId: OS_ID, estorno: null } });
   });
 
   it("propaga a observação do cancelamento para o histórico", async () => {

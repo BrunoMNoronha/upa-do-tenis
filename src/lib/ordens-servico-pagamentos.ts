@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
+  INCLUDE_ESTORNO_PAGAMENTO,
   calcularResumoFinanceiroOS,
   normalizarValoresDecimalParaClient,
 } from "@/lib/ordens-servico-financeiro";
@@ -46,7 +47,7 @@ export async function registrarPagamentoOrdemServico(
     const ordem = await tx.ordemServico.findUnique({
       where: { id: ordemServicoId },
       include: {
-        pagamentos: true,
+        pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO },
         itens: {
           include: {
             servicos: {
@@ -129,7 +130,7 @@ export async function registrarPagamentoOrdemServico(
     const ordemComPagamento = await tx.ordemServico.findUnique({
       where: { id: ordemServicoId },
       include: {
-        pagamentos: true,
+        pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO },
         itens: {
           include: {
             servicos: {
