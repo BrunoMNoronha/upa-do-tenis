@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
+import { INCLUDE_ESTORNO_PAGAMENTO, calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
 import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
 import {
   calcularAgregadosRelatorio,
@@ -100,7 +100,7 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     where: queryWhere,
     include: {
       cliente: true,
-      pagamentos: true,
+      pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO },
       itens: {
         include: {
           servicos: {
