@@ -64,7 +64,7 @@ export function DashboardFilaOrdens({ fila, total }: DashboardFilaOrdensProps) {
           : null}
       </div>
 
-      <ul className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+      <ul className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-2">
         {fila.map((item) => (
           <li key={item.id}>
             <Link

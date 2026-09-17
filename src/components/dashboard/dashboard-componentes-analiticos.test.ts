@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { DashboardMetrics } from "@/lib/dashboard-service";
 import { DashboardFilaOrdens } from "./DashboardFilaOrdens";
+import { DashboardRecebimentosPorDia } from "./DashboardRecebimentosPorDia";
 import { DashboardInsumosMaisUtilizados } from "./DashboardInsumosMaisUtilizados";
 import { DashboardServicosMaisExecutados } from "./DashboardServicosMaisExecutados";
 import { DashboardSituacaoFinanceira } from "./DashboardSituacaoFinanceira";
@@ -146,5 +147,49 @@ describe("DashboardInsumosMaisUtilizados", () => {
   it("estado vazio", () => {
     const html = renderToStaticMarkup(createElement(DashboardInsumosMaisUtilizados, { insumos: [] }));
     expect(html).toContain("Nenhum insumo registrado no período.");
+  });
+});
+
+describe("DashboardRecebimentosPorDia", () => {
+  const comSerie = montarDashboardViewModel({
+    ...metrics,
+    recebimentosPorDia: [
+      { dia: "2026-09-15", valor: 0 },
+      { dia: "2026-09-16", valor: 300 },
+      { dia: "2026-09-17", valor: 60 },
+    ],
+  });
+  const html = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: comSerie.recebimentosPorDia }));
+
+  it("mostra melhor dia, dias com recebimento e tabela acessível com todos os dias", () => {
+    expect(html).toContain("Recebimentos por dia");
+    expect(html).toMatch(/qua\., 16\/09 · R\$\s300,00/);
+    expect(html).toContain("2 de 3");
+    expect(html).toContain('class="sr-only"');
+    expect(html.match(/<th scope="row">/g)).toHaveLength(3);
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("não leva a relatório com recorte diferente (OS por data de entrada)", () => {
+    expect(html).not.toContain("href=");
+  });
+
+  it("barra proporcional ao maior dia e dia zerado só com a linha de base", () => {
+    expect(html).toContain("height:100%");
+    expect(html).toContain("height:20%");
+    expect(html).toContain("height:2px");
+  });
+
+  it("período sem recebimento → mensagem curta", () => {
+    const vazio = montarDashboardViewModel({ ...zerado, recebimentosPorDia: [{ dia: "2026-09-16", valor: 0 }] });
+    const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: vazio.recebimentosPorDia }));
+    expect(markup).toContain("Nenhum recebimento no período.");
+  });
+
+  it("série indisponível (período acima do limite) → orienta a reduzir o período, sem barras", () => {
+    const longo = montarDashboardViewModel({ ...metrics, recebimentosPorDia: null });
+    const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: longo.recebimentosPorDia }));
+    expect(markup).toContain("até 92 dias");
+    expect(markup).not.toContain("<table");
   });
 });
