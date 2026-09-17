@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  podeCancelarOrdemServicoComFinanceiro,
   podeCancelarOrdemServico,
   transicaoPermitida,
   transicoesPermitidas,
@@ -32,5 +33,21 @@ describe("ordens-servico-status", () => {
   it("não permite reabrir uma OS cancelada", () => {
     expect(transicaoPermitida("CANCELADA", "ABERTA")).toBe(false);
     expect(transicaoPermitida("CANCELADA", "EM_ANDAMENTO")).toBe(false);
+  });
+
+  describe("podeCancelarOrdemServicoComFinanceiro (#229)", () => {
+    it("permite cancelar OS ABERTA sem valor pago", () => {
+      expect(podeCancelarOrdemServicoComFinanceiro("ABERTA", 0)).toBe(true);
+    });
+
+    it("bloqueia OS ABERTA com qualquer valor pago", () => {
+      expect(podeCancelarOrdemServicoComFinanceiro("ABERTA", 0.01)).toBe(false);
+      expect(podeCancelarOrdemServicoComFinanceiro("ABERTA", 100)).toBe(false);
+    });
+
+    it("continua bloqueando status que não permitem cancelamento", () => {
+      expect(podeCancelarOrdemServicoComFinanceiro("EM_ANDAMENTO", 0)).toBe(false);
+      expect(podeCancelarOrdemServicoComFinanceiro("CANCELADA", 0)).toBe(false);
+    });
   });
 });

@@ -4,6 +4,7 @@ import {
   normalizarValoresDecimalParaClient,
 } from "@/lib/ordens-servico-financeiro";
 import { registrarMovimentacaoAutomaticaCaixa } from "@/lib/caixa";
+import { MENSAGEM_PAGAMENTO_OS_CANCELADA } from "@/lib/ordens-servico-status";
 import type { RegistrarPagamentoOrdemServicoValues } from "@/lib/ordens-servico-pagamentos-schema";
 
 export class PagamentoOrdemServicoError extends Error {
@@ -60,6 +61,10 @@ export async function registrarPagamentoOrdemServico(
 
     if (!ordem) {
       throw new PagamentoOrdemServicoError("Ordem de serviço não encontrada.", 404);
+    }
+
+    if (ordem.status === "CANCELADA") {
+      throw new PagamentoOrdemServicoError(MENSAGEM_PAGAMENTO_OS_CANCELADA, 409);
     }
 
     const caixaAberto = await tx.caixa.findFirst({
@@ -151,12 +156,23 @@ export async function registrarPagamentoOrdemServico(
       itens: ordemComPagamento.itens,
     });
 
-    const ordemAtualizada = await tx.ordemServico.update({
-      where: { id: ordemServicoId },
+    // Gravação condicionada a OS não cancelada: se um cancelamento concorrente
+    // for confirmado antes, nenhuma linha é afetada e a transação inteira
+    // (pagamento e movimentação de caixa) é desfeita (#229).
+    const gravacao = await tx.ordemServico.updateMany({
+      where: { id: ordemServicoId, status: { not: "CANCELADA" } },
       data: {
         valorPago: resumoAtualizado.valorPago,
         saldo: resumoAtualizado.saldo,
       },
+    });
+
+    if (gravacao.count === 0) {
+      throw new PagamentoOrdemServicoError(MENSAGEM_PAGAMENTO_OS_CANCELADA, 409);
+    }
+
+    const ordemAtualizada = await tx.ordemServico.findUnique({
+      where: { id: ordemServicoId },
     });
 
     return {

@@ -25,3 +25,18 @@ export function transicaoPermitida(statusAtual: string, statusNovo: string): boo
 export function podeCancelarOrdemServico(status: string): boolean {
   return transicaoPermitida(status, "CANCELADA");
 }
+
+export const MENSAGEM_CANCELAMENTO_COM_PAGAMENTO =
+  "Esta OS possui pagamento registrado e não pode ser cancelada. O estorno de pagamentos ainda não está disponível.";
+
+export const MENSAGEM_PAGAMENTO_OS_CANCELADA =
+  "Não é possível registrar pagamento em uma OS cancelada.";
+
+/**
+ * Cancelamento considerando o financeiro (#229): enquanto não existir estorno
+ * e devolução (#230), uma OS com qualquer valor pago não pode ser cancelada.
+ * `valorPago` é o consolidado do backend (inclui sinal e pagamentos).
+ */
+export function podeCancelarOrdemServicoComFinanceiro(status: string, valorPago: number): boolean {
+  return podeCancelarOrdemServico(status) && !(valorPago > 0);
+}

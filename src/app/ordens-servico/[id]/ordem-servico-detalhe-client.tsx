@@ -6,7 +6,11 @@ import { Badge, Button, Card, PanelHeader, SectionTitle, LoadingState, ErrorStat
 import { Combobox } from "@/components/combobox";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CompartilharAcompanhamentoDialog } from "@/components/compartilhar-acompanhamento-dialog";
-import { podeCancelarOrdemServico } from "@/lib/ordens-servico-status";
+import {
+  MENSAGEM_CANCELAMENTO_COM_PAGAMENTO,
+  podeCancelarOrdemServico,
+  podeCancelarOrdemServicoComFinanceiro,
+} from "@/lib/ordens-servico-status";
 
 import {
   OrdemServicoDetalhe,
@@ -235,7 +239,7 @@ export function OrdemServicoDetalheClient({
                 <Button type="button" variant="secondary" onClick={() => setCompartilhando(true)}>
                   Compartilhar acompanhamento
                 </Button>
-                {podeCancelarOrdemServico(ordem.status) ? (
+                {podeCancelarOrdemServicoComFinanceiro(ordem.status, Number(resumo.valorPago || 0)) ? (
                   <Button
                     type="button"
                     variant="secondary"
@@ -252,6 +256,9 @@ export function OrdemServicoDetalheClient({
                 ) : null}
               </div>
             </div>
+            {podeCancelarOrdemServico(ordem.status) && Number(resumo.valorPago || 0) > 0 && !cancelamentoErro ? (
+              <p className="mt-4 text-sm text-slate-600">{MENSAGEM_CANCELAMENTO_COM_PAGAMENTO}</p>
+            ) : null}
             {cancelamentoErro ? (
               <p role="alert" className="mt-4 text-sm font-medium text-rose-700">{cancelamentoErro}</p>
             ) : null}

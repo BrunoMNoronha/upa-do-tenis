@@ -51,8 +51,9 @@ describe("ordens-servico-pagamentos", () => {
     const txOrdemFindUnique = vi
       .fn()
       .mockResolvedValueOnce(osAntes)
-      .mockResolvedValueOnce(osDepois);
-    const txOrdemUpdate = vi.fn().mockResolvedValueOnce({ id: "os-1" });
+      .mockResolvedValueOnce(osDepois)
+      .mockResolvedValueOnce({ id: "os-1" });
+    const txOrdemUpdateMany = vi.fn().mockResolvedValueOnce({ count: 1 });
     const txFormaFindUnique = vi.fn().mockResolvedValueOnce({ id: "fp-1" });
 
     prismaMock.$transaction.mockImplementationOnce(async (fn) =>
@@ -62,7 +63,7 @@ describe("ordens-servico-pagamentos", () => {
         },
         ordemServico: {
           findUnique: txOrdemFindUnique,
-          update: txOrdemUpdate,
+          updateMany: txOrdemUpdateMany,
         },
         formaPagamento: {
           findUnique: txFormaFindUnique,
@@ -85,8 +86,8 @@ describe("ordens-servico-pagamentos", () => {
     });
 
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
-    expect(txOrdemUpdate).toHaveBeenCalledWith({
-      where: { id: "os-1" },
+    expect(txOrdemUpdateMany).toHaveBeenCalledWith({
+      where: { id: "os-1", status: { not: "CANCELADA" } },
       data: {
         valorPago: 50,
         saldo: 50,
@@ -108,8 +109,9 @@ describe("ordens-servico-pagamentos", () => {
     const txOrdemFindUnique = vi
       .fn()
       .mockResolvedValueOnce(osAntes)
-      .mockResolvedValueOnce(osDepois);
-    const txOrdemUpdate = vi.fn().mockResolvedValueOnce({ id: "os-1" });
+      .mockResolvedValueOnce(osDepois)
+      .mockResolvedValueOnce({ id: "os-1" });
+    const txOrdemUpdateMany = vi.fn().mockResolvedValueOnce({ count: 1 });
     const txFormaFindUnique = vi.fn().mockResolvedValueOnce({ id: "fp-2" });
 
     prismaMock.$transaction.mockImplementationOnce(async (fn) =>
@@ -119,7 +121,7 @@ describe("ordens-servico-pagamentos", () => {
         },
         ordemServico: {
           findUnique: txOrdemFindUnique,
-          update: txOrdemUpdate,
+          updateMany: txOrdemUpdateMany,
         },
         formaPagamento: {
           findUnique: txFormaFindUnique,
@@ -225,6 +227,57 @@ describe("ordens-servico-pagamentos", () => {
     });
   });
 
+  function txBase(overrides: Record<string, unknown> = {}) {
+    return {
+      pagamento: { create: vi.fn().mockResolvedValue({ id: "pag-x", valor: new Prisma.Decimal(10) }) },
+      ordemServico: { findUnique: vi.fn(), updateMany: vi.fn() },
+      formaPagamento: { findUnique: vi.fn().mockResolvedValue({ id: "fp-1" }) },
+      caixa: {
+        findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+        findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
+        update: vi.fn(),
+      },
+      movimentacaoCaixa: { create: vi.fn() },
+      ...overrides,
+    };
+  }
+
+  it("recusa com 409 pagamento em OS cancelada, antes de criar qualquer registro (#229)", async () => {
+    const tx = txBase();
+    tx.ordemServico.findUnique.mockResolvedValueOnce({ ...criarOSBase({ valorTotal: 100 }), status: "CANCELADA" });
+    prismaMock.$transaction.mockImplementationOnce(async (fn) => fn(tx));
+
+    await expect(
+      registrarPagamentoOrdemServico("os-1", {
+        formaPagamentoId: "fp-1",
+        valor: 10,
+        dataPagamento: new Date("2026-07-03T10:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ message: "Não é possível registrar pagamento em uma OS cancelada.", status: 409 });
+    expect(tx.pagamento.create).not.toHaveBeenCalled();
+    expect(tx.movimentacaoCaixa.create).not.toHaveBeenCalled();
+  });
+
+  it("falha com 409 (e desfaz a transação) quando a OS foi cancelada antes da gravação final (#229)", async () => {
+    const tx = txBase();
+    tx.ordemServico.findUnique
+      .mockResolvedValueOnce(criarOSBase({ valorTotal: 100 }))
+      .mockResolvedValueOnce(criarOSBase({ valorTotal: 100, pagamentos: [{ valor: 10 }] }));
+    tx.ordemServico.updateMany.mockResolvedValueOnce({ count: 0 });
+    prismaMock.$transaction.mockImplementationOnce(async (fn) => fn(tx));
+
+    await expect(
+      registrarPagamentoOrdemServico("os-1", {
+        formaPagamentoId: "fp-1",
+        valor: 10,
+        dataPagamento: new Date("2026-07-03T10:00:00.000Z"),
+      }),
+    ).rejects.toBeInstanceOf(PagamentoOrdemServicoError);
+    expect(tx.ordemServico.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "os-1", status: { not: "CANCELADA" } } }),
+    );
+  });
+
   it("falha quando a OS não existe", async () => {
     const txOrdemFindUnique = vi.fn().mockResolvedValueOnce(null);
 
@@ -269,8 +322,9 @@ describe("ordens-servico-pagamentos", () => {
     const txOrdemFindUnique = vi
       .fn()
       .mockResolvedValueOnce(osAntes)
-      .mockResolvedValueOnce(osDepois);
-    const txOrdemUpdate = vi.fn().mockResolvedValueOnce({ id: "os-1" });
+      .mockResolvedValueOnce(osDepois)
+      .mockResolvedValueOnce({ id: "os-1" });
+    const txOrdemUpdateMany = vi.fn().mockResolvedValueOnce({ count: 1 });
     const txPagamentoCreate = vi.fn().mockResolvedValueOnce({
       id: "pag-10",
       valor: new Prisma.Decimal(20),
@@ -280,7 +334,7 @@ describe("ordens-servico-pagamentos", () => {
     prismaMock.$transaction.mockImplementationOnce(async (fn) =>
       fn({
         pagamento: { create: txPagamentoCreate },
-        ordemServico: { findUnique: txOrdemFindUnique, update: txOrdemUpdate },
+        ordemServico: { findUnique: txOrdemFindUnique, updateMany: txOrdemUpdateMany },
         formaPagamento: { findUnique: vi.fn().mockResolvedValueOnce({ id: "fp-1" }) },
         caixa: { 
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -299,6 +353,6 @@ describe("ordens-servico-pagamentos", () => {
 
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
     expect(txPagamentoCreate).toHaveBeenCalledTimes(1);
-    expect(txOrdemUpdate).toHaveBeenCalledTimes(1);
+    expect(txOrdemUpdateMany).toHaveBeenCalledTimes(1);
   });
 });
