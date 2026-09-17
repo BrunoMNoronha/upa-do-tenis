@@ -5,7 +5,7 @@ import {
   listarDiasDoPeriodo,
   montarRecebimentosPorDia,
 } from "./dashboard-recebimentos-por-dia";
-import { somarPagamentosPorDiaOperacional } from "./dashboard-service";
+import { somarRecebimentosLiquidosPorDiaOperacional } from "./dashboard-service";
 
 describe("listarDiasDoPeriodo", () => {
   it("lista todos os dias do período, inclusive as pontas", () => {
@@ -45,7 +45,7 @@ describe("montarRecebimentosPorDia", () => {
   });
 });
 
-describe("somarPagamentosPorDiaOperacional", () => {
+describe("somarRecebimentosLiquidosPorDiaOperacional", () => {
   const tzOriginal = process.env.TZ;
 
   afterEach(() => {
@@ -54,7 +54,7 @@ describe("somarPagamentosPorDiaOperacional", () => {
   });
 
   it("soma com precisão decimal, sem erro de ponto flutuante", () => {
-    const totais = somarPagamentosPorDiaOperacional([
+    const totais = somarRecebimentosLiquidosPorDiaOperacional([
       { dataPagamento: new Date("2026-09-16T09:00:00-03:00"), valor: new Prisma.Decimal("0.10") },
       { dataPagamento: new Date("2026-09-16T10:00:00-03:00"), valor: new Prisma.Decimal("0.20") },
       { dataPagamento: new Date("2026-09-16T11:00:00-03:00"), valor: 19.99 },
@@ -64,7 +64,7 @@ describe("somarPagamentosPorDiaOperacional", () => {
 
   it("preserva frações de centavo como o aggregate do total recebido", () => {
     const valores = ["0.005", "0.004", "10.001"];
-    const totais = somarPagamentosPorDiaOperacional(
+    const totais = somarRecebimentosLiquidosPorDiaOperacional(
       valores.map((valor) => ({ dataPagamento: new Date("2026-09-16T12:00:00-03:00"), valor: new Prisma.Decimal(valor) })),
     );
     const agregado = valores.reduce((acc, valor) => acc.plus(valor), new Prisma.Decimal(0)).toNumber();
@@ -80,7 +80,7 @@ describe("somarPagamentosPorDiaOperacional", () => {
     process.env.TZ = tz;
     expect(new Date("2026-09-16T12:00:00Z").getTimezoneOffset()).toBe(offsetMinutos);
 
-    const totais = somarPagamentosPorDiaOperacional([
+    const totais = somarRecebimentosLiquidosPorDiaOperacional([
       { dataPagamento: new Date("2026-09-16T23:30:00-03:00"), valor: 40 },
       { dataPagamento: new Date("2026-09-17T00:00:00-03:00"), valor: 15 },
     ]);
@@ -88,5 +88,36 @@ describe("somarPagamentosPorDiaOperacional", () => {
       ["2026-09-16", 40],
       ["2026-09-17", 15],
     ]);
+  });
+
+  it("estorno subtrai no dia do estorno, sem alterar o dia do pagamento (#230)", () => {
+    const totais = somarRecebimentosLiquidosPorDiaOperacional(
+      [{ dataPagamento: new Date("2026-09-10T10:00:00-03:00"), valor: 100 }],
+      [{ dataEstorno: new Date("2026-09-12T10:00:00-03:00"), valor: 100 }],
+    );
+    expect([...totais]).toEqual([
+      ["2026-09-10", 100],
+      ["2026-09-12", -100],
+    ]);
+  });
+
+  it("estorno e pagamento no mesmo dia se compensam com precisão decimal", () => {
+    const totais = somarRecebimentosLiquidosPorDiaOperacional(
+      [
+        { dataPagamento: new Date("2026-09-16T09:00:00-03:00"), valor: new Prisma.Decimal("50.10") },
+        { dataPagamento: new Date("2026-09-16T09:30:00-03:00"), valor: new Prisma.Decimal("30.20") },
+      ],
+      [{ dataEstorno: new Date("2026-09-16T18:00:00-03:00"), valor: new Prisma.Decimal("50.10") }],
+    );
+    expect(totais.get("2026-09-16")).toBe(30.2);
+  });
+
+  it("com o processo em TZ=UTC, estorno às 22:30 de São Paulo fica no próprio dia", () => {
+    process.env.TZ = "UTC";
+    const totais = somarRecebimentosLiquidosPorDiaOperacional(
+      [],
+      [{ dataEstorno: new Date("2026-09-12T22:30:00-03:00"), valor: 25 }],
+    );
+    expect([...totais]).toEqual([["2026-09-12", -25]]);
   });
 });

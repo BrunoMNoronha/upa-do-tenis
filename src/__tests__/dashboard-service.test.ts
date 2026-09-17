@@ -11,6 +11,10 @@ vi.mock('../lib/prisma', () => ({
       aggregate: vi.fn(),
       findMany: vi.fn(),
     },
+    estornoPagamento: {
+      aggregate: vi.fn(),
+      findMany: vi.fn(),
+    },
     ordemServico: {
       aggregate: vi.fn(),
       groupBy: vi.fn(),
@@ -38,6 +42,8 @@ describe('Dashboard Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.itemAtendimentoRapido.groupBy as any).mockResolvedValue([]);
+    (prisma.estornoPagamento.aggregate as any).mockResolvedValue({ _sum: { valor: null } });
+    (prisma.estornoPagamento.findMany as any).mockResolvedValue([]);
   });
 
   it('deve calcular corretamente as métricas gerais com dados mockados', async () => {
@@ -178,12 +184,44 @@ describe('Dashboard Service', () => {
 
   it('devolve recebimentosPorDia null e não busca pagamentos quando o período passa do limite', async () => {
     mockarAgregacoesVazias();
+    (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 500 } });
+    (prisma.estornoPagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 120 } });
 
     const metrics = await getDashboardMetrics('2026-01-01', '2026-12-31');
 
     expect(metrics.recebimentosPorDia).toBeNull();
+    expect(metrics.totalRecebido).toBe(380);
     expect(prisma.pagamento.findMany).not.toHaveBeenCalled();
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.estornoPagamento.findMany).not.toHaveBeenCalled();
+    // Total líquido lido num único snapshot, mesmo sem a série.
+    expect(prisma.$transaction).toHaveBeenCalledWith(expect.any(Array), { isolationLevel: 'RepeatableRead' });
+  });
+
+  it('desconta estornos no dia do estorno: total e série líquidos, com dia negativo (#230)', async () => {
+    mockarAgregacoesVazias();
+    (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 100 } });
+    (prisma.pagamento.findMany as any).mockResolvedValue([
+      { dataPagamento: new Date('2026-07-10T10:00:00-03:00'), valor: 100 },
+    ]);
+    (prisma.estornoPagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 100 } });
+    (prisma.estornoPagamento.findMany as any).mockResolvedValue([
+      { dataEstorno: new Date('2026-07-12T22:30:00-03:00'), valor: 100 },
+    ]);
+
+    const metrics = await getDashboardMetrics('2026-07-10', '2026-07-12');
+
+    expect(prisma.estornoPagamento.findMany).toHaveBeenCalledWith({
+      where: { dataEstorno: { gte: new Date('2026-07-10T03:00:00.000Z'), lt: new Date('2026-07-13T03:00:00.000Z') } },
+      select: { dataEstorno: true, valor: true },
+    });
+    expect(metrics.totalRecebido).toBe(0);
+    expect(metrics.recebimentosPorDia).toEqual([
+      { dia: '2026-07-10', valor: 100 },
+      { dia: '2026-07-11', valor: 0 },
+      { dia: '2026-07-12', valor: -100 },
+    ]);
+    const somaSerie = metrics.recebimentosPorDia!.reduce((acc, item) => acc + item.valor, 0);
+    expect(somaSerie).toBe(metrics.totalRecebido);
   });
 
   it('ranking de serviços soma execuções de OS e de Atendimento Rápido antes de aplicar o Top 5', async () => {

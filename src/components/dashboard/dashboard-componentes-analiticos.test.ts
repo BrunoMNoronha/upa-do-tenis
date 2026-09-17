@@ -180,6 +180,41 @@ describe("DashboardRecebimentosPorDia", () => {
     expect(html).toContain("height:2px");
   });
 
+  it("dia com estorno líquido → barra vermelha abaixo do eixo, valor negativo na tabela (#230)", () => {
+    const comEstorno = montarDashboardViewModel({
+      ...metrics,
+      recebimentosPorDia: [
+        { dia: "2026-09-10", valor: 300 },
+        { dia: "2026-09-12", valor: -100 },
+      ],
+    });
+    const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: comEstorno.recebimentosPorDia }));
+    expect(markup).toContain("bg-[color:var(--danger)]");
+    expect(markup).toContain("top:75%;height:25%");
+    expect(markup).toContain("bottom:25%;height:75%");
+    expect(markup).toMatch(/-R\$\s100,00/);
+    expect(markup).not.toContain("Nenhum recebimento no período.");
+  });
+
+  it("extremos: nenhuma barra ultrapassa a área do seu lado do eixo", () => {
+    for (const serie of [
+      [{ dia: "2026-09-10", valor: 0.01 }, { dia: "2026-09-11", valor: -100 }],
+      [{ dia: "2026-09-10", valor: 100 }, { dia: "2026-09-11", valor: -0.01 }],
+    ]) {
+      const vm = montarDashboardViewModel({ ...metrics, recebimentosPorDia: serie });
+      const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: vm.recebimentosPorDia }));
+      const pos = [...markup.matchAll(/bottom:(\d+)%;height:(\d+)%/g)].map((m) => [Number(m[1]), Number(m[2])]);
+      const neg = [...markup.matchAll(/top:(\d+)%;height:(\d+)%/g)].map((m) => [Number(m[1]), Number(m[2])]);
+      expect(pos.length + neg.length).toBe(2);
+      for (const [base, altura] of pos) expect(base + altura).toBeLessThanOrEqual(100);
+      for (const [topo, altura] of neg) expect(topo + altura).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("sem estorno → nenhuma barra vermelha", () => {
+    expect(html).not.toContain("var(--danger)");
+  });
+
   it("período sem recebimento → mensagem curta", () => {
     const vazio = montarDashboardViewModel({ ...zerado, recebimentosPorDia: [{ dia: "2026-09-16", valor: 0 }] });
     const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: vazio.recebimentosPorDia }));

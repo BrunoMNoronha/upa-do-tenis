@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge, Button, Card, Input, Label, SectionTitle } from "@/components/ui";
+import { rotuloOrigemMovimentacaoCaixa } from "@/lib/caixa-origem";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
 
 type FormaPagamento = {
@@ -161,7 +162,7 @@ export function MovimentacoesCaixa({
                     {mov.ordemServicoId && <span className="ml-2 text-xs text-slate-400 font-normal">(OS Vinculada)</span>}
                     {mov.atendimentoRapidoId && <span className="ml-2 text-xs text-slate-400 font-normal">(Atendimento Rápido)</span>}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{mov.origem}</td>
+                  <td className="px-4 py-3 text-slate-600">{rotuloOrigemMovimentacaoCaixa(mov.origem)}</td>
                   <td className="px-4 py-3 text-slate-600">
                     {mov.formaPagamento?.nome || "-"}
                   </td>
