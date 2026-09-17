@@ -11,6 +11,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
 
 ### Adicionado
+- **Estorno de Atendimento Rápido — API (fatia 1)**: `POST /api/atendimentos-rapidos/[id]/estorno` com `{ motivo }` (5 a 500 caracteres, aparado). O estorno é sempre total: estorna todos os pagamentos do atendimento de uma vez, registrando o usuário da sessão.
+  - Uma transação grava um `EstornoPagamento` por pagamento e lança uma SAÍDA `ESTORNO_ATENDIMENTO_RAPIDO` no caixa aberto na forma de cada pagamento original. A linha do atendimento é travada no início; qualquer falha desfaz tudo.
+  - Recusas sem gravar nada: atendimento inexistente (404), já estornado (409, também na corrida, pela restrição única), sem caixa aberto (400), motivo inválido (400).
+  - O atendimento não é apagado: `GET /api/atendimentos-rapidos` devolve `estorno` (data e motivo) ou `null`.
+  - Dashboard: o recebido líquido já descontava o estorno; atendimento estornado deixa de contar em "Serviços mais executados".
+  - Caixa: rótulo "Estorno de Atendimento Rápido". Sem alteração de schema e sem mudança no cálculo do caixa. Ainda sem tela (fatia 2).
 - **Atendimento Rápido**: registro de serviço executado, entregue e pago integralmente no mesmo momento, sem cliente, status, saldo ou número de OS. Código `AR-DDMMAAAA-NNNN` sequencial por dia (America/Sao_Paulo), gerado no backend sob advisory lock transacional e único no banco.
   - **Migration `20260917140000_add_atendimento_rapido`**: tabelas `AtendimentoRapido` e `ItemAtendimentoRapido` (serviço, descrição e valor como snapshot; sem quantidade); `Pagamento.ordemServicoId` passa a opcional, com `atendimentoRapidoId` e CHECK de origem exclusiva (OS ou AR); `MovimentacaoCaixa.atendimentoRapidoId` e origem `ATENDIMENTO_RAPIDO`. FKs novas com `ON DELETE RESTRICT`; pagamentos existentes preservados.
   - Uma única transação grava atendimento, itens, um `Pagamento` e uma entrada de caixa por forma de pagamento (pagamento dividido permitido; soma exatamente igual ao total, em centavos inteiros). Exige caixa aberto; qualquer falha desfaz tudo.

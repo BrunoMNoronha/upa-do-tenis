@@ -51,6 +51,7 @@ import {
   GET as osPagamentosGet,
   POST as osPagamentosPost,
 } from "@/app/api/ordens-servico/[id]/pagamentos/route";
+import { POST as atendimentoRapidoEstornoPost } from "@/app/api/atendimentos-rapidos/[id]/estorno/route";
 import { POST as osPagamentoEstornoPost } from "@/app/api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno/route";
 import {
   GET as osInsumosGet,
@@ -194,6 +195,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "POST /api/ordens-servico/[id]/pagamentos",
     () => osPagamentosPost(criarRequest("/api/ordens-servico/abc/pagamentos", "POST"), params),
+  ],
+  [
+    "POST /api/atendimentos-rapidos/[id]/estorno",
+    () => atendimentoRapidoEstornoPost(criarRequest("/api/atendimentos-rapidos/abc/estorno", "POST"), params),
   ],
   [
     "POST /api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno",

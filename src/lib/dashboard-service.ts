@@ -216,12 +216,14 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
   }
 
   // 6b. Execuções de serviço em Atendimentos Rápidos do período (um item = uma execução).
+  //     Atendimento estornado não conta: o estorno é sempre total.
   const execucoesAtendimentoRapidoAgg = await prisma.itemAtendimentoRapido.groupBy({
     by: ['servicoId'],
     _count: { servicoId: true },
     where: {
       atendimentoRapido: {
         dataHora: { gte: inicio, lt: fimExclusivo },
+        pagamentos: { none: { estorno: { isNot: null } } },
       },
     },
   });

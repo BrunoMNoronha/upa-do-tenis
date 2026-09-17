@@ -259,7 +259,8 @@ describe('Dashboard Service', () => {
       ['s4', 3],
     ]);
 
-    // OS sem corte prévio; AR contando itens (um item = uma execução) no mesmo período.
+    // OS sem corte prévio; AR contando itens (um item = uma execução) no mesmo período,
+    // sem os atendimentos estornados.
     expect((prisma.servicoItemOrdem.groupBy as any).mock.calls[0][0]).not.toHaveProperty('take');
     expect(prisma.itemAtendimentoRapido.groupBy).toHaveBeenCalledWith({
       by: ['servicoId'],
@@ -270,6 +271,7 @@ describe('Dashboard Service', () => {
             gte: new Date('2026-07-01T03:00:00.000Z'),
             lt: new Date('2026-08-01T03:00:00.000Z'),
           },
+          pagamentos: { none: { estorno: { isNot: null } } },
         },
       },
     });
