@@ -180,6 +180,26 @@ describe("DashboardRecebimentosPorDia", () => {
     expect(html).toContain("height:2px");
   });
 
+  it("dia com estorno líquido → barra vermelha abaixo do eixo, valor negativo na tabela (#230)", () => {
+    const comEstorno = montarDashboardViewModel({
+      ...metrics,
+      recebimentosPorDia: [
+        { dia: "2026-09-10", valor: 300 },
+        { dia: "2026-09-12", valor: -100 },
+      ],
+    });
+    const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: comEstorno.recebimentosPorDia }));
+    expect(markup).toContain("bg-[color:var(--danger)]");
+    expect(markup).toContain("top:75%;height:25%");
+    expect(markup).toContain("bottom:25%;height:75%");
+    expect(markup).toMatch(/-R\$\s100,00/);
+    expect(markup).not.toContain("Nenhum recebimento no período.");
+  });
+
+  it("sem estorno → nenhuma barra vermelha", () => {
+    expect(html).not.toContain("var(--danger)");
+  });
+
   it("período sem recebimento → mensagem curta", () => {
     const vazio = montarDashboardViewModel({ ...zerado, recebimentosPorDia: [{ dia: "2026-09-16", valor: 0 }] });
     const markup = renderToStaticMarkup(createElement(DashboardRecebimentosPorDia, { recebimentos: vazio.recebimentosPorDia }));

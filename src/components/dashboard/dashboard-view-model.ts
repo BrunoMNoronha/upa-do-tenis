@@ -44,8 +44,13 @@ export type ItemRecebimentoDia = {
   rotuloCurto: string;
   /** "qua., 16/09" (dia da semana calculado sobre o calendário, sem fuso). */
   rotuloCompleto: string;
+  /** Recebido líquido do dia; negativo num dia em que os estornos superam os pagamentos (#230). */
   valor: number;
-  /** Altura relativa da barra (0-100), normalizada pelo maior dia. */
+  /**
+   * Altura da barra (0-100) em relação à altura do gráfico. Sem dia negativo,
+   * normalizada pelo maior dia; com dia negativo, pela soma do maior positivo e
+   * do maior negativo, para que as duas áreas usem a mesma escala.
+   */
   proporcao: number;
 };
 
@@ -57,6 +62,11 @@ export type RecebimentosPorDiaViewModel =
       /** Maior recebimento diário, ou null quando nenhum dia teve valor. */
       melhorDia: ItemRecebimentoDia | null;
       diasComRecebimento: number;
+      /**
+       * Altura (0-100) da área acima do eixo. 100 quando não há dia negativo;
+       * abaixo disso, a área restante recebe as barras negativas.
+       */
+      alturaAreaPositiva: number;
     };
 
 export type DashboardViewModel = {
@@ -104,6 +114,8 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
   if (!Array.isArray(serie)) return { disponivel: false };
 
   const maior = serie.reduce((acc, item) => Math.max(acc, item.valor), 0);
+  const maiorNegativo = serie.reduce((acc, item) => Math.max(acc, -item.valor), 0);
+  const escala = maior + maiorNegativo;
   let melhorDia: ItemRecebimentoDia | null = null;
 
   const dias = serie.map((item) => {
@@ -114,7 +126,7 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
       rotuloCurto: `${dia}/${mes}`,
       rotuloCompleto: `${diaDaSemana}, ${dia}/${mes}`,
       valor: item.valor,
-      proporcao: percentualInteiro(item.valor, maior),
+      proporcao: percentualInteiro(Math.abs(item.valor), escala),
     };
     if (item.valor > 0 && (melhorDia === null || item.valor > melhorDia.valor)) melhorDia = itemVm;
     return itemVm;
@@ -125,6 +137,7 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
     dias,
     melhorDia,
     diasComRecebimento: dias.filter((item) => item.valor > 0).length,
+    alturaAreaPositiva: escala > 0 ? percentualInteiro(maior, escala) : 100,
   };
 }
 
