@@ -170,6 +170,10 @@ describe("DashboardRecebimentosPorDia", () => {
     expect(html).toContain('aria-hidden="true"');
   });
 
+  it("não leva a relatório com recorte diferente (OS por data de entrada)", () => {
+    expect(html).not.toContain("href=");
+  });
+
   it("barra proporcional ao maior dia e dia zerado só com a linha de base", () => {
     expect(html).toContain("height:100%");
     expect(html).toContain("height:20%");

@@ -35,12 +35,9 @@ export function DashboardRecebimentosPorDia({ recebimentos, className = "" }: Da
   const espacamento = dias.length > 31 ? "gap-px" : dias.length > 14 ? "gap-0.5" : "gap-1.5";
 
   return (
-    <DashboardPanel
-      title={TITULO}
-      description={DESCRICAO}
-      action={{ href: "/relatorios/financeiro-os", label: "Relatório" }}
-      className={className}
-    >
+    // Sem link de detalhe: nenhum relatório existente usa o mesmo recorte
+    // (pagamentos por dataPagamento no período do dashboard).
+    <DashboardPanel title={TITULO} description={DESCRICAO} className={className}>
       <dl className="flex flex-wrap gap-x-6 gap-y-2">
         <div className="flex flex-col gap-0.5">
           <dt className="text-xs font-bold text-[color:var(--text-soft)]">Melhor dia</dt>
