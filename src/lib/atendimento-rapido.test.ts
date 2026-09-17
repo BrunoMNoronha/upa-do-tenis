@@ -318,6 +318,23 @@ describe("registrarAtendimentoRapido — validações sem persistência", () => 
     expect(await contarRegistros()).toEqual(NADA_PERSISTIDO);
   });
 
+  it("rejeita forma de pagamento inativa sem persistir nada", async () => {
+    await prisma.formaPagamento.update({ where: { id: formaPixId }, data: { ativo: false } });
+
+    await expect(
+      registrarAtendimentoRapido(
+        payload({
+          itens: [{ servicoId: servicoHigienizacaoId, valor: "100.00" }],
+          pagamentos: [
+            { formaPagamentoId: formaDinheiroId, valor: "40.00" },
+            { formaPagamentoId: formaPixId, valor: "60.00" },
+          ],
+        }),
+      ),
+    ).rejects.toMatchObject({ status: 400, message: `A forma de pagamento "PIX AR Teste" está inativa e não pode ser usada.` });
+    expect(await contarRegistros()).toEqual(NADA_PERSISTIDO);
+  });
+
   it("rejeita serviço inativo, serviço inexistente e forma de pagamento inexistente", async () => {
     const base = { pagamentos: [{ formaPagamentoId: formaPixId, valor: "10.00" }] };
 
@@ -393,11 +410,12 @@ describe("registrarAtendimentoRapido — rollback integral", () => {
 });
 
 describe("registrarAtendimentoRapido — idempotência", () => {
-  const entrada = (chave: string, valor = "50.00") =>
+  const entrada = (chave: string, valor = "50.00", observacoes?: string) =>
     payload({
       chave,
       itens: [{ servicoId: servicoHigienizacaoId, valor: valor }],
       pagamentos: [{ formaPagamentoId: formaDinheiroId, valor }],
+      observacoes,
     });
 
   it("reenvio sequencial da mesma chave devolve o mesmo atendimento sem gravar de novo", async () => {
@@ -424,6 +442,22 @@ describe("registrarAtendimentoRapido — idempotência", () => {
     await registrarAtendimentoRapido(entrada(chave));
 
     await expect(registrarAtendimentoRapido(entrada(chave, "45.00"))).rejects.toMatchObject({ status: 409 });
+    expect(await contarRegistros()).toEqual({ atendimentos: 1, itens: 1, pagamentos: 1, movimentacoes: 1 });
+  });
+
+  it("mesma chave com observação diferente é rejeitada com 409 e não altera a observação gravada", async () => {
+    const chave = randomUUID();
+    const { atendimento } = await registrarAtendimentoRapido(entrada(chave, "50.00", "Par azul"));
+
+    await expect(registrarAtendimentoRapido(entrada(chave, "50.00", "Par vermelho"))).rejects.toMatchObject({ status: 409 });
+    await expect(registrarAtendimentoRapido(entrada(chave, "50.00"))).rejects.toMatchObject({ status: 409 });
+
+    // Mesma observação (após trim) é retry legítimo.
+    const repetido = await registrarAtendimentoRapido(entrada(chave, "50.00", "  Par azul  "));
+    expect(repetido).toMatchObject({ reaproveitado: true, atendimento: { id: atendimento.id } });
+
+    const gravado = await prisma.atendimentoRapido.findUniqueOrThrow({ where: { id: atendimento.id } });
+    expect(gravado.observacoes).toBe("Par azul");
     expect(await contarRegistros()).toEqual({ atendimentos: 1, itens: 1, pagamentos: 1, movimentacoes: 1 });
   });
 });
