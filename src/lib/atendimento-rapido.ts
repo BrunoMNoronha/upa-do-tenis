@@ -66,6 +66,7 @@ function garantirMesmoConteudo(
   calculo: CalculoAtendimentoRapido,
   itens: readonly ItemAtendimentoEntrada[],
   pagamentos: readonly PagamentoAtendimentoEntrada[],
+  observacoes: string | undefined,
 ) {
   // Assinaturas independentes da ordem de gravação das linhas.
   const assinatura = (linhas: string[]) => [...linhas].sort().join("|");
@@ -81,7 +82,15 @@ function garantirMesmoConteudo(
       ),
     ) === assinatura(pagamentos.map((pagamento) => `${pagamento.formaPagamentoId}:${pagamento.valorCentavos}`));
 
-  if (!itensIguais || !pagamentosIguais || decimalParaCentavos(existente.valorTotal) !== calculo.totalCentavos) {
+  // A observação já chega normalizada pelo schema (trim; vazia vira ausente), como foi gravada.
+  const observacaoIgual = (existente.observacoes ?? null) === (observacoes ?? null);
+
+  if (
+    !itensIguais ||
+    !pagamentosIguais ||
+    !observacaoIgual ||
+    decimalParaCentavos(existente.valorTotal) !== calculo.totalCentavos
+  ) {
     throw new AtendimentoRapidoError(
       "Esta chave de envio já foi usada para outro atendimento. Recarregue a tela e registre novamente.",
       409,
@@ -137,7 +146,7 @@ export async function registrarAtendimentoRapido(
   // Retry/duplo clique já concluído: devolve o existente sem abrir transação.
   const existente = await buscarPorChave(payload.chaveIdempotencia);
   if (existente) {
-    garantirMesmoConteudo(existente, calculo, payload.itens, payload.pagamentos);
+    garantirMesmoConteudo(existente, calculo, payload.itens, payload.pagamentos, payload.observacoes);
     return { atendimento: normalizarValoresDecimalParaClient(existente), reaproveitado: true };
   }
 
@@ -152,14 +161,22 @@ export async function registrarAtendimentoRapido(
         throw new AtendimentoRapidoError("Não há caixa aberto. Abra o caixa primeiro.", 400);
       }
 
-      // 2. Formas de pagamento existem.
+      // 2. Formas de pagamento existem e estão ativas (a tela só oferece as
+      //    ativas, mas a forma pode ter sido inativada com o formulário aberto).
       const formaIds = [...new Set(payload.pagamentos.map((pagamento) => pagamento.formaPagamentoId))];
       const formas = await tx.formaPagamento.findMany({
         where: { id: { in: formaIds } },
-        select: { id: true },
+        select: { id: true, nome: true, ativo: true },
       });
       if (formas.length !== formaIds.length) {
         throw new AtendimentoRapidoError("Forma de pagamento inválida.", 400);
+      }
+      const formaInativa = formas.find((forma) => !forma.ativo);
+      if (formaInativa) {
+        throw new AtendimentoRapidoError(
+          `A forma de pagamento "${formaInativa.nome}" está inativa e não pode ser usada.`,
+          400,
+        );
       }
 
       // 3. Serviços existem e estão ativos; o nome vira snapshot do item.
@@ -262,7 +279,7 @@ export async function registrarAtendimentoRapido(
     }, OPCOES_TRANSACAO);
 
     if (resultado.reaproveitado) {
-      garantirMesmoConteudo(resultado.atendimento, calculo, payload.itens, payload.pagamentos);
+      garantirMesmoConteudo(resultado.atendimento, calculo, payload.itens, payload.pagamentos, payload.observacoes);
     }
 
     return { ...resultado, atendimento: normalizarValoresDecimalParaClient(resultado.atendimento) };
@@ -271,7 +288,7 @@ export async function registrarAtendimentoRapido(
     if (ehConflitoUnico(error, "chaveIdempotencia")) {
       const criado = await buscarPorChave(payload.chaveIdempotencia);
       if (criado) {
-        garantirMesmoConteudo(criado, calculo, payload.itens, payload.pagamentos);
+        garantirMesmoConteudo(criado, calculo, payload.itens, payload.pagamentos, payload.observacoes);
         return { atendimento: normalizarValoresDecimalParaClient(criado), reaproveitado: true };
       }
     }
