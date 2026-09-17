@@ -47,22 +47,60 @@ export function CancelarVendaDialogView({
   onCancelar,
 }: CancelarVendaDialogViewProps) {
   const motivoRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Última versão do callback, sem reiniciar o efeito (e a contenção de foco)
+  // a cada mudança de `enviando`.
+  const onCancelarRef = useRef(onCancelar);
+  onCancelarRef.current = onCancelar;
+  const aberto = venda !== null;
 
   useEffect(() => {
-    if (!venda) return;
+    if (!aberto) return;
+    const focoAnterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     motivoRef.current?.focus();
+
     const aoPressionarTecla = (evento: KeyboardEvent) => {
-      if (evento.key === "Escape") onCancelar();
+      if (evento.key === "Escape") {
+        onCancelarRef.current();
+        return;
+      }
+      if (evento.key !== "Tab" || !formRef.current) return;
+
+      // Contém o foco no diálogo: Tab no último volta ao primeiro e vice-versa,
+      // para não alcançar ações de outras vendas por trás do overlay.
+      const focaveis = Array.from(formRef.current.querySelectorAll<HTMLElement>(SELETOR_FOCAVEIS));
+      if (focaveis.length === 0) {
+        evento.preventDefault();
+        return;
+      }
+      const primeiro = focaveis[0];
+      const ultimo = focaveis[focaveis.length - 1];
+      const atual = document.activeElement;
+      const dentro = atual instanceof Node && formRef.current.contains(atual);
+
+      if (evento.shiftKey && (!dentro || atual === primeiro)) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && (!dentro || atual === ultimo)) {
+        evento.preventDefault();
+        primeiro.focus();
+      }
     };
+
     document.addEventListener("keydown", aoPressionarTecla);
-    return () => document.removeEventListener("keydown", aoPressionarTecla);
-  }, [venda, onCancelar]);
+    return () => {
+      document.removeEventListener("keydown", aoPressionarTecla);
+      // Devolve o foco a quem abriu o diálogo, se ainda estiver na página.
+      if (focoAnterior?.isConnected) focoAnterior.focus();
+    };
+  }, [aberto]);
 
   if (!venda) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onCancelar}>
       <form
+        ref={formRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="cancelar-venda-titulo"
@@ -124,22 +162,35 @@ export function CancelarVendaDialogView({
   );
 }
 
-/** Botão "Cancelar venda" com diálogo; recarrega os dados do servidor depois. */
-export function CancelarVendaBotao({ venda, className }: { venda: VendaParaCancelar; className?: string }) {
+const SELETOR_FOCAVEIS =
+  'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Estado e envio do cancelamento com UM diálogo para a tela inteira: na lista,
+ * abrir outra venda substitui a selecionada em vez de empilhar diálogos.
+ */
+export function useCancelamentoVenda() {
   const router = useRouter();
-  const [aberta, setAberta] = useState(false);
+  const [venda, setVenda] = useState<VendaParaCancelar | null>(null);
   const [motivo, setMotivo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
+  const abrir = useCallback((selecionada: VendaParaCancelar) => {
+    setMotivo("");
+    setErro(null);
+    setSucesso(null);
+    setVenda(selecionada);
+  }, []);
+
   const fechar = useCallback(() => {
     if (enviando) return;
-    setAberta(false);
+    setVenda(null);
   }, [enviando]);
 
   const confirmar = async () => {
-    if (enviando) return;
+    if (!venda || enviando) return;
     const erroValidacao = validarMotivoCancelamento(motivo);
     if (erroValidacao) {
       setErro(erroValidacao);
@@ -167,44 +218,67 @@ export function CancelarVendaBotao({ venda, className }: { venda: VendaParaCance
     }
 
     // O cancelamento já foi gravado: confirma e recarrega do servidor.
-    setAberta(false);
     setSucesso(`Venda ${venda.numero} cancelada.`);
+    setVenda(null);
     router.refresh();
   };
 
+  const dialogo = (
+    <CancelarVendaDialogView
+      venda={venda}
+      motivo={motivo}
+      erro={erro}
+      enviando={enviando}
+      onMotivoChange={(valor) => {
+        setMotivo(valor);
+        setErro(null);
+      }}
+      onConfirmar={() => void confirmar()}
+      onCancelar={fechar}
+    />
+  );
+
+  const avisoSucesso = sucesso ? (
+    <p role="status" className="text-sm font-medium text-emerald-700">
+      {sucesso}
+    </p>
+  ) : null;
+
+  return { abrir, dialogo, avisoSucesso };
+}
+
+/** Botão que abre o diálogo compartilhado de cancelamento. */
+export function BotaoCancelarVenda({
+  venda,
+  onAbrir,
+  className,
+}: {
+  venda: VendaParaCancelar;
+  onAbrir: (venda: VendaParaCancelar) => void;
+  className?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      className={`!text-rose-700 ${className ?? ""}`}
+      aria-label={`Cancelar venda ${venda.numero}`}
+      onClick={() => onAbrir(venda)}
+    >
+      Cancelar venda
+    </Button>
+  );
+}
+
+/** Uso isolado (detalhe da venda): botão, aviso e diálogo próprios. */
+export function CancelarVendaBotao({ venda, className }: { venda: VendaParaCancelar; className?: string }) {
+  const { abrir, dialogo, avisoSucesso } = useCancelamentoVenda();
+
   return (
     <>
-      <Button
-        type="button"
-        variant="secondary"
-        className={`!text-rose-700 ${className ?? ""}`}
-        aria-label={`Cancelar venda ${venda.numero}`}
-        onClick={() => {
-          setMotivo("");
-          setErro(null);
-          setSucesso(null);
-          setAberta(true);
-        }}
-      >
-        Cancelar venda
-      </Button>
-      {sucesso ? (
-        <p role="status" className="text-sm font-medium text-emerald-700">
-          {sucesso}
-        </p>
-      ) : null}
-      <CancelarVendaDialogView
-        venda={aberta ? venda : null}
-        motivo={motivo}
-        erro={erro}
-        enviando={enviando}
-        onMotivoChange={(valor) => {
-          setMotivo(valor);
-          setErro(null);
-        }}
-        onConfirmar={() => void confirmar()}
-        onCancelar={fechar}
-      />
+      <BotaoCancelarVenda venda={venda} onAbrir={abrir} className={className} />
+      {avisoSucesso}
+      {dialogo}
     </>
   );
 }
