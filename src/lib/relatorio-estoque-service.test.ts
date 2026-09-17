@@ -8,7 +8,7 @@ import {
   getResumoAlertasEstoque
 } from './relatorio-estoque-service';
 import { TipoMovimentacao, OrigemMovimentacao, criarMovimentacaoEstoque } from './movimentacao-estoque-service';
-import { parseDataLocal } from './date-range';
+import { dataOperacionalHoje } from './date-range';
 
 describe('Relatório Global de Estoque', () => {
   let insumoNormalId: string;
@@ -170,11 +170,9 @@ describe('Relatório Global de Estoque', () => {
   });
 
   it('deve incluir movimentacoes criadas hoje quando o filtro termina hoje', async () => {
-    // Simula o filtro "Hoje": data inicial e final iguais à data atual,
-    // parseadas como YYYY-MM-DD (mesmo formato enviado pela UI)
-    const agora = new Date();
-    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
-    const hoje = parseDataLocal(hojeStr);
+    // Simula o filtro "Hoje": data inicial e final iguais ao dia atual no
+    // fuso da operação, como YYYY-MM-DD (mesmo formato enviado pela UI)
+    const hoje = dataOperacionalHoje();
 
     const movimentacoes = await getExtratoMovimentacoes({
       dataInicio: hoje,

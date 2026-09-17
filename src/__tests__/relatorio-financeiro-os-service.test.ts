@@ -5,6 +5,7 @@ import {
   LIMITE_UNIVERSO_AGREGACAO,
 } from '../lib/relatorio-financeiro-os-service';
 import { prisma } from '../lib/prisma';
+import { dataOperacionalHoje, inicioDoDiaOperacional } from '../lib/date-range';
 import * as financeiroHelper from '../lib/ordens-servico-financeiro';
 
 vi.mock('../lib/prisma', () => ({
@@ -131,23 +132,22 @@ describe('Relatorio Financeiro OS Service', () => {
     (prisma.ordemServico.findMany as any).mockResolvedValue([]);
 
     const agora = new Date();
-    const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
+    const hojeStr = dataOperacionalHoje(agora);
 
     await gerarRelatorioFinanceiroOS({ inicio: hojeStr, fim: hojeStr });
 
     const args = (prisma.ordemServico.findMany as any).mock.calls[0][0];
     const { gte, lt } = args.where.dataEntrada;
 
-    // Intervalo semiaberto local: início de hoje <= agora < início de amanhã
+    // Intervalo semiaberto no fuso da operação: início de hoje <= agora < início de amanhã
     expect(gte.getTime()).toBeLessThanOrEqual(agora.getTime());
     expect(lt.getTime()).toBeGreaterThan(agora.getTime());
 
-    // gte deve ser meia-noite local de hoje (não do dia anterior via UTC)
-    expect(gte.getDate()).toBe(agora.getDate());
-    expect(gte.getHours()).toBe(0);
+    // gte deve ser a meia-noite de hoje em São Paulo (não a do fuso do processo)
+    expect(gte.getTime()).toBe(inicioDoDiaOperacional(agora).getTime());
   });
 
-  it('deve montar intervalo local correto para datas YYYY-MM-DD', async () => {
+  it('deve montar intervalo em America/Sao_Paulo para datas YYYY-MM-DD', async () => {
     (prisma.ordemServico.findMany as any).mockResolvedValue([]);
 
     await gerarRelatorioFinanceiroOS({ inicio: '2026-07-01', fim: '2026-07-04' });
@@ -155,11 +155,11 @@ describe('Relatorio Financeiro OS Service', () => {
     const args = (prisma.ordemServico.findMany as any).mock.calls[0][0];
     const { gte, lt } = args.where.dataEntrada;
 
-    expect(gte.getTime()).toBe(new Date(2026, 6, 1, 0, 0, 0, 0).getTime());
-    expect(lt.getTime()).toBe(new Date(2026, 6, 5, 0, 0, 0, 0).getTime());
+    expect(gte.toISOString()).toBe('2026-07-01T03:00:00.000Z');
+    expect(lt.toISOString()).toBe('2026-07-05T03:00:00.000Z');
 
-    // OS criada às 22h do dia final deve cair dentro do intervalo
-    const osNoiteDoDiaFinal = new Date(2026, 6, 4, 22, 0);
+    // OS criada às 22h (São Paulo) do dia final deve cair dentro do intervalo
+    const osNoiteDoDiaFinal = new Date('2026-07-04T22:00:00-03:00');
     expect(osNoiteDoDiaFinal.getTime()).toBeGreaterThanOrEqual(gte.getTime());
     expect(osNoiteDoDiaFinal.getTime()).toBeLessThan(lt.getTime());
   });

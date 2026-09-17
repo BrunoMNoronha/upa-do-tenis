@@ -128,7 +128,8 @@ describe("listagens paginadas: count e findMany compartilham o mesmo where", () 
 
     const { whereCount, find } = argumentos(prismaMock.caixa);
     expect(whereCount).toEqual({
-      dataAbertura: { gte: new Date("2026-09-01T00:00:00"), lte: new Date("2026-09-30T23:59:59") },
+      // Dias completos em America/Sao_Paulo: 01/09 00:00 até 01/10 00:00 (exclusivo).
+      dataAbertura: { gte: new Date("2026-09-01T03:00:00.000Z"), lt: new Date("2026-10-01T03:00:00.000Z") },
     });
     expect(find.where).toEqual(whereCount);
     expect(find).toMatchObject({ skip: 0, take: 10, orderBy: [{ dataAbertura: "desc" }, { id: "desc" }] });

@@ -1,7 +1,7 @@
 import { prisma } from './prisma';
 import { TipoMovimentacao, OrigemMovimentacao } from './movimentacao-estoque-service';
 import { Prisma } from '@prisma/client';
-import { inicioDoDia, inicioDoDiaSeguinte } from './date-range';
+import { intervaloDoDiaOperacional } from './date-range';
 
 export interface RelatorioEstoqueEstatisticas {
   totalInsumosAtivos: number;
@@ -20,8 +20,10 @@ export interface InsumoCritico {
 }
 
 export interface FiltrosMovimentacao {
-  dataInicio?: Date;
-  dataFim?: Date;
+  /** Dia inicial "YYYY-MM-DD" no fuso da operação. */
+  dataInicio?: string;
+  /** Dia final "YYYY-MM-DD" no fuso da operação (inclusive). */
+  dataFim?: string;
   tipo?: TipoMovimentacao;
   origem?: OrigemMovimentacao;
   insumoId?: string;
@@ -141,10 +143,10 @@ export async function getExtratoMovimentacoes(filtros?: FiltrosMovimentacao, lim
   if (filtros?.dataInicio || filtros?.dataFim) {
     where.criadoEm = {};
     if (filtros.dataInicio) {
-      where.criadoEm.gte = inicioDoDia(filtros.dataInicio);
+      where.criadoEm.gte = intervaloDoDiaOperacional(filtros.dataInicio).inicio;
     }
     if (filtros.dataFim) {
-      where.criadoEm.lt = inicioDoDiaSeguinte(filtros.dataFim);
+      where.criadoEm.lt = intervaloDoDiaOperacional(filtros.dataFim).fimExclusivo;
     }
   }
 
@@ -200,10 +202,10 @@ export async function getResumoPorTipo(filtros?: FiltrosMovimentacao): Promise<R
   if (filtros?.dataInicio || filtros?.dataFim) {
     where.criadoEm = {};
     if (filtros.dataInicio) {
-      where.criadoEm.gte = inicioDoDia(filtros.dataInicio);
+      where.criadoEm.gte = intervaloDoDiaOperacional(filtros.dataInicio).inicio;
     }
     if (filtros.dataFim) {
-      where.criadoEm.lt = inicioDoDiaSeguinte(filtros.dataFim);
+      where.criadoEm.lt = intervaloDoDiaOperacional(filtros.dataFim).fimExclusivo;
     }
   }
 

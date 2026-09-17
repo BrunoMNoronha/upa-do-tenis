@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { inicioDoDia, inicioDoDiaSeguinte } from './date-range';
+import { intervaloDoDiaOperacional } from './date-range';
 
 export interface DashboardMetrics {
   totalRecebido: number;
@@ -16,11 +16,16 @@ export interface DashboardMetrics {
   topInsumos: { id: string; nome: string; quantidade: number }[];
 }
 
-export async function getDashboardMetrics(dataInicio: Date, dataFim: Date): Promise<DashboardMetrics> {
-  // Intervalo semiaberto em dias locais: >= início do dia inicial e
-  // < início do dia seguinte ao final, incluindo registros criados hoje.
-  const inicio = inicioDoDia(dataInicio);
-  const fimExclusivo = inicioDoDiaSeguinte(dataFim);
+/**
+ * @param dataInicio dia inicial "YYYY-MM-DD" no fuso da operação
+ * @param dataFim dia final "YYYY-MM-DD" no fuso da operação (inclusive)
+ */
+export async function getDashboardMetrics(dataInicio: string, dataFim: string): Promise<DashboardMetrics> {
+  // Intervalo semiaberto em dias do fuso da operação (independe do fuso do
+  // processo): >= início do dia inicial e < início do dia seguinte ao final,
+  // incluindo registros criados hoje.
+  const { inicio } = intervaloDoDiaOperacional(dataInicio);
+  const { fimExclusivo } = intervaloDoDiaOperacional(dataFim);
 
   // Execução paralela de todas as agregações independentes para reduzir tempo de resposta.
   const [

@@ -279,9 +279,9 @@ describe("listarVendasBalcao", () => {
   });
 
   it("filtra por dataInicial", async () => {
-    const { formatarDataLocal } = await import("./date-range");
+    const { dataOperacional } = await import("./date-range");
     const { listarVendasBalcao } = await import("./vendas");
-    const hoje = formatarDataLocal(new Date());
+    const hoje = dataOperacional(new Date());
 
     const vendas = await listarVendasBalcao({ dataInicial: hoje });
     expect(vendas).toHaveLength(1); // apenas a v2 de hoje
@@ -289,12 +289,12 @@ describe("listarVendasBalcao", () => {
   });
 
   it("filtra por dataFinal", async () => {
-    const { formatarDataLocal } = await import("./date-range");
+    const { dataOperacional } = await import("./date-range");
     const { listarVendasBalcao } = await import("./vendas");
     
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
-    const dataOntem = formatarDataLocal(ontem);
+    const dataOntem = dataOperacional(ontem);
 
     const vendas = await listarVendasBalcao({ dataFinal: dataOntem });
     expect(vendas).toHaveLength(1); // apenas a v1 de ontem
@@ -302,13 +302,13 @@ describe("listarVendasBalcao", () => {
   });
 
   it("filtra por intervalo válido", async () => {
-    const { formatarDataLocal } = await import("./date-range");
+    const { dataOperacional } = await import("./date-range");
     const { listarVendasBalcao } = await import("./vendas");
     
     const ontem = new Date();
     ontem.setDate(ontem.getDate() - 1);
-    const dataOntem = formatarDataLocal(ontem);
-    const hoje = formatarDataLocal(new Date());
+    const dataOntem = dataOperacional(ontem);
+    const hoje = dataOperacional(new Date());
 
     const vendas = await listarVendasBalcao({ dataInicial: dataOntem, dataFinal: hoje });
     expect(vendas).toHaveLength(2);
@@ -350,10 +350,10 @@ describe("listarVendasBalcao", () => {
     });
 
     it("filtros + paginação usam o mesmo where no count", async () => {
-      const { formatarDataLocal } = await import("./date-range");
+      const { dataOperacional } = await import("./date-range");
       const { listarVendasBalcaoPaginado } = await import("./vendas");
       const { normalizarPaginacao } = await import("./paginacao");
-      const hoje = formatarDataLocal(new Date());
+      const hoje = dataOperacional(new Date());
 
       const resultado = await listarVendasBalcaoPaginado({
         filtros: { dataInicial: hoje, formaPagamentoId },
