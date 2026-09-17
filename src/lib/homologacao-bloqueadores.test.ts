@@ -25,6 +25,8 @@ vi.mock("@vercel/blob", () => ({
   })),
 }));
 
+const BANCOS_PERMITIDOS = ["/upa_do_tenis_test", "/upa_do_tenis_ci"];
+
 let clienteId: string;
 let servicoId: string;
 let formaId: string;
@@ -39,8 +41,9 @@ function request(caminho: string, body?: unknown) {
 
 beforeEach(async () => {
   const destino = new URL(process.env.DATABASE_URL!);
-  if (destino.hostname !== "localhost" || destino.pathname !== "/upa_do_tenis_test") {
-    throw new Error("Esta regressão requer exclusivamente o banco local upa_do_tenis_test.");
+  // Somente bancos descartáveis: o de testes local e o efêmero da CI.
+  if (destino.hostname !== "localhost" || !BANCOS_PERMITIDOS.includes(destino.pathname)) {
+    throw new Error("Esta regressão requer exclusivamente o banco local de testes ou o banco efêmero da CI.");
   }
   vi.stubEnv("OS_ACOMPANHAMENTO_SECRET", "segredo-exclusivo-teste-regressao");
   clienteId = (await prisma.cliente.create({ data: { nome: `Regressão ${randomUUID()}`, telefone: "11999999999" } })).id;
