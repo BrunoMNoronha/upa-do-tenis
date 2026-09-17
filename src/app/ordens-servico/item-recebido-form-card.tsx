@@ -110,6 +110,7 @@ export function ItemRecebidoFormCard({
             type="button"
             onClick={onRemoverItem}
             disabled={bloqueado}
+            aria-label={`Remover item ${indice + 1}`}
             className="text-xs font-semibold text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Remover item

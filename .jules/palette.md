@@ -17,3 +17,7 @@
 ## 2026-09-15 - Estado de carregamento inconsistente nos botões
 **Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
 **Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.
+
+## 2024-05-20 - Contexto em botões de remoção
+**Learning:** Screen readers anunciam o texto do botão (ex: "Remover item"). Em listas repetitivas, isso não oferece contexto sobre QUAL item será removido, prejudicando a acessibilidade.
+**Action:** Sempre que houver botões repetidos de ação (ex: remover, editar) em listas/grids, adicione um `aria-label` que inclua o nome ou o índice do item alvo.
