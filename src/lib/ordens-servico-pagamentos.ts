@@ -32,6 +32,15 @@ export async function listarPagamentosOrdemServico(ordemServicoId: string) {
     where: { ordemServicoId },
     include: {
       formaPagamento: true,
+      estorno: {
+        select: {
+          id: true,
+          valor: true,
+          motivo: true,
+          dataEstorno: true,
+          usuario: { select: { id: true, nome: true } },
+        },
+      },
     },
     orderBy: [{ dataPagamento: "desc" }, { criadoEm: "desc" }],
   });

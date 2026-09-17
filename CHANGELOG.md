@@ -19,6 +19,11 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Telas `/atendimento-rapido` (registro) e `/atendimentos-rapidos` (histórico com busca por código e período); rótulo "Atendimento Rápido" nas movimentações do caixa.
   - Dashboard: total recebido e recebimentos por dia incluem os pagamentos de AR; "Serviços mais executados" soma as execuções de OS e de AR (um item = uma execução) antes do Top 5.
   - Serviço usado em atendimento rápido não pode ser excluído (409; inativar).
+- **Estorno de pagamentos de OS — API com caixa (#230, fatia 2)**: `POST /api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno` com `{ motivo }` (5 a 500 caracteres, aparado). Estorna o pagamento inteiro, uma única vez, registrando o usuário da sessão.
+  - Uma transação grava o estorno, lança SAÍDA `ESTORNO_PAGAMENTO_OS` no caixa aberto na forma do pagamento original e regrava `valorPago`/`saldo` da OS. A linha da OS é travada no início, e estornos concorrentes da mesma OS ficam em fila.
+  - Recusas sem gravar nada: pagamento inexistente ou de outra OS (404, inclusive pagamentos de Atendimento Rápido, fora de escopo), OS cancelada (409), pagamento já estornado (409, também na corrida, pela restrição única), sem caixa aberto (400), motivo inválido (400).
+  - `GET /api/ordens-servico/[id]/pagamentos` devolve o estorno de cada pagamento (valor, motivo, data e usuário).
+  - Sem alteração de schema e sem mudança no cálculo do caixa. Ainda sem tela (fatia 4) e sem desconto no dashboard (fatia 3).
 - **Estorno de pagamentos de OS — modelo e cálculo (#230, fatia 1)**: modelo `EstornoPagamento` (um por pagamento, motivo, usuário e `dataEstorno`) e vínculo opcional `MovimentacaoCaixa.estornoPagamentoId`, com migration aditiva `20260917130000_add_estorno_pagamento`.
   - O valor pago, o saldo e o status financeiro da OS desconsideram pagamentos estornados (detalhe, listagem, relatório financeiro, validação de pagamento acima do saldo). Com estorno, a coluna `valorPago` legada não prevalece; sem estorno, a regra atual continua idêntica.
   - O bloqueio de cancelamento (#229) passa a contar só pagamentos não estornados.

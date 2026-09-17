@@ -146,7 +146,7 @@ export async function registrarMovimentacaoAutomaticaCaixa(
   payload: {
     caixaId: string;
     tipo: "ENTRADA" | "SAIDA";
-    origem: "PAGAMENTO_OS" | "ATENDIMENTO_RAPIDO";
+    origem: "PAGAMENTO_OS" | "ATENDIMENTO_RAPIDO" | "ESTORNO_PAGAMENTO_OS";
     /** number (fluxo de OS) ou decimal em texto ("150.50", fluxo em centavos do Atendimento Rápido). */
     valor: number | string;
     descricao: string;
@@ -154,6 +154,7 @@ export async function registrarMovimentacaoAutomaticaCaixa(
     pagamentoId?: string;
     ordemServicoId?: string;
     atendimentoRapidoId?: string;
+    estornoPagamentoId?: string;
   },
   txClient: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">
 ) {
@@ -181,6 +182,7 @@ export async function registrarMovimentacaoAutomaticaCaixa(
       pagamentoId: payload.pagamentoId,
       ordemServicoId: payload.ordemServicoId,
       atendimentoRapidoId: payload.atendimentoRapidoId,
+      estornoPagamentoId: payload.estornoPagamentoId,
     },
   });
 
