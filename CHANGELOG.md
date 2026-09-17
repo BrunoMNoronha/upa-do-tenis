@@ -11,6 +11,11 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
 
 ### Adicionado
+- **Estorno de Atendimento Rápido — tela (fatia 2)**: no histórico `/atendimentos-rapidos`, cada atendimento não estornado tem o botão "Estornar".
+  - Diálogo com código, total, valor de cada forma de pagamento e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API (sem caixa aberto, já estornado) aparecem no diálogo em `role="alert"`.
+  - Depois do estorno, a lista é recarregada do servidor e a confirmação aparece em `role="status"`.
+  - Atendimento estornado continua no histórico: total riscado, etiqueta "Estornado" e a linha "Estornado em … — motivo", sem botão.
+  - Sem alteração de API, schema ou cálculo.
 - **Estorno de Atendimento Rápido — API (fatia 1)**: `POST /api/atendimentos-rapidos/[id]/estorno` com `{ motivo }` (5 a 500 caracteres, aparado). O estorno é sempre total: estorna todos os pagamentos do atendimento de uma vez, registrando o usuário da sessão.
   - Uma transação grava um `EstornoPagamento` por pagamento e lança uma SAÍDA `ESTORNO_ATENDIMENTO_RAPIDO` no caixa aberto na forma de cada pagamento original. A linha do atendimento é travada no início; qualquer falha desfaz tudo.
   - Recusas sem gravar nada: atendimento inexistente (404), já estornado (409, também na corrida, pela restrição única), sem caixa aberto (400), motivo inválido (400).

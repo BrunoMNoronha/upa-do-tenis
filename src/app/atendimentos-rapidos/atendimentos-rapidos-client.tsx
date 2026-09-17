@@ -5,17 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
 import { Button, Card, EmptyState, Input, Label } from "@/components/ui";
-import { formatarCentavos, paraCentavos } from "@/lib/centavos";
+import { validarMotivoEstorno } from "@/app/ordens-servico/[id]/components/HistoricoPagamentosList";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import type { AtendimentoRapidoListagem } from "@/lib/atendimento-rapido";
-
-const dataHoraFormatter = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-  timeZone: "America/Sao_Paulo",
-});
-
-const moeda = (valor: number) => formatarCentavos(paraCentavos(valor) ?? 0);
+import { AtendimentoRapidoCardView, EstornarAtendimentoRapidoDialogView } from "./components/AtendimentoRapidoCard";
 
 export function AtendimentosRapidosClient({
   atendimentos,
@@ -34,6 +27,58 @@ export function AtendimentosRapidosClient({
   const [codigo, setCodigo] = useState(busca);
   const [dataInicial, setDataInicial] = useState(searchParams.get("dataInicial") || "");
   const [dataFinal, setDataFinal] = useState(searchParams.get("dataFinal") || "");
+
+  const [atendimentoEstornando, setAtendimentoEstornando] = useState<AtendimentoRapidoListagem | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  const [sucesso, setSucesso] = useState<string | null>(null);
+
+  const cancelarEstorno = useCallback(() => {
+    if (enviando) return;
+    setAtendimentoEstornando(null);
+  }, [enviando]);
+
+  const abrirEstorno = (atendimento: AtendimentoRapidoListagem) => {
+    setMotivo("");
+    setErro(null);
+    setSucesso(null);
+    setAtendimentoEstornando(atendimento);
+  };
+
+  const confirmarEstorno = async () => {
+    if (!atendimentoEstornando || enviando) return;
+    const erroValidacao = validarMotivoEstorno(motivo);
+    if (erroValidacao) {
+      setErro(erroValidacao);
+      return;
+    }
+
+    setEnviando(true);
+    setErro(null);
+    try {
+      const response = await fetch(`/api/atendimentos-rapidos/${atendimentoEstornando.id}/estorno`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ motivo: motivo.trim() }),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setErro(payload?.message || "Não foi possível estornar o atendimento.");
+        return;
+      }
+    } catch {
+      setErro("Falha de comunicação ao estornar o atendimento.");
+      return;
+    } finally {
+      setEnviando(false);
+    }
+
+    // O estorno já foi gravado: confirma e recarrega a lista do servidor.
+    setSucesso(`Atendimento ${atendimentoEstornando.codigo} estornado.`);
+    setAtendimentoEstornando(null);
+    router.refresh();
+  };
 
   const aplicarFiltros = useCallback(() => {
     // Alterar filtros volta para a página 1 (mantém pageSize).
@@ -92,6 +137,12 @@ export function AtendimentosRapidosClient({
         </div>
       </form>
 
+      {sucesso ? (
+        <p role="status" className="mb-4 text-sm font-medium text-emerald-700">
+          {sucesso}
+        </p>
+      ) : null}
+
       {atendimentos.length === 0 ? (
         <EmptyState
           title="Nenhum atendimento rápido encontrado"
@@ -101,50 +152,7 @@ export function AtendimentosRapidosClient({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {atendimentos.map((atendimento) => (
-            <article
-              key={atendimento.id}
-              className="rounded-3xl border border-black/10 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.03)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent)]">
-                    {atendimento.codigo}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">{dataHoraFormatter.format(new Date(atendimento.dataHora))}</p>
-                </div>
-                <p className="text-lg font-semibold text-slate-800">{moeda(atendimento.valorTotal)}</p>
-              </div>
-
-              <div className="mt-4 text-sm text-slate-600">
-                <p className="font-semibold text-slate-700">Serviços</p>
-                <ul className="mt-1 space-y-1">
-                  {atendimento.itens.map((item) => (
-                    <li key={item.id} className="flex justify-between gap-3">
-                      <span>{item.descricao}</span>
-                      <span className="whitespace-nowrap">{moeda(item.valor)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mt-3 text-sm text-slate-600">
-                <p className="font-semibold text-slate-700">Pagamento</p>
-                <ul className="mt-1 space-y-1">
-                  {atendimento.pagamentos.map((pagamento) => (
-                    <li key={pagamento.id} className="flex justify-between gap-3">
-                      <span>{pagamento.formaPagamento.nome}</span>
-                      <span className="whitespace-nowrap">{moeda(pagamento.valor)}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {atendimento.observacoes ? (
-                <p className="mt-3 truncate text-sm text-slate-600" title={atendimento.observacoes}>
-                  <span className="font-semibold text-slate-700">Obs:</span> {atendimento.observacoes}
-                </p>
-              ) : null}
-            </article>
+            <AtendimentoRapidoCardView key={atendimento.id} atendimento={atendimento} onEstornar={abrirEstorno} />
           ))}
         </div>
       )}
@@ -152,6 +160,19 @@ export function AtendimentosRapidosClient({
       <div className="mt-6 border-t pt-4">
         <Paginacao pagination={pagination} rotulo="atendimentos" criarHref={criarHref} />
       </div>
+
+      <EstornarAtendimentoRapidoDialogView
+        atendimento={atendimentoEstornando}
+        motivo={motivo}
+        erro={erro}
+        enviando={enviando}
+        onMotivoChange={(valor) => {
+          setMotivo(valor);
+          setErro(null);
+        }}
+        onConfirmar={() => void confirmarEstorno()}
+        onCancelar={cancelarEstorno}
+      />
     </Card>
   );
 }
