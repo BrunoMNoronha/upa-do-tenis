@@ -7,6 +7,7 @@ vi.mock('../lib/prisma', () => ({
   prisma: {
     pagamento: {
       aggregate: vi.fn(),
+      findMany: vi.fn(),
     },
     ordemServico: {
       aggregate: vi.fn(),
@@ -36,6 +37,7 @@ describe('Dashboard Service', () => {
   it('deve calcular corretamente as métricas gerais com dados mockados', async () => {
     // Mocks
     (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 5000 } });
+    (prisma.pagamento.findMany as any).mockResolvedValue([]);
     (prisma.ordemServico.aggregate as any).mockImplementation((args: any) => {
       if (args._sum?.saldo) return Promise.resolve({ _sum: { saldo: 1500 } });
       if (args._avg?.valorTotal) return Promise.resolve({ _avg: { valorTotal: 300 } });
@@ -112,6 +114,7 @@ describe('Dashboard Service', () => {
 
   it('deve incluir registros criados no próprio dia quando dataFim é hoje', async () => {
     (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 0 } });
+    (prisma.pagamento.findMany as any).mockResolvedValue([]);
     (prisma.ordemServico.aggregate as any).mockResolvedValue({ _sum: { saldo: 0 }, _avg: { valorTotal: 0 } });
     (prisma.ordemServico.groupBy as any).mockResolvedValue([]);
     (prisma.ordemServico.count as any).mockResolvedValue(0);
@@ -132,5 +135,45 @@ describe('Dashboard Service', () => {
     expect(lt.getTime()).toBeGreaterThan(agora.getTime());
     expect(gte.getTime()).toBe(inicioDoDiaOperacional(agora).getTime());
     expect(dataOperacionalHoje(lt)).not.toBe(hoje);
+  });
+
+  function mockarAgregacoesVazias() {
+    (prisma.pagamento.aggregate as any).mockResolvedValue({ _sum: { valor: 0 } });
+    (prisma.ordemServico.aggregate as any).mockResolvedValue({ _sum: { saldo: 0 }, _avg: { valorTotal: 0 } });
+    (prisma.ordemServico.groupBy as any).mockResolvedValue([]);
+    (prisma.ordemServico.count as any).mockResolvedValue(0);
+    (prisma.servicoItemOrdem.groupBy as any).mockResolvedValue([]);
+    (prisma.servico.findMany as any).mockResolvedValue([]);
+    (prisma.insumoItemOrdem.groupBy as any).mockResolvedValue([]);
+    (prisma.insumo.findMany as any).mockResolvedValue([]);
+  }
+
+  it('monta recebimentosPorDia com o mesmo filtro do total recebido', async () => {
+    mockarAgregacoesVazias();
+    (prisma.pagamento.findMany as any).mockResolvedValue([
+      { dataPagamento: new Date('2026-07-01T22:30:00-03:00'), valor: 30 },
+      { dataPagamento: new Date('2026-07-03T09:00:00-03:00'), valor: 12.5 },
+    ]);
+
+    const metrics = await getDashboardMetrics('2026-07-01', '2026-07-03');
+
+    expect(prisma.pagamento.findMany).toHaveBeenCalledWith({
+      where: { dataPagamento: { gte: new Date('2026-07-01T03:00:00.000Z'), lt: new Date('2026-07-04T03:00:00.000Z') } },
+      select: { dataPagamento: true, valor: true },
+    });
+    expect(metrics.recebimentosPorDia).toEqual([
+      { dia: '2026-07-01', valor: 30 },
+      { dia: '2026-07-02', valor: 0 },
+      { dia: '2026-07-03', valor: 12.5 },
+    ]);
+  });
+
+  it('devolve recebimentosPorDia null e não busca pagamentos quando o período passa do limite', async () => {
+    mockarAgregacoesVazias();
+
+    const metrics = await getDashboardMetrics('2026-01-01', '2026-12-31');
+
+    expect(metrics.recebimentosPorDia).toBeNull();
+    expect(prisma.pagamento.findMany).not.toHaveBeenCalled();
   });
 });

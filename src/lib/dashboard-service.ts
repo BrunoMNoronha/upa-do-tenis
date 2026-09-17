@@ -1,5 +1,10 @@
 import { prisma } from './prisma';
-import { intervaloDoDiaOperacional } from './date-range';
+import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
+import {
+  listarDiasDoPeriodo,
+  montarRecebimentosPorDia,
+  type RecebimentoDia,
+} from './dashboard-recebimentos-por-dia';
 
 export interface DashboardMetrics {
   totalRecebido: number;
@@ -14,6 +19,12 @@ export interface DashboardMetrics {
   ticketMedio: number;
   topServicos: { id: string; nome: string; quantidade: number }[];
   topInsumos: { id: string; nome: string; quantidade: number }[];
+  /**
+   * Um item por dia do período (fuso da operação), com zero nos dias sem
+   * recebimento; a soma dos valores é igual a `totalRecebido`. `null` quando o
+   * período passa de `LIMITE_DIAS_RECEBIMENTOS_POR_DIA`.
+   */
+  recebimentosPorDia: RecebimentoDia[] | null;
 }
 
 /**
@@ -25,7 +36,10 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
   // processo): >= início do dia inicial e < início do dia seguinte ao final,
   // incluindo registros criados hoje.
   const { inicio } = intervaloDoDiaOperacional(dataInicio);
-  const { fimExclusivo } = intervaloDoDiaOperacional(dataFim);
+  const { inicio: inicioDoDiaFinal, fimExclusivo } = intervaloDoDiaOperacional(dataFim);
+
+  // Dias do período normalizados para "YYYY-MM-DD" (a rota também aceita ISO completo).
+  const diasDoPeriodo = listarDiasDoPeriodo(dataOperacional(inicio), dataOperacional(inicioDoDiaFinal));
 
   // Execução paralela de todas as agregações independentes para reduzir tempo de resposta.
   const [
@@ -37,7 +51,8 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     osParcialmentePagas,
     ticketMedioAgg,
     topServicosAgg,
-    topInsumosAgg
+    topInsumosAgg,
+    pagamentosDoPeriodo
   ] = await Promise.all([
     // 1. Total Recebido no período (Soma de todos os pagamentos)
     prisma.pagamento.aggregate({
@@ -124,7 +139,14 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
       },
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
-    })
+    }),
+    // 8. Pagamentos do período para a série diária (mesmo filtro do total recebido).
+    diasDoPeriodo && diasDoPeriodo.length > 0
+      ? prisma.pagamento.findMany({
+          where: { dataPagamento: { gte: inicio, lt: fimExclusivo } },
+          select: { dataPagamento: true, valor: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const totalRecebido = Number(totalRecebidoAgg._sum.valor || 0);
@@ -199,5 +221,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     ticketMedio,
     topServicos,
     topInsumos,
+    recebimentosPorDia: diasDoPeriodo === null ? null : montarRecebimentosPorDia(diasDoPeriodo, pagamentosDoPeriodo),
   };
 }
