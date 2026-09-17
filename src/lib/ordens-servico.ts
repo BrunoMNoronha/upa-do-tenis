@@ -229,7 +229,16 @@ export async function obterDetalheOrdemServico(id: string) {
       pagamentos: {
         include: {
           formaPagamento: true,
-          ...INCLUDE_ESTORNO_PAGAMENTO,
+          // Superconjunto de INCLUDE_ESTORNO_PAGAMENTO: o detalhe exibe o estorno (#230).
+          estorno: {
+            select: {
+              id: true,
+              valor: true,
+              motivo: true,
+              dataEstorno: true,
+              usuario: { select: { id: true, nome: true } },
+            },
+          },
         },
         orderBy: [{ dataPagamento: "desc" }, { criadoEm: "desc" }],
       },

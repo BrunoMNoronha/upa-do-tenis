@@ -27,14 +27,21 @@ export function podeCancelarOrdemServico(status: string): boolean {
 }
 
 export const MENSAGEM_CANCELAMENTO_COM_PAGAMENTO =
-  "Esta OS possui pagamento registrado e não pode ser cancelada. O estorno de pagamentos ainda não está disponível.";
+  "Esta OS possui pagamento registrado. Estorne os pagamentos para poder cancelá-la.";
+
+/**
+ * Sinal legado (`valorSinal`) não tem estorno pelo sistema (fora da #230): a
+ * mensagem não pode orientar a estornar pagamentos que não existem.
+ */
+export const MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO =
+  "Esta OS possui sinal registrado no sistema anterior, que não tem estorno pelo sistema. O cancelamento continua bloqueado.";
 
 export const MENSAGEM_PAGAMENTO_OS_CANCELADA =
   "Não é possível registrar pagamento em uma OS cancelada.";
 
 /**
- * Cancelamento considerando o financeiro (#229): enquanto não existir estorno
- * e devolução (#230), uma OS com qualquer valor pago não pode ser cancelada.
+ * Cancelamento considerando o financeiro (#229): uma OS com qualquer valor pago
+ * não pode ser cancelada; os pagamentos precisam ser estornados antes (#230).
  * `valorPago` é o consolidado do backend (inclui sinal e pagamentos).
  */
 export function podeCancelarOrdemServicoComFinanceiro(status: string, valorPago: number): boolean {

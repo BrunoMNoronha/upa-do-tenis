@@ -19,6 +19,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Telas `/atendimento-rapido` (registro) e `/atendimentos-rapidos` (histórico com busca por código e período); rótulo "Atendimento Rápido" nas movimentações do caixa.
   - Dashboard: total recebido e recebimentos por dia incluem os pagamentos de AR; "Serviços mais executados" soma as execuções de OS e de AR (um item = uma execução) antes do Top 5.
   - Serviço usado em atendimento rápido não pode ser excluído (409; inativar).
+- **Estorno de pagamentos de OS — tela no detalhe da OS (#230, fatia 4)**: em "Pagamentos registrados", cada pagamento não estornado de OS não cancelada tem o botão "Estornar".
+  - Diálogo com valor, forma, data e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API (sem caixa aberto, já estornado) aparecem no diálogo em `role="alert"`.
+  - Depois do estorno, o detalhe é recarregado: pago, saldo, status financeiro e histórico se atualizam sem recarregar a página. Com todos os pagamentos estornados, "Cancelar OS" volta a aparecer.
+  - Pagamento estornado aparece riscado, com a etiqueta "Estornado em … por … — motivo". O detalhe da OS passa a devolver data, motivo e usuário do estorno.
+  - A mensagem da OS com pagamento passa a orientar: "Estorne os pagamentos para poder cancelá-la." OS bloqueada só por sinal legado recebe mensagem própria, sem orientar estorno (na tela e no 409 da rota de status).
+  - Com o estorno aceito, o diálogo fecha e confirma o estorno antes de recarregar; uma falha na recarga não aparece como falha do estorno.
 - **Estorno de pagamentos de OS — dashboard, relatórios e caixa (#230, fatia 3)**: o dashboard passa a mostrar o recebido líquido. Pagamentos contam no dia de `dataPagamento` e estornos são descontados no dia de `dataEstorno`, sem alterar dias anteriores.
   - `totalRecebido` e `recebimentosPorDia` saem das mesmas leituras (pagamentos e estornos) num único snapshot `REPEATABLE READ`, inclusive quando o período passa do limite da série. A soma da série continua igual ao total.
   - Gráfico "Recebimentos por dia": um dia com mais estorno que pagamento aparece com barra vermelha abaixo do eixo, na mesma escala das barras positivas. Sem estorno, o gráfico fica idêntico. "Melhor dia" e "Dias com recebimento" consideram só dias positivos.

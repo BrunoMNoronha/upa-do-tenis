@@ -3,6 +3,7 @@ import { exigirSessaoApi } from "@/lib/auth-server";
 import { statusUpdateSchema } from "@/lib/ordens-servico-schema";
 import {
   MENSAGEM_CANCELAMENTO_COM_PAGAMENTO,
+  MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO,
   OsStatus,
   transicaoPermitida,
 } from "@/lib/ordens-servico-status";
@@ -96,6 +97,12 @@ export async function PATCH(
             atual.status === statusAtual &&
             (Number(atual.valorPago) > 0 || Number(atual.valorSinal) > 0)
           ) {
+            // Só o sinal legado bloqueia quando não há pagamento ativo (nem
+            // concorrente já confirmado): ele não tem estorno pelo sistema.
+            const pagamentosAtivos = await tx.pagamento.count({ where: { ordemServicoId: id, estorno: null } });
+            if (pagamentosAtivos === 0 && Number(atual.valorSinal) > 0) {
+              return "COM_SINAL_LEGADO" as const;
+            }
             return "COM_PAGAMENTO" as const;
           }
         }
@@ -114,6 +121,10 @@ export async function PATCH(
 
       return tx.ordemServico.findUnique({ where: { id } });
     });
+
+    if (osAtualizada === "COM_SINAL_LEGADO") {
+      return NextResponse.json({ message: MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO }, { status: 409 });
+    }
 
     if (osAtualizada === "COM_PAGAMENTO") {
       return NextResponse.json({ message: MENSAGEM_CANCELAMENTO_COM_PAGAMENTO }, { status: 409 });

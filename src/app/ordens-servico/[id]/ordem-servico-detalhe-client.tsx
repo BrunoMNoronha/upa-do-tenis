@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { CompartilharAcompanhamentoDialog } from "@/components/compartilhar-acompanhamento-dialog";
 import {
   MENSAGEM_CANCELAMENTO_COM_PAGAMENTO,
+  MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO,
   podeCancelarOrdemServico,
   podeCancelarOrdemServicoComFinanceiro,
 } from "@/lib/ordens-servico-status";
@@ -257,7 +258,11 @@ export function OrdemServicoDetalheClient({
               </div>
             </div>
             {podeCancelarOrdemServico(ordem.status) && Number(resumo.valorPago || 0) > 0 && !cancelamentoErro ? (
-              <p className="mt-4 text-sm text-slate-600">{MENSAGEM_CANCELAMENTO_COM_PAGAMENTO}</p>
+              <p className="mt-4 text-sm text-slate-600">
+                {ordem.pagamentos.some((pagamento) => !pagamento.estorno) || !(Number(resumo.valorSinal || 0) > 0)
+                  ? MENSAGEM_CANCELAMENTO_COM_PAGAMENTO
+                  : MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO}
+              </p>
             ) : null}
             {cancelamentoErro ? (
               <p role="alert" className="mt-4 text-sm font-medium text-rose-700">{cancelamentoErro}</p>
@@ -493,7 +498,12 @@ export function OrdemServicoDetalheClient({
           onInsumoRegistrado={handleRefresh}
         />
 
-        <HistoricoPagamentosList pagamentos={ordem.pagamentos} />
+        <HistoricoPagamentosList
+          ordemServicoId={ordemServicoId}
+          pagamentos={ordem.pagamentos}
+          podeEstornar={ordem.status !== "CANCELADA"}
+          onEstornado={handleRefresh}
+        />
       </aside>
       <ConfirmDialog
         aberto={confirmandoCancelamento}
