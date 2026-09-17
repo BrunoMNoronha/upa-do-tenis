@@ -86,6 +86,7 @@ import {
   POST as atendimentosRapidosPost,
 } from "@/app/api/atendimentos-rapidos/route";
 import { GET as vendasIdGet } from "@/app/api/vendas/[id]/route";
+import { POST as vendaCancelamentoPost } from "@/app/api/vendas/[id]/cancelamento/route";
 import { GET as configuracoesGet, PUT as configuracoesPut } from "@/app/api/configuracoes/route";
 import { GET as dadosEmpresaGet, PUT as dadosEmpresaPut } from "@/app/api/configuracoes/dados-empresa/route";
 
@@ -268,6 +269,10 @@ const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/vendas", () => vendasGet(criarRequest("/api/vendas"))],
   ["POST /api/vendas", () => vendasPost(criarRequest("/api/vendas", "POST"))],
   ["GET /api/vendas/[id]", () => vendasIdGet(criarRequest("/api/vendas/abc"), params)],
+  [
+    "POST /api/vendas/[id]/cancelamento",
+    () => vendaCancelamentoPost(criarRequest("/api/vendas/abc/cancelamento", "POST"), params),
+  ],
   ["GET /api/configuracoes", () => configuracoesGet(criarRequest("/api/configuracoes"))],
   ["PUT /api/configuracoes", () => configuracoesPut(criarRequest("/api/configuracoes", "PUT"))],
   ["GET /api/configuracoes/dados-empresa", () => dadosEmpresaGet(criarRequest("/api/configuracoes/dados-empresa"))],

@@ -17,6 +17,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
 
 ### Adicionado
+- **Cancelamento de venda de balcão — modelo e API (fatia 1)**: `POST /api/vendas/[id]/cancelamento` com `{ motivo }` (5 a 500 caracteres, aparado). O cancelamento é sempre total e a venda continua no histórico.
+  - **Migration `20260917150000_add_cancelamento_venda`** (aditiva): `Venda.dataCancelamento`, `Venda.motivoCancelamento` e `Venda.canceladoPorId` (FK para `Usuario`, `ON DELETE RESTRICT`), opcionais e sem backfill. CHECK `Venda_cancelamento_consistente_check`: venda `CANCELADA` tem os três preenchidos; qualquer outra não tem nenhum.
+  - Uma transação trava a venda e o caixa, marca a venda como `CANCELADA` com data, motivo e usuário, devolve cada item ao estoque (movimentação `ESTORNO_VENDA` com o motivo, também para produto inativado depois) e lança SAÍDA `CANCELAMENTO_VENDA_BALCAO` do valor total no caixa aberto, na forma de pagamento da venda. Qualquer falha desfaz tudo.
+  - Recusas sem gravar nada: venda inexistente (404), já cancelada (409, também na corrida), sem caixa aberto ou caixa fechado por fechamento concorrente (400), motivo inválido (400).
+  - Listagem de vendas devolve `status` e `dataCancelamento`; detalhe devolve também motivo e usuário do cancelamento. Caixa: rótulo "Cancelamento de venda de balcão".
+  - Dashboard não muda: vendas de balcão não entram no recebido. Ainda sem tela (fatia 2).
 - **Estorno de Atendimento Rápido — tela (fatia 2)**: no histórico `/atendimentos-rapidos`, cada atendimento não estornado tem o botão "Estornar".
   - Diálogo com código, total, valor de cada forma de pagamento e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API (sem caixa aberto, já estornado) aparecem no diálogo em `role="alert"`.
   - Depois do estorno, a lista é recarregada do servidor e a confirmação aparece em `role="status"`.

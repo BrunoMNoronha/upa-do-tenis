@@ -9,6 +9,7 @@ describe("rotuloOrigemMovimentacaoCaixa", () => {
     expect(rotuloOrigemMovimentacaoCaixa("ATENDIMENTO_RAPIDO")).toBe("Atendimento Rápido");
     expect(rotuloOrigemMovimentacaoCaixa("ESTORNO_ATENDIMENTO_RAPIDO")).toBe("Estorno de Atendimento Rápido");
     expect(rotuloOrigemMovimentacaoCaixa("MANUAL")).toBe("Manual");
+    expect(rotuloOrigemMovimentacaoCaixa("CANCELAMENTO_VENDA_BALCAO")).toBe("Cancelamento de venda de balcão");
   });
 
   it("origem desconhecida aparece como veio", () => {

@@ -278,6 +278,8 @@ function montarVendaListagem(v: any) {
   return {
     id: v.id,
     numero: v.numero,
+    status: v.status,
+    dataCancelamento: v.dataCancelamento,
     dataVenda: v.dataVenda,
     valorTotal: v.valorTotal,
     formaPagamento: v.formaPagamento.nome,
@@ -336,6 +338,7 @@ export async function obterVendaPorId(id: string) {
     where: { id },
     include: {
       formaPagamento: true,
+      canceladoPor: { select: { id: true, nome: true } },
       itens: {
         include: {
           produto: true,
