@@ -54,7 +54,11 @@ export default async function OrdensServicoPage(props: {
           estatisticas={estatisticas}
           filtros={filtros}
           clientes={clientes}
-          servicos={servicos}
+          servicos={servicos.map((servico) => ({
+            id: servico.id,
+            nome: servico.nome,
+            precoBase: servico.precoBase.toString(),
+          }))}
         />
       </Suspense>
     </AppShell>
