@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
-import { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } from './date-range';
+import { dataOperacional, intervaloDoDiaOperacional } from './date-range';
 import {
   calcularAgregadosRelatorio,
   calcularResumoRelatorio,
@@ -65,21 +65,22 @@ export interface RelatorioFinanceiroOSResponse {
 }
 
 export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Promise<RelatorioFinanceiroOSResponse> {
-  const inicioDate = parseDataLocal(filtros.inicio);
-  const fimDate = parseDataLocal(filtros.fim);
+  // Dias completos no fuso da operação, independente do fuso do processo.
+  const { inicio: inicioDate } = intervaloDoDiaOperacional(filtros.inicio);
+  const { inicio: inicioDoDiaFinal, fimExclusivo } = intervaloDoDiaOperacional(filtros.fim);
 
-  if (isNaN(inicioDate.getTime()) || isNaN(fimDate.getTime())) {
+  if (isNaN(inicioDate.getTime()) || isNaN(inicioDoDiaFinal.getTime())) {
     throw new Error('Datas inválidas.');
   }
 
-  if (inicioDate > fimDate) {
+  if (inicioDate > inicioDoDiaFinal) {
     throw new Error('A data inicial não pode ser maior que a data final.');
   }
 
   const queryWhere: any = {
     dataEntrada: {
-      gte: inicioDoDia(inicioDate),
-      lt: inicioDoDiaSeguinte(fimDate),
+      gte: inicioDate,
+      lt: fimExclusivo,
     },
   };
 
@@ -124,8 +125,8 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     ordens.length = LIMITE_UNIVERSO_AGREGACAO;
   }
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
+  // "YYYY-MM-DD" no fuso da operação; compara corretamente como texto.
+  const hoje = dataOperacional(new Date());
 
   let itens: RelatorioOSItem[] = ordens.map((ordem) => {
     const resumoFinanceiro = calcularResumoFinanceiroOS({
@@ -138,9 +139,8 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
       itens: ordem.itens,
     });
 
-    const previsaoDate = new Date(ordem.dataPrevisao);
-    previsaoDate.setHours(0, 0, 0, 0);
-    const atrasada = ordem.status !== 'ENTREGUE' && ordem.status !== 'CONCLUIDA' && ordem.status !== 'CANCELADA' && previsaoDate < hoje;
+    const previsaoDia = dataOperacional(new Date(ordem.dataPrevisao));
+    const atrasada = ordem.status !== 'ENTREGUE' && ordem.status !== 'CONCLUIDA' && ordem.status !== 'CANCELADA' && previsaoDia < hoje;
 
     return {
       id: ordem.id,

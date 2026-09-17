@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { dataOperacional, inicioDoDiaOperacional, intervaloDoDiaOperacional } from "@/lib/date-range";
 import { normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
 import {
@@ -21,11 +22,10 @@ function arredondarMoeda(valor: number): number {
   return Math.round((valor + Number.EPSILON) * 100) / 100;
 }
 
-function gerarNumeroVenda(sequenciaDoDia: number): string {
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, "0");
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const aaaa = now.getFullYear();
+function gerarNumeroVenda(sequenciaDoDia: number, agora: Date): string {
+  // Dia no fuso da operação: precisa coincidir com a janela usada na contagem
+  // da sequência diária, senão a numeração reinicia com prefixo repetido.
+  const [aaaa, mm, dd] = dataOperacional(agora).split("-");
   const sufixo = String(sequenciaDoDia).padStart(4, "0");
   return `VD-${dd}${mm}${aaaa}-${sufixo}`;
 }
@@ -123,12 +123,13 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
     // 6. Numeração diária sequencial. O índice único em Venda.numero é a
     //    garantia final: uma colisão rara sob concorrência aborta a venda
     //    inteira (rollback), nunca persiste parcial.
-    const inicioDia = new Date();
-    inicioDia.setHours(0, 0, 0, 0);
+    //    O dia é o do fuso da operação, independente do fuso do processo.
+    const agora = new Date();
+    const inicioDia = inicioDoDiaOperacional(agora);
     const vendasHoje = await tx.venda.count({
       where: { criadoEm: { gte: inicioDia } },
     });
-    const numero = gerarNumeroVenda(vendasHoje + 1);
+    const numero = gerarNumeroVenda(vendasHoje + 1, agora);
 
     // 7. Criar a venda (cabeçalho).
     const venda = await tx.venda.create({
@@ -222,8 +223,6 @@ export type FiltrosListagemVendas = {
  * completa e a paginada, para que `count` e `findMany` vejam o mesmo filtro.
  */
 async function montarWhereVendasBalcao(filtros?: FiltrosListagemVendas) {
-  const { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } = await import("@/lib/date-range");
-
   const where: any = {};
 
   if (filtros?.dataInicial || filtros?.dataFinal) {
@@ -232,22 +231,22 @@ async function montarWhereVendasBalcao(filtros?: FiltrosListagemVendas) {
     let fimData: Date | undefined;
 
     if (filtros.dataInicial) {
-      const parsed = parseDataLocal(filtros.dataInicial);
-      if (isNaN(parsed.getTime())) {
+      // Dia completo no fuso da operação, independente do fuso do processo.
+      inicioData = intervaloDoDiaOperacional(filtros.dataInicial).inicio;
+      if (isNaN(inicioData.getTime())) {
         throw new VendaBalcaoError("Data inicial inválida.", 400);
       }
-      inicioData = inicioDoDia(parsed);
       where.dataVenda.gte = inicioData;
     }
 
     if (filtros.dataFinal) {
-      const parsed = parseDataLocal(filtros.dataFinal);
-      if (isNaN(parsed.getTime())) {
+      const intervaloFinal = intervaloDoDiaOperacional(filtros.dataFinal);
+      if (isNaN(intervaloFinal.inicio.getTime())) {
         throw new VendaBalcaoError("Data final inválida.", 400);
       }
-      fimData = inicioDoDia(parsed);
+      fimData = intervaloFinal.inicio;
       // Data final semi-aberta (lt inicio do dia seguinte) para incluir o próprio dia todo
-      where.dataVenda.lt = inicioDoDiaSeguinte(parsed);
+      where.dataVenda.lt = intervaloFinal.fimExclusivo;
     }
 
     if (inicioData && fimData && inicioData > fimData) {

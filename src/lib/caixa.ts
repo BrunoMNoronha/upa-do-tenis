@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { intervaloDoDiaOperacional } from "@/lib/date-range";
 import { normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
 import type {
   AbrirCaixaValues,
@@ -187,9 +188,10 @@ function montarWhereListagemCaixas(params?: { dataInicio?: string; dataFim?: str
   const where: any = {};
 
   if (params?.dataInicio && params?.dataFim) {
+    // Dias completos no fuso da operação, independente do fuso do processo.
     where.dataAbertura = {
-      gte: new Date(`${params.dataInicio}T00:00:00`),
-      lte: new Date(`${params.dataFim}T23:59:59`)
+      gte: intervaloDoDiaOperacional(params.dataInicio).inicio,
+      lt: intervaloDoDiaOperacional(params.dataFim).fimExclusivo,
     };
   }
 

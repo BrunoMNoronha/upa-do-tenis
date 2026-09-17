@@ -2,11 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest, NextResponse } from "next/server";
 import { GET } from "./route";
 
-const { mockGetDashboardMetrics, mockExigirSessaoApi, mockParseDataLocal } = vi.hoisted(() => {
+const { mockGetDashboardMetrics, mockExigirSessaoApi } = vi.hoisted(() => {
   return {
     mockGetDashboardMetrics: vi.fn(),
     mockExigirSessaoApi: vi.fn(),
-    mockParseDataLocal: vi.fn(),
   };
 });
 
@@ -17,12 +16,6 @@ vi.mock("@/lib/dashboard-service", () => ({
 vi.mock("@/lib/auth-server", () => ({
   exigirSessaoApi: mockExigirSessaoApi,
 }));
-
-vi.mock("@/lib/date-range", () => {
-  return {
-    parseDataLocal: mockParseDataLocal,
-  };
-});
 
 function criarRequest(url: string = "http://localhost/api/dashboard") {
   return new NextRequest(url, { method: "GET" });
@@ -71,16 +64,22 @@ describe("GET /api/dashboard", () => {
     expect(responseData).toEqual(mockMetrics);
 
     expect(mockGetDashboardMetrics).toHaveBeenCalledTimes(1);
-    const [dataInicioArg, dataFimArg] = mockGetDashboardMetrics.mock.calls[0];
+    expect(mockGetDashboardMetrics).toHaveBeenCalledWith("2024-05-01", "2024-05-15");
 
-    const expectedInicio = new Date(dataAtual);
-    expectedInicio.setDate(1);
-    expectedInicio.setHours(0, 0, 0, 0);
-    expect(dataInicioArg.getTime()).toBe(expectedInicio.getTime());
+    vi.useRealTimers();
+  });
 
-    const expectedFim = new Date(dataAtual);
-    expectedFim.setHours(23, 59, 59, 999);
-    expect(dataFimArg.getTime()).toBe(expectedFim.getTime());
+  it("usa o mês atual de São Paulo quando em UTC já é o mês seguinte", async () => {
+    mockExigirSessaoApi.mockResolvedValueOnce(null);
+    mockGetDashboardMetrics.mockResolvedValueOnce({});
+
+    // 31/05 23:30 em São Paulo = 01/06 02:30 UTC.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2024-06-01T02:30:00.000Z"));
+
+    const response = await GET(criarRequest());
+    expect(response.status).toBe(200);
+    expect(mockGetDashboardMetrics).toHaveBeenCalledWith("2024-05-01", "2024-05-31");
 
     vi.useRealTimers();
   });
@@ -90,26 +89,16 @@ describe("GET /api/dashboard", () => {
     const mockMetrics = { totalRecebido: 200 };
     mockGetDashboardMetrics.mockResolvedValueOnce(mockMetrics);
 
-    const inicioParsed = new Date("2023-01-01T00:00:00.000Z");
-    const fimParsed = new Date("2023-01-31T23:59:59.999Z");
-
-    mockParseDataLocal.mockImplementation((str) => {
-      if (str === "2023-01-01") return inicioParsed;
-      if (str === "2023-01-31") return fimParsed;
-      return new Date(NaN);
-    });
-
     const url = "http://localhost/api/dashboard?inicio=2023-01-01&fim=2023-01-31";
     const response = await GET(criarRequest(url));
 
     expect(response.status).toBe(200);
-    expect(mockGetDashboardMetrics).toHaveBeenCalledWith(inicioParsed, fimParsed);
+    expect(mockGetDashboardMetrics).toHaveBeenCalledWith("2023-01-01", "2023-01-31");
   });
 
   it("retorna datas padrão se strings passadas forem inválidas", async () => {
     mockExigirSessaoApi.mockResolvedValueOnce(null);
     mockGetDashboardMetrics.mockResolvedValueOnce({});
-    mockParseDataLocal.mockReturnValue(new Date(NaN));
 
     const dataAtual = new Date("2024-05-15T12:00:00.000Z");
     vi.useFakeTimers();
@@ -119,16 +108,7 @@ describe("GET /api/dashboard", () => {
     const response = await GET(criarRequest(url));
     expect(response.status).toBe(200);
 
-    const [dataInicioArg, dataFimArg] = mockGetDashboardMetrics.mock.calls[0];
-
-    const expectedInicio = new Date(dataAtual);
-    expectedInicio.setDate(1);
-    expectedInicio.setHours(0, 0, 0, 0);
-    expect(dataInicioArg.getTime()).toBe(expectedInicio.getTime());
-
-    const expectedFim = new Date(dataAtual);
-    expectedFim.setHours(23, 59, 59, 999);
-    expect(dataFimArg.getTime()).toBe(expectedFim.getTime());
+    expect(mockGetDashboardMetrics).toHaveBeenCalledWith("2024-05-01", "2024-05-15");
 
     vi.useRealTimers();
   });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getDashboardMetrics } from '../lib/dashboard-service';
+import { dataOperacionalHoje, inicioDoDiaOperacional } from '../lib/date-range';
 import { prisma } from '../lib/prisma';
 
 vi.mock('../lib/prisma', () => ({
@@ -73,10 +74,7 @@ describe('Dashboard Service', () => {
       { id: 'i2', nome: 'Tinta', unidadeMedida: 'ml' },
     ]);
 
-    const inicio = new Date('2026-07-01T00:00:00');
-    const fim = new Date('2026-07-31T23:59:59');
-
-    const metrics = await getDashboardMetrics(inicio, fim);
+    const metrics = await getDashboardMetrics('2026-07-01', '2026-07-31');
 
     // Validações
     expect(metrics.totalRecebido).toBe(5000);
@@ -102,10 +100,11 @@ describe('Dashboard Service', () => {
     expect(prisma.pagamento.aggregate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          dataPagamento: expect.objectContaining({
-            gte: expect.any(Date),
-            lt: expect.any(Date),
-          }),
+          // Dias completos em America/Sao_Paulo (UTC-3), qualquer que seja o TZ do processo.
+          dataPagamento: {
+            gte: new Date('2026-07-01T03:00:00.000Z'),
+            lt: new Date('2026-08-01T03:00:00.000Z'),
+          },
         }),
       })
     );
@@ -122,7 +121,8 @@ describe('Dashboard Service', () => {
     (prisma.insumo.findMany as any).mockResolvedValue([]);
 
     const agora = new Date();
-    await getDashboardMetrics(agora, agora);
+    const hoje = dataOperacionalHoje(agora);
+    await getDashboardMetrics(hoje, hoje);
 
     const args = (prisma.pagamento.aggregate as any).mock.calls[0][0];
     const { gte, lt } = args.where.dataPagamento;
@@ -130,7 +130,7 @@ describe('Dashboard Service', () => {
     // Intervalo semiaberto: início de hoje <= agora < início de amanhã
     expect(gte.getTime()).toBeLessThanOrEqual(agora.getTime());
     expect(lt.getTime()).toBeGreaterThan(agora.getTime());
-    expect(gte.getHours()).toBe(0);
-    expect(lt.getHours()).toBe(0);
+    expect(gte.getTime()).toBe(inicioDoDiaOperacional(agora).getTime());
+    expect(dataOperacionalHoje(lt)).not.toBe(hoje);
   });
 });

@@ -144,3 +144,35 @@ export function inicioDoDiaOperacional(referencia: Date = new Date()): Date {
 export function instanteDoDiaOperacional(dia: string, agora: Date = new Date()): Date {
   return dia === dataOperacionalHoje(agora) ? agora : new Date(`${dia}T12:00:00`);
 }
+
+/**
+ * Intervalo semiaberto de um dia civil no fuso da operação, independente do
+ * fuso do processo (a Vercel roda em UTC): `inicio` é a meia-noite do dia em
+ * `FUSO_OPERACIONAL` e `fimExclusivo` a meia-noite do dia seguinte. Aceita
+ * "YYYY-MM-DD" (formato enviado pelos filtros); outros formatos são lidos por
+ * `new Date` e reduzidos ao seu dia operacional. Entrada inválida devolve
+ * datas inválidas (`getTime()` NaN), como `parseDataLocal`.
+ */
+export function intervaloDoDiaOperacional(dia: string): { inicio: Date; fimExclusivo: Date } {
+  let ano: number;
+  let mes: number;
+  let diaDoMes: number;
+
+  if (FORMATO_DATA_ISO_CURTA.test(dia)) {
+    [ano, mes, diaDoMes] = dia.split("-").map(Number);
+  } else {
+    const instante = new Date(dia);
+    if (Number.isNaN(instante.getTime())) {
+      return { inicio: new Date(NaN), fimExclusivo: new Date(NaN) };
+    }
+    [ano, mes, diaDoMes] = dataOperacional(instante).split("-").map(Number);
+  }
+
+  // Meio-dia UTC cai no mesmo dia civil em São Paulo (UTC-3); a partir dele
+  // `inicioDoDiaOperacional` resolve a meia-noite local. `Date.UTC` normaliza
+  // a virada de mês/ano no dia seguinte.
+  return {
+    inicio: inicioDoDiaOperacional(new Date(Date.UTC(ano, mes - 1, diaDoMes, 12))),
+    fimExclusivo: inicioDoDiaOperacional(new Date(Date.UTC(ano, mes - 1, diaDoMes + 1, 12))),
+  };
+}

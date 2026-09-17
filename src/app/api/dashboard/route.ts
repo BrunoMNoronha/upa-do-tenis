@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { exigirSessaoApi } from '@/lib/auth-server';
 import { getDashboardMetrics } from '@/lib/dashboard-service';
-import { parseDataLocal } from '@/lib/date-range';
+import { dataOperacionalHoje, intervaloDoDiaOperacional } from '@/lib/date-range';
 
 export const dynamic = 'force-dynamic';
+
+function diaValido(valor: string | null): valor is string {
+  return valor !== null && !isNaN(intervaloDoDiaOperacional(valor).inicio.getTime());
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,27 +18,11 @@ export async function GET(request: NextRequest) {
     const inicioStr = searchParams.get('inicio');
     const fimStr = searchParams.get('fim');
 
-    // Default: current month if not provided
-    let dataInicio = new Date();
-    dataInicio.setDate(1); // First day of the month
-    dataInicio.setHours(0, 0, 0, 0);
-
-    let dataFim = new Date();
-    dataFim.setHours(23, 59, 59, 999); // Today
-
-    if (inicioStr) {
-      const parsedInicio = parseDataLocal(inicioStr);
-      if (!isNaN(parsedInicio.getTime())) {
-        dataInicio = parsedInicio;
-      }
-    }
-
-    if (fimStr) {
-      const parsedFim = parseDataLocal(fimStr);
-      if (!isNaN(parsedFim.getTime())) {
-        dataFim = parsedFim;
-      }
-    }
+    // Padrão: mês atual no fuso da operação (o processo pode rodar em UTC),
+    // do dia 1 até hoje.
+    const hoje = dataOperacionalHoje();
+    const dataInicio = diaValido(inicioStr) ? inicioStr : `${hoje.slice(0, 7)}-01`;
+    const dataFim = diaValido(fimStr) ? fimStr : hoje;
 
     const metrics = await getDashboardMetrics(dataInicio, dataFim);
     return NextResponse.json(metrics);

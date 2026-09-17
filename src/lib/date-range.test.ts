@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   parseDataLocal,
   inicioDoDia,
@@ -7,6 +7,8 @@ import {
   calcularIntervaloPreset,
   dataOperacionalHoje,
   inicioDoDiaOperacional,
+  intervaloDoDiaOperacional,
+  dataOperacional,
 } from "./date-range";
 
 describe("date-range", () => {
@@ -204,6 +206,81 @@ describe("date-range", () => {
 
     it("vira o dia exatamente na meia-noite de Brasília", () => {
       expect(inicioDoDiaOperacional(new Date("2026-09-17T03:00:00Z")).toISOString()).toBe("2026-09-17T03:00:00.000Z");
+    });
+  });
+});
+
+describe("intervaloDoDiaOperacional", () => {
+  const tzOriginal = process.env.TZ;
+
+  afterEach(() => {
+    if (tzOriginal === undefined) delete process.env.TZ;
+    else process.env.TZ = tzOriginal;
+  });
+
+  // Deslocamento esperado de getTimezoneOffset() em 16/09/2026: garante que o
+  // processo de fato mudou de fuso e que o teste não passa por acaso.
+  const fusosDoProcesso = [
+    { tz: "UTC", offsetMinutos: 0 },
+    { tz: "America/Sao_Paulo", offsetMinutos: 180 },
+    { tz: "Asia/Tokyo", offsetMinutos: -540 },
+  ];
+
+  describe.each(fusosDoProcesso)("com o processo em TZ=$tz", ({ tz, offsetMinutos }) => {
+    const emFuso = () => {
+      process.env.TZ = tz;
+      expect(new Date("2026-09-16T12:00:00Z").getTimezoneOffset()).toBe(offsetMinutos);
+    };
+
+    it("devolve meia-noite a meia-noite de São Paulo", () => {
+      emFuso();
+      const { inicio, fimExclusivo } = intervaloDoDiaOperacional("2026-09-16");
+      expect(inicio.toISOString()).toBe("2026-09-16T03:00:00.000Z");
+      expect(fimExclusivo.toISOString()).toBe("2026-09-17T03:00:00.000Z");
+    });
+
+    it("atravessa a virada de mês e de ano", () => {
+      emFuso();
+      expect(intervaloDoDiaOperacional("2026-09-30").fimExclusivo.toISOString()).toBe("2026-10-01T03:00:00.000Z");
+      expect(intervaloDoDiaOperacional("2026-10-01").inicio.toISOString()).toBe("2026-10-01T03:00:00.000Z");
+      expect(intervaloDoDiaOperacional("2026-02-28").fimExclusivo.toISOString()).toBe("2026-03-01T03:00:00.000Z");
+      expect(intervaloDoDiaOperacional("2026-12-31").fimExclusivo.toISOString()).toBe("2027-01-01T03:00:00.000Z");
+    });
+
+    it("mantém 23:30 de São Paulo no próprio dia, e não no seguinte", () => {
+      emFuso();
+      // 16/09 23:30 em São Paulo = 17/09 02:30 UTC = 17/09 11:30 em Tóquio.
+      const registro = new Date("2026-09-16T23:30:00-03:00");
+      const dia = intervaloDoDiaOperacional("2026-09-16");
+      const diaSeguinte = intervaloDoDiaOperacional("2026-09-17");
+
+      expect(registro >= dia.inicio && registro < dia.fimExclusivo).toBe(true);
+      expect(registro >= diaSeguinte.inicio && registro < diaSeguinte.fimExclusivo).toBe(false);
+      expect(dataOperacional(registro)).toBe("2026-09-16");
+    });
+
+    it("inclui 00:00 e exclui a meia-noite seguinte (intervalo semiaberto)", () => {
+      emFuso();
+      const { inicio, fimExclusivo } = intervaloDoDiaOperacional("2026-09-16");
+      const meiaNoite = new Date("2026-09-16T00:00:00-03:00");
+      const ultimoMs = new Date("2026-09-16T23:59:59.999-03:00");
+      const proximaMeiaNoite = new Date("2026-09-17T00:00:00-03:00");
+
+      expect(meiaNoite >= inicio).toBe(true);
+      expect(ultimoMs < fimExclusivo).toBe(true);
+      expect(proximaMeiaNoite < fimExclusivo).toBe(false);
+    });
+
+    it("reduz instantes ISO completos ao dia de São Paulo", () => {
+      emFuso();
+      expect(intervaloDoDiaOperacional("2026-09-17T01:30:00.000Z").inicio.toISOString()).toBe("2026-09-16T03:00:00.000Z");
+    });
+
+    it("devolve datas inválidas para entrada inválida", () => {
+      emFuso();
+      const { inicio, fimExclusivo } = intervaloDoDiaOperacional("invalido");
+      expect(Number.isNaN(inicio.getTime())).toBe(true);
+      expect(Number.isNaN(fimExclusivo.getTime())).toBe(true);
     });
   });
 });
