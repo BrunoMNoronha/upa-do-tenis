@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { CaixaError } from "@/lib/caixa";
 import { registrarAtendimentoRapidoSchema } from "@/lib/atendimento-rapido-schema";
 import {
   AtendimentoRapidoError,
@@ -11,7 +12,7 @@ import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 function resolverErro(error: unknown, mensagemPadrao: string, contexto: string) {
-  if (error instanceof AtendimentoRapidoError) {
+  if (error instanceof AtendimentoRapidoError || error instanceof CaixaError) {
     return NextResponse.json({ message: error.message }, { status: error.status });
   }
 

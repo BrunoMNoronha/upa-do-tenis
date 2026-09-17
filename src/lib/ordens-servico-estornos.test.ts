@@ -8,7 +8,7 @@ import { POST as criarOS } from "@/app/api/ordens-servico/route";
 import { GET as detalheOS } from "@/app/api/ordens-servico/[id]/route";
 import { PATCH as alterarStatus } from "@/app/api/ordens-servico/[id]/status/route";
 import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
-import { abrirCaixa, fecharCaixa, obterDetalhesCaixa } from "@/lib/caixa";
+import { abrirCaixa, fecharCaixa, obterDetalhesCaixa, travarCaixa } from "@/lib/caixa";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import { prisma } from "@/lib/prisma";
 
@@ -238,6 +238,38 @@ describe("API de estorno de pagamento de OS (#230, fatia 2)", () => {
     expect(antigoDepois!.movimentacoes).toHaveLength(antigoAntes!.movimentacoes.length);
     expect(antigoDepois!.totais).toEqual(antigoAntes!.totais);
     expect((await totaisCaixa(caixaAtual)).saldoFisicoCalculado).toBe(-50);
+  });
+
+  it("fechamento concorrente: a API de pagamento espera a trava do caixa e responde 400 sem gravar", async () => {
+    const caixaId = await novoCaixa();
+    const osId = await cadastrar();
+    let liberar!: () => void;
+    const liberada = new Promise<void>((resolve) => (liberar = resolve));
+    let pronta!: () => void;
+    const travado = new Promise<void>((resolve) => (pronta = resolve));
+
+    const fechamento = prisma.$transaction(async (tx) => {
+      await travarCaixa(tx, caixaId);
+      await tx.caixa.update({ where: { id: caixaId }, data: { status: "FECHADO" } });
+      pronta();
+      await liberada;
+    });
+    await travado;
+
+    const resposta = pagarOS(
+      request(`ordens-servico/${osId}/pagamentos`, "POST", { formaPagamentoId: pixId, valor: 40, dataPagamento: dataOperacionalHoje() }),
+      params(osId),
+    );
+    const pendente = Symbol("pendente");
+    expect(await Promise.race([resposta, new Promise((resolve) => setTimeout(() => resolve(pendente), 400))])).toBe(pendente);
+
+    liberar();
+    await fechamento;
+
+    expect((await resposta).status).toBe(400);
+    expect((await (await resposta).json()).message).toBe("Não é possível movimentar um caixa fechado.");
+    expect(await prisma.pagamento.count({ where: { ordemServicoId: osId } })).toBe(0);
+    expect(await resumo(osId)).toMatchObject({ valorPago: 0, saldo: 100 });
   });
 
   it("pagamento e estorno simultâneos na mesma OS não entram em deadlock (OS antes do caixa nos dois)", async () => {

@@ -222,6 +222,34 @@ describe("API de estorno de Atendimento Rápido", () => {
     expect(await contarSaidas(atendimento.id)).toBe(0);
   });
 
+  it("fechamento concorrente: a API espera a trava do caixa e responde 400 sem gravar estorno", async () => {
+    const atendimento = await registrar([{ formaPagamentoId: dinheiroId, valor: "50.00" }]);
+    let liberar!: () => void;
+    const liberada = new Promise<void>((resolve) => (liberar = resolve));
+    let pronta!: () => void;
+    const travado = new Promise<void>((resolve) => (pronta = resolve));
+
+    const fechamento = prisma.$transaction(async (tx) => {
+      await caixaModule.travarCaixa(tx, caixaId);
+      await tx.caixa.update({ where: { id: caixaId }, data: { status: "FECHADO" } });
+      pronta();
+      await liberada;
+    });
+    await travado;
+
+    const resposta = estornar(atendimento.id);
+    const pendente = Symbol("pendente");
+    expect(await Promise.race([resposta, new Promise((resolve) => setTimeout(() => resolve(pendente), 400))])).toBe(pendente);
+
+    liberar();
+    await fechamento;
+
+    expect((await resposta).status).toBe(400);
+    expect((await (await resposta).json()).message).toBe("Não é possível movimentar um caixa fechado.");
+    expect(await contarEstornos(atendimento.id)).toBe(0);
+    expect(await contarSaidas(atendimento.id)).toBe(0);
+  });
+
   it("atendimento inexistente devolve 404", async () => {
     expect((await estornar("nao-existe")).status).toBe(404);
   });
