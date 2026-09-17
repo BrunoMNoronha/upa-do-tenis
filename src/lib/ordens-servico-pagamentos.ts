@@ -53,6 +53,11 @@ export async function registrarPagamentoOrdemServico(
   payload: RegistrarPagamentoOrdemServicoValues,
 ) {
   const result = await prisma.$transaction(async (tx) => {
+    // Ordem das travas igual à do estorno: OS antes do caixa. Sem isso, um
+    // pagamento (caixa → OS) e um estorno (OS → caixa) simultâneos na mesma OS
+    // poderiam entrar em deadlock. Também põe em fila pagamentos da mesma OS.
+    await tx.$queryRaw`SELECT "id" FROM "OrdemServico" WHERE "id" = ${ordemServicoId} FOR UPDATE`;
+
     const ordem = await tx.ordemServico.findUnique({
       where: { id: ordemServicoId },
       include: {

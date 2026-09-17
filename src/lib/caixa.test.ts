@@ -13,6 +13,8 @@ vi.mock("./prisma", () => ({
     movimentacaoCaixa: {
       create: vi.fn(),
     },
+    // Trava da linha do caixa (SELECT … FOR UPDATE).
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(async (cb) => {
       return cb(prisma);
     }),
@@ -51,7 +53,7 @@ describe("Caixa Services", () => {
 
   describe("registrarMovimentacaoCaixa", () => {
     it("deve registrar movimentação se caixa estiver aberto", async () => {
-      vi.mocked(prisma.caixa.findUnique).mockResolvedValue({ id: "caixa-1", status: "ABERTO" } as any);
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([{ status: "ABERTO" }] as any);
       vi.mocked(prisma.movimentacaoCaixa.create).mockResolvedValue({ id: "mov-1", valor: 50 } as any);
 
       const result = await registrarMovimentacaoCaixa("caixa-1", {
@@ -60,16 +62,19 @@ describe("Caixa Services", () => {
         descricao: "Lanche",
       });
 
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.$queryRaw).toHaveBeenCalled();
       expect(prisma.movimentacaoCaixa.create).toHaveBeenCalled();
       expect(result.id).toBe("mov-1");
     });
 
     it("deve bloquear movimentação se caixa estiver fechado", async () => {
-      vi.mocked(prisma.caixa.findUnique).mockResolvedValue({ id: "caixa-1", status: "FECHADO" } as any);
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([{ status: "FECHADO" }] as any);
 
       await expect(
         registrarMovimentacaoCaixa("caixa-1", { tipo: "SAIDA", valor: 50, descricao: "Lanche" })
       ).rejects.toThrow(CaixaError);
+      expect(prisma.movimentacaoCaixa.create).not.toHaveBeenCalled();
     });
   });
 
@@ -195,6 +200,7 @@ describe("Caixa Services", () => {
 
   describe("fecharCaixa", () => {
     it("deve fechar o caixa e calcular a divergência", async () => {
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([{ status: "ABERTO" }] as any);
       vi.mocked(prisma.caixa.findUnique).mockResolvedValue({
         id: "caixa-1",
         status: "ABERTO",

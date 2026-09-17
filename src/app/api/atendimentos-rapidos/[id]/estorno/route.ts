@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { CaixaError } from "@/lib/caixa";
 import { AtendimentoRapidoError } from "@/lib/atendimento-rapido";
 import { estornarAtendimentoRapido } from "@/lib/atendimento-rapido-estorno";
 import {
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
 
     return NextResponse.json(resultado, { status: 201 });
   } catch (error) {
-    if (error instanceof AtendimentoRapidoError) {
+    if (error instanceof AtendimentoRapidoError || error instanceof CaixaError) {
       return NextResponse.json({ message: error.message }, { status: error.status });
     }
 

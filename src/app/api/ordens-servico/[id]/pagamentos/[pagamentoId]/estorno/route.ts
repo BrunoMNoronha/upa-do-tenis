@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { CaixaError } from "@/lib/caixa";
 import { estornarPagamentoOrdemServico } from "@/lib/ordens-servico-estornos";
 import {
   estornarPagamentoOrdemServicoSchema,
@@ -51,7 +52,7 @@ export async function POST(
 
     return NextResponse.json(resultado, { status: 201 });
   } catch (error) {
-    if (error instanceof PagamentoOrdemServicoError) {
+    if (error instanceof PagamentoOrdemServicoError || error instanceof CaixaError) {
       return NextResponse.json({ message: error.message }, { status: error.status });
     }
 

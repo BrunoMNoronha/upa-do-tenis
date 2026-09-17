@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { exigirSessaoApi } from "@/lib/auth-server";
+import { CaixaError } from "@/lib/caixa";
 import {
   registrarPagamentoOrdemServicoSchema,
 } from "@/lib/ordens-servico-pagamentos-schema";
@@ -12,7 +13,7 @@ import {
 } from "@/lib/ordens-servico-pagamentos";
 
 function resolverErro(error: unknown) {
-  if (error instanceof PagamentoOrdemServicoError) {
+  if (error instanceof PagamentoOrdemServicoError || error instanceof CaixaError) {
     return NextResponse.json({ message: error.message }, { status: error.status });
   }
 

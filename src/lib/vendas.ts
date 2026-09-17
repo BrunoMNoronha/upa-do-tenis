@@ -1,3 +1,4 @@
+import { travarCaixa } from "@/lib/caixa";
 import { prisma } from "@/lib/prisma";
 import { dataOperacional, inicioDoDiaOperacional, intervaloDoDiaOperacional } from "@/lib/date-range";
 import { normalizarValoresDecimalParaClient } from "@/lib/ordens-servico-financeiro";
@@ -52,7 +53,9 @@ export async function registrarVendaBalcao(payload: RegistrarVendaBalcaoValues) 
       select: { id: true },
     });
 
-    if (!caixaAberto) {
+    // Trava o caixa até o fim da venda: um fechamento concorrente espera a
+    // venda terminar (e a inclui no saldo) ou fecha antes e a venda é recusada.
+    if (!caixaAberto || (await travarCaixa(tx, caixaAberto.id)) === "FECHADO") {
       throw new VendaBalcaoError("Não há caixa aberto. Abra o caixa primeiro.", 400);
     }
 
