@@ -18,6 +18,32 @@ export class CaixaError extends Error {
   }
 }
 
+type TransacaoCaixa = Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">;
+
+/**
+ * Trava a linha do caixa até o fim da transação e devolve o status atual.
+ * Fechamento e lançamentos passam por aqui: um lançamento em andamento faz o
+ * fechamento esperar (e entrar no saldo calculado), e um fechamento em
+ * andamento faz o lançamento esperar e ver o caixa já FECHADO.
+ */
+export async function travarCaixa(tx: TransacaoCaixa, caixaId: string) {
+  const linhas = await tx.$queryRaw<{ status: string }[]>`
+    SELECT "status" FROM "Caixa" WHERE "id" = ${caixaId} FOR UPDATE`;
+
+  if (linhas.length === 0) {
+    throw new CaixaError("Caixa não encontrado.", 404);
+  }
+
+  return linhas[0].status;
+}
+
+/** Trava o caixa e recusa lançamento em caixa fechado. */
+async function travarCaixaParaMovimentacao(tx: TransacaoCaixa, caixaId: string) {
+  if ((await travarCaixa(tx, caixaId)) === "FECHADO") {
+    throw new CaixaError("Não é possível movimentar um caixa fechado.", 400);
+  }
+}
+
 export async function obterCaixaAberto() {
   const caixa = await prisma.caixa.findFirst({
     where: { status: "ABERTO" },
@@ -67,6 +93,10 @@ export async function abrirCaixa(payload: AbrirCaixaValues) {
 
 export async function fecharCaixa(caixaId: string, payload: FecharCaixaValues) {
   const result = await prisma.$transaction(async (tx) => {
+    // Trava antes de ler as movimentações: lançamentos concorrentes terminam
+    // antes e entram no saldo calculado, ou esperam e encontram o caixa fechado.
+    await travarCaixa(tx, caixaId);
+
     const caixa = await tx.caixa.findUnique({
       where: { id: caixaId },
       include: {
@@ -108,36 +138,28 @@ export async function fecharCaixa(caixaId: string, payload: FecharCaixaValues) {
 export async function registrarMovimentacaoCaixa(
   caixaId: string,
   payload: MovimentacaoCaixaValues,
-  txClient?: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">
+  txClient?: TransacaoCaixa
 ) {
-  const db = txClient ?? prisma;
+  const registrar = async (db: TransacaoCaixa) => {
+    await travarCaixaParaMovimentacao(db, caixaId);
 
-  const caixa = await db.caixa.findUnique({
-    where: { id: caixaId },
-    select: { status: true },
-  });
+    return db.movimentacaoCaixa.create({
+      data: {
+        caixaId,
+        tipo: payload.tipo,
+        origem: "MANUAL",
+        valor: payload.valor,
+        descricao: payload.descricao,
+        formaPagamentoId: payload.formaPagamentoId,
+      },
+      include: {
+        formaPagamento: true,
+      },
+    });
+  };
 
-  if (!caixa) {
-    throw new CaixaError("Caixa não encontrado.", 404);
-  }
-
-  if (caixa.status === "FECHADO") {
-    throw new CaixaError("Não é possível movimentar um caixa fechado.", 400);
-  }
-
-  const movimentacao = await db.movimentacaoCaixa.create({
-    data: {
-      caixaId,
-      tipo: payload.tipo,
-      origem: "MANUAL",
-      valor: payload.valor,
-      descricao: payload.descricao,
-      formaPagamentoId: payload.formaPagamentoId,
-    },
-    include: {
-      formaPagamento: true,
-    },
-  });
+  // A trava só vale dentro de transação.
+  const movimentacao = txClient ? await registrar(txClient) : await prisma.$transaction(registrar);
 
   return normalizarValoresDecimalParaClient(movimentacao);
 }
@@ -156,20 +178,9 @@ export async function registrarMovimentacaoAutomaticaCaixa(
     atendimentoRapidoId?: string;
     estornoPagamentoId?: string;
   },
-  txClient: Omit<Prisma.TransactionClient, "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends">
+  txClient: TransacaoCaixa
 ) {
-  const caixa = await txClient.caixa.findUnique({
-    where: { id: payload.caixaId },
-    select: { status: true },
-  });
-
-  if (!caixa) {
-    throw new CaixaError("Caixa não encontrado.", 404);
-  }
-
-  if (caixa.status === "FECHADO") {
-    throw new CaixaError("Não é possível movimentar um caixa fechado.", 400);
-  }
+  await travarCaixaParaMovimentacao(txClient, payload.caixaId);
 
   const movimentacao = await txClient.movimentacaoCaixa.create({
     data: {

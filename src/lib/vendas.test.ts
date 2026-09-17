@@ -139,6 +139,41 @@ describe("registrarVendaBalcao", () => {
     expect(Number(produto!.quantidadeEstoque)).toBe(10);
   });
 
+  it("fechamento em andamento: a venda espera pela trava do caixa e é recusada sem persistir nada", async () => {
+    const { travarCaixa } = await import("./caixa");
+    let liberar!: () => void;
+    const liberada = new Promise<void>((resolve) => (liberar = resolve));
+    let pronta!: () => void;
+    const travado = new Promise<void>((resolve) => (pronta = resolve));
+
+    const fechamento = prisma.$transaction(async (tx) => {
+      await travarCaixa(tx, caixaId);
+      await tx.caixa.update({ where: { id: caixaId }, data: { status: "FECHADO" } });
+      pronta();
+      await liberada;
+    });
+    await travado;
+
+    const venda = registrarVendaBalcao({
+      formaPagamentoId,
+      itens: [{ produtoId: produtoAId, quantidade: 1 }],
+    }).then(
+      () => null,
+      (error: unknown) => error,
+    );
+    const pendente = Symbol("pendente");
+    expect(await Promise.race([venda, new Promise((resolve) => setTimeout(() => resolve(pendente), 400))])).toBe(pendente);
+
+    liberar();
+    await fechamento;
+
+    expect(await venda).toBeInstanceOf(VendaBalcaoError);
+    expect(await prisma.venda.count()).toBe(0);
+    expect(await prisma.movimentacaoCaixa.count()).toBe(0);
+    const produto = await prisma.produto.findUnique({ where: { id: produtoAId } });
+    expect(Number(produto!.quantidadeEstoque)).toBe(10);
+  });
+
   it("rejeita venda com estoque insuficiente sem persistir nada", async () => {
     await expect(
       registrarVendaBalcao({

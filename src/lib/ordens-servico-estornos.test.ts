@@ -239,4 +239,29 @@ describe("API de estorno de pagamento de OS (#230, fatia 2)", () => {
     expect(antigoDepois!.totais).toEqual(antigoAntes!.totais);
     expect((await totaisCaixa(caixaAtual)).saldoFisicoCalculado).toBe(-50);
   });
+
+  it("pagamento e estorno simultâneos na mesma OS não entram em deadlock (OS antes do caixa nos dois)", async () => {
+    await novoCaixa();
+    const osId = await cadastrar(300);
+
+    for (let rodada = 0; rodada < 5; rodada += 1) {
+      const pagamentoId = await pagar(osId, 20, dinheiroId);
+      const [estorno, pagamento] = await Promise.all([
+        estornar(osId, pagamentoId),
+        pagarOS(
+          request(`ordens-servico/${osId}/pagamentos`, "POST", {
+            formaPagamentoId: pixId,
+            valor: 10,
+            dataPagamento: dataOperacionalHoje(),
+          }),
+          params(osId),
+        ),
+      ]);
+      expect([estorno.status, pagamento.status]).toEqual([201, 201]);
+    }
+
+    // 5 pagamentos de 20 estornados + 5 de 10 ativos.
+    expect(await resumo(osId)).toMatchObject({ valorPago: 50, saldo: 250 });
+    expect(await prisma.movimentacaoCaixa.count({ where: { ordemServicoId: osId } })).toBe(15);
+  });
 });

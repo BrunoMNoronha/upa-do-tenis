@@ -68,6 +68,8 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: {
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -126,6 +128,8 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: {
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -164,6 +168,8 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: {
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -204,6 +210,8 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: txFormaFindUnique,
         },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: {
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -232,6 +240,8 @@ describe("ordens-servico-pagamentos", () => {
       pagamento: { create: vi.fn().mockResolvedValue({ id: "pag-x", valor: new Prisma.Decimal(10) }) },
       ordemServico: { findUnique: vi.fn(), updateMany: vi.fn() },
       formaPagamento: { findUnique: vi.fn().mockResolvedValue({ id: "fp-1" }) },
+      // Trava da linha do caixa (SELECT … FOR UPDATE).
+      $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
       caixa: {
         findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
         findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -293,6 +303,8 @@ describe("ordens-servico-pagamentos", () => {
         formaPagamento: {
           findUnique: vi.fn(),
         },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: {
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
@@ -336,6 +348,8 @@ describe("ordens-servico-pagamentos", () => {
         pagamento: { create: txPagamentoCreate },
         ordemServico: { findUnique: txOrdemFindUnique, updateMany: txOrdemUpdateMany },
         formaPagamento: { findUnique: vi.fn().mockResolvedValueOnce({ id: "fp-1" }) },
+        // Trava da linha do caixa (SELECT … FOR UPDATE).
+        $queryRaw: vi.fn().mockResolvedValue([{ status: "ABERTO" }]),
         caixa: { 
           findFirst: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),
           findUnique: vi.fn().mockResolvedValue({ id: "caixa-aberto", status: "ABERTO" }),

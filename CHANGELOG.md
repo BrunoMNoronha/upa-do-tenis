@@ -5,6 +5,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 ## [Não lançado]
 
 ### Corrigido
+- **Corrida entre fechar o caixa e lançar movimentação**: o fechamento e todos os lançamentos (manual, pagamento e estorno de OS, registro e estorno de Atendimento Rápido, venda de balcão) passam a travar a linha do caixa (`SELECT … FOR UPDATE`) antes de ler ou gravar.
+  - Lançamento em andamento: o fechamento espera e calcula o saldo final e a divergência já com ele.
+  - Fechamento em andamento: o lançamento espera, encontra o caixa fechado e é recusado sem gravar nada (400; na venda, "Não há caixa aberto").
+  - Antes, um fechamento simultâneo podia gravar o saldo sem a movimentação e deixá-la num caixa já fechado (revisão do #239).
+  - Pagamento de OS passa a travar a OS antes do caixa, na mesma ordem do estorno. Sem isso, pagamento e estorno simultâneos na mesma OS entrariam em deadlock com a trava nova; como efeito, pagamentos simultâneos da mesma OS também ficam em fila.
+  - Sem alteração de schema, cálculos ou mensagens. Testes de integração com banco real cobrem as duas ordens de corrida.
 - **OS com pagamento não pode ser cancelada (#229)**: enquanto não existe estorno e devolução (#230), `PATCH /api/ordens-servico/[id]/status` recusa cancelar OS com pagamento registrado (409). A checagem acontece na mesma transação e a gravação exige `valorPago = 0`.
   - OS cancelada não recebe mais pagamento (409): a gravação final do pagamento exige OS não cancelada, e a transação inteira (pagamento e caixa) é desfeita se um cancelamento concorrente for confirmado antes.
   - Detalhe da OS: "Cancelar OS" some quando há valor pago, com a explicação; "Receber pagamento" some em OS cancelada.
