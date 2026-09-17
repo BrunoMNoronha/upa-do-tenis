@@ -5,7 +5,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button, Card, Input, Label, EmptyState } from "@/components/ui";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
-import { CancelarVendaBotao } from "./components/CancelarVenda";
+import { BotaoCancelarVenda, useCancelamentoVenda } from "./components/CancelarVenda";
 import { VendaCardView, type VendaListagem } from "./components/VendaCard";
 
 type FormaPagamento = {
@@ -26,6 +26,8 @@ export function VendasClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { criarHref } = usePaginacaoUrl();
+  // Um único diálogo de cancelamento para a lista inteira.
+  const cancelamento = useCancelamentoVenda();
 
   const [dataInicial, setDataInicial] = useState(searchParams.get("dataInicial") || "");
   const [dataFinal, setDataFinal] = useState(searchParams.get("dataFinal") || "");
@@ -103,6 +105,8 @@ export function VendasClient({
         </div>
       </div>
 
+      {cancelamento.avisoSucesso ? <div className="mb-4">{cancelamento.avisoSucesso}</div> : null}
+
       {vendas.length === 0 ? (
         <EmptyState
           title="Nenhuma venda encontrada"
@@ -114,7 +118,7 @@ export function VendasClient({
             <VendaCardView
               key={venda.id}
               venda={venda}
-              acaoCancelar={<CancelarVendaBotao venda={venda} className="w-full" />}
+              acaoCancelar={<BotaoCancelarVenda venda={venda} onAbrir={cancelamento.abrir} className="w-full" />}
             />
           ))}
         </div>
@@ -123,6 +127,8 @@ export function VendasClient({
       <div className="mt-6 border-t pt-4">
         <Paginacao pagination={pagination} rotulo="vendas" criarHref={criarHref} />
       </div>
+
+      {cancelamento.dialogo}
     </Card>
   );
 }

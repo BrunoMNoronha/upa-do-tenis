@@ -20,6 +20,7 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
 - **Cancelamento de venda de balcão — tela (fatia 2)**: botão "Cancelar venda" em cada venda concluída do histórico `/vendas` e no detalhe `/vendas/[id]`.
   - Diálogo com número, total, forma de pagamento, quantidade de itens, aviso de que os produtos voltam ao estoque e o total sai do caixa, e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API em `role="alert"`.
   - Depois do cancelamento, os dados são recarregados do servidor.
+  - Um único diálogo por tela (na lista, abrir outra venda troca a selecionada em vez de empilhar diálogos); o foco fica contido no diálogo (Tab e Shift+Tab dão a volta) e volta ao botão que o abriu ao fechar (revisão do #244).
   - Histórico: venda cancelada com etiqueta "Cancelada", total riscado e data do cancelamento, sem o botão.
   - Detalhe: quadro "Venda cancelada" com data, usuário e motivo; total riscado e etiqueta "Venda Cancelada" no resumo; o recibo impresso mostra "Venda cancelada".
   - Sem alteração de API, schema ou cálculo.
