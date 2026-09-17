@@ -168,6 +168,14 @@ describe("API de estorno de pagamento de OS (#230, fatia 2)", () => {
     const lista = await (await listarPagamentosAPI(request(`ordens-servico/${osId}/pagamentos`), params(osId))).json();
     const estornado60 = lista.pagamentos.find((p: { id: string }) => p.id === pag60);
     expect(estornado60.estorno).toMatchObject({ motivo: "Cliente desistiu", valor: 60, usuario: { nome: "Operador 230" } });
+
+    // O detalhe da OS (usado pela tela, fatia 4) traz o estorno para exibir no histórico.
+    const detalhe = await (await detalheOS(request(`ordens-servico/${osId}`), params(osId))).json();
+    const noDetalhe = detalhe.ordemServico.pagamentos.find((p: { id: string }) => p.id === pag60);
+    expect(noDetalhe.estorno).toMatchObject({ motivo: "Cliente desistiu", usuario: { nome: "Operador 230" } });
+    expect(noDetalhe.estorno.dataEstorno).toEqual(expect.any(String));
+    const ativoNoDetalhe = detalhe.ordemServico.pagamentos.find((p: { id: string }) => p.id === pag40);
+    expect(ativoNoDetalhe.estorno).toMatchObject({ motivo: expect.any(String) });
   });
 
   it("segundo estorno do mesmo pagamento é recusado; simultâneos geram exatamente um estorno e uma saída", async () => {

@@ -66,6 +66,16 @@ export type Pagamento = {
   dataPagamento: string;
   observacoes?: string | null;
   formaPagamento: FormaPagamento;
+  /** Presente quando o pagamento foi estornado (#230). */
+  estorno?: EstornoPagamento | null;
+};
+
+export type EstornoPagamento = {
+  id: string;
+  valor?: number;
+  motivo: string;
+  dataEstorno: string;
+  usuario?: { id: string; nome: string } | null;
 };
 
 export type HistoricoStatus = {

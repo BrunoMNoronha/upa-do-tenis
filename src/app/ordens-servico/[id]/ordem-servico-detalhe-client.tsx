@@ -493,7 +493,12 @@ export function OrdemServicoDetalheClient({
           onInsumoRegistrado={handleRefresh}
         />
 
-        <HistoricoPagamentosList pagamentos={ordem.pagamentos} />
+        <HistoricoPagamentosList
+          ordemServicoId={ordemServicoId}
+          pagamentos={ordem.pagamentos}
+          podeEstornar={ordem.status !== "CANCELADA"}
+          onEstornado={handleRefresh}
+        />
       </aside>
       <ConfirmDialog
         aberto={confirmandoCancelamento}

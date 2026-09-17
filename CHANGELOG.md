@@ -19,6 +19,11 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Telas `/atendimento-rapido` (registro) e `/atendimentos-rapidos` (histórico com busca por código e período); rótulo "Atendimento Rápido" nas movimentações do caixa.
   - Dashboard: total recebido e recebimentos por dia incluem os pagamentos de AR; "Serviços mais executados" soma as execuções de OS e de AR (um item = uma execução) antes do Top 5.
   - Serviço usado em atendimento rápido não pode ser excluído (409; inativar).
+- **Estorno de pagamentos de OS — tela no detalhe da OS (#230, fatia 4)**: em "Pagamentos registrados", cada pagamento não estornado de OS não cancelada tem o botão "Estornar".
+  - Diálogo com valor, forma, data e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API (sem caixa aberto, já estornado) aparecem no diálogo em `role="alert"`.
+  - Depois do estorno, o detalhe é recarregado: pago, saldo, status financeiro e histórico se atualizam sem recarregar a página. Com todos os pagamentos estornados, "Cancelar OS" volta a aparecer.
+  - Pagamento estornado aparece riscado, com a etiqueta "Estornado em … por … — motivo". O detalhe da OS passa a devolver data, motivo e usuário do estorno.
+  - A mensagem da OS com pagamento passa a orientar: "Estorne os pagamentos para poder cancelá-la."
 - **Estorno de pagamentos de OS — API com caixa (#230, fatia 2)**: `POST /api/ordens-servico/[id]/pagamentos/[pagamentoId]/estorno` com `{ motivo }` (5 a 500 caracteres, aparado). Estorna o pagamento inteiro, uma única vez, registrando o usuário da sessão.
   - Uma transação grava o estorno, lança SAÍDA `ESTORNO_PAGAMENTO_OS` no caixa aberto na forma do pagamento original e regrava `valorPago`/`saldo` da OS. A linha da OS é travada no início, e estornos concorrentes da mesma OS ficam em fila.
   - Recusas sem gravar nada: pagamento inexistente ou de outra OS (404, inclusive pagamentos de Atendimento Rápido, fora de escopo), OS cancelada (409), pagamento já estornado (409, também na corrida, pela restrição única), sem caixa aberto (400), motivo inválido (400).
