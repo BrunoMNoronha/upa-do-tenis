@@ -146,7 +146,7 @@ export async function registrarMovimentacaoAutomaticaCaixa(
   payload: {
     caixaId: string;
     tipo: "ENTRADA" | "SAIDA";
-    origem: "PAGAMENTO_OS" | "ATENDIMENTO_RAPIDO" | "ESTORNO_PAGAMENTO_OS";
+    origem: "PAGAMENTO_OS" | "ATENDIMENTO_RAPIDO" | "ESTORNO_PAGAMENTO_OS" | "ESTORNO_ATENDIMENTO_RAPIDO";
     /** number (fluxo de OS) ou decimal em texto ("150.50", fluxo em centavos do Atendimento Rápido). */
     valor: number | string;
     descricao: string;

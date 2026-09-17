@@ -7,6 +7,7 @@ describe("rotuloOrigemMovimentacaoCaixa", () => {
     expect(rotuloOrigemMovimentacaoCaixa("ESTORNO_PAGAMENTO_OS")).toBe("Estorno de pagamento de OS");
     expect(rotuloOrigemMovimentacaoCaixa("PAGAMENTO_OS")).toBe("Pagamento de OS");
     expect(rotuloOrigemMovimentacaoCaixa("ATENDIMENTO_RAPIDO")).toBe("Atendimento Rápido");
+    expect(rotuloOrigemMovimentacaoCaixa("ESTORNO_ATENDIMENTO_RAPIDO")).toBe("Estorno de Atendimento Rápido");
     expect(rotuloOrigemMovimentacaoCaixa("MANUAL")).toBe("Manual");
   });
 

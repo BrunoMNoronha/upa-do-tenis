@@ -38,7 +38,10 @@ export const ORIGEM_CAIXA_ATENDIMENTO_RAPIDO = "ATENDIMENTO_RAPIDO" as const;
 const includeAtendimentoCompleto = {
   itens: { orderBy: [{ criadoEm: "asc" }, { id: "asc" }] },
   pagamentos: {
-    include: { formaPagamento: { select: { id: true, nome: true } } },
+    include: {
+      formaPagamento: { select: { id: true, nome: true } },
+      estorno: { select: { dataEstorno: true, motivo: true } },
+    },
     orderBy: [{ criadoEm: "asc" }, { id: "asc" }],
   },
 } satisfies Prisma.AtendimentoRapidoInclude;
@@ -357,7 +360,14 @@ export type AtendimentoRapidoListagem = {
   observacoes: string | null;
   itens: { id: string; descricao: string; valor: number }[];
   pagamentos: { id: string; valor: number; formaPagamento: { nome: string } }[];
+  /** Presente quando o atendimento foi estornado (o estorno é sempre total). */
+  estorno: { dataEstorno: string; motivo: string } | null;
 };
+
+function montarEstornoListagem(atendimento: AtendimentoCompleto): AtendimentoRapidoListagem["estorno"] {
+  const estorno = atendimento.pagamentos.find((pagamento) => pagamento.estorno)?.estorno;
+  return estorno ? { dataEstorno: estorno.dataEstorno.toISOString(), motivo: estorno.motivo } : null;
+}
 
 function montarAtendimentoListagem(atendimento: AtendimentoCompleto): AtendimentoRapidoListagem {
   return {
@@ -376,6 +386,7 @@ function montarAtendimentoListagem(atendimento: AtendimentoCompleto): Atendiment
       valor: normalizarDecimalParaNumero(pagamento.valor),
       formaPagamento: { nome: pagamento.formaPagamento.nome },
     })),
+    estorno: montarEstornoListagem(atendimento),
   };
 }
 
