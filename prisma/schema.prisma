@@ -102,8 +102,19 @@ model ItemOrdemServico {
   servicos                ServicoItemOrdem[]
   insumos                 InsumoItemOrdem[]
   movimentacoesEstoque    MovimentacaoEstoqueInsumo[]
+  fotos                   FotoItemOrdem[]
 
   @@index([ordemServicoId])
+}
+
+model FotoItemOrdem {
+  id                 String           @id @default(cuid())
+  itemOrdemServicoId String
+  pathname           String           @unique
+  criadoEm           DateTime         @default(now())
+  itemOrdemServico   ItemOrdemServico @relation(fields: [itemOrdemServicoId], references: [id], onDelete: Cascade)
+
+  @@index([itemOrdemServicoId, criadoEm])
 }
 
 model Servico {

@@ -28,6 +28,11 @@ function respostaErro(error: unknown, operacao: string) {
   return NextResponse.json({ message: `Não foi possível ${operacao} a foto do item.` }, { status: 500 });
 }
 
+async function removerBlobSeSemGaleria(pathname: string) {
+  const referencias = await prisma.fotoItemOrdem.count({ where: { pathname } });
+  if (referencias === 0) await del(pathname);
+}
+
 export async function GET(req: NextRequest, props: RouteProps) {
   try {
     const naoAutenticado = await exigirSessaoApi(req);
@@ -87,7 +92,10 @@ export async function POST(req: NextRequest, props: RouteProps) {
       return NextResponse.json({ message: "A OS ou a foto foi alterada por outro processo. Recarregue e tente novamente." }, { status: 409 });
     }
     novoPathname = null;
-    if (item.fotoRecebimentoPathname) await del(item.fotoRecebimentoPathname).catch((error) => console.error("Foto anterior desvinculada, mas não removida do storage.", error));
+    if (item.fotoRecebimentoPathname) {
+      await removerBlobSeSemGaleria(item.fotoRecebimentoPathname)
+        .catch((error) => console.error("Foto anterior desvinculada, mas não removida do storage.", error));
+    }
     return NextResponse.json({ foto: true }, { status: 201 });
   } catch (error) {
     if (novoPathname) await del(novoPathname).catch(() => undefined);
@@ -110,7 +118,8 @@ export async function DELETE(req: NextRequest, props: RouteProps) {
       data: { fotoRecebimentoPathname: null },
     });
     if (atualizado.count !== 1) return NextResponse.json({ message: "A OS ou a foto foi alterada por outro processo. Recarregue e tente novamente." }, { status: 409 });
-    await del(item.fotoRecebimentoPathname).catch((error) => console.error("Foto desvinculada, mas não removida do storage.", error));
+    await removerBlobSeSemGaleria(item.fotoRecebimentoPathname)
+      .catch((error) => console.error("Foto desvinculada, mas não removida do storage.", error));
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     return respostaErro(error, "remover");

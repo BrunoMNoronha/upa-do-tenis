@@ -24,6 +24,7 @@ function criarDetalheOS(params?: {
   valorTotal?: number;
   valorPago?: number;
   fotoPathname?: string | null;
+  fotos?: Array<{ id: string; criadoEm: Date; pathname?: string }>;
 }) {
   return {
     id: "os-1",
@@ -55,6 +56,7 @@ function criarDetalheOS(params?: {
         descricao: "Tenis corrida",
         valor: new Prisma.Decimal(150),
         fotoRecebimentoPathname: params?.fotoPathname ?? null,
+        fotos: params?.fotos ?? [],
         servicos: [
           {
             id: "sio-1",
@@ -130,6 +132,28 @@ describe("ordens-servico detalhe", () => {
 
     expect(detalhe.itens[0].possuiFotoRecebimento).toBe(true);
     expect(detalhe.itens[0]).not.toHaveProperty("fotoRecebimentoPathname");
+  });
+
+  it("retorna a galeria registrada sem expor os caminhos privados", async () => {
+    prismaMock.ordemServico.findUnique.mockResolvedValueOnce(
+      criarDetalheOS({
+        fotos: [
+          {
+            id: "foto-1",
+            criadoEm: new Date("2026-09-16T20:00:00.000Z"),
+            pathname: "ordens-servico/os-1/itens/item-1/foto-1.jpg",
+          },
+        ],
+      }),
+    );
+
+    const detalhe = await obterDetalheOrdemServico("os-1");
+
+    expect(detalhe.itens[0].possuiFotoRecebimento).toBe(true);
+    expect(detalhe.itens[0].fotos).toEqual([
+      { id: "foto-1", criadoEm: "2026-09-16T20:00:00.000Z" },
+    ]);
+    expect(detalhe.itens[0].fotos[0]).not.toHaveProperty("pathname");
   });
 
   it("falha para OS inexistente", async () => {

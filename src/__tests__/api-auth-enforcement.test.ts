@@ -40,6 +40,14 @@ import {
   DELETE as osFotoDelete,
 } from "@/app/api/ordens-servico/[id]/itens/[itemId]/foto/route";
 import {
+  GET as osFotosGet,
+  POST as osFotosPost,
+} from "@/app/api/ordens-servico/[id]/itens/[itemId]/fotos/route";
+import {
+  GET as osFotoIdGet,
+  DELETE as osFotoIdDelete,
+} from "@/app/api/ordens-servico/[id]/itens/[itemId]/fotos/[fotoId]/route";
+import {
   GET as osPagamentosGet,
   POST as osPagamentosPost,
 } from "@/app/api/ordens-servico/[id]/pagamentos/route";
@@ -85,6 +93,7 @@ function criarRequest(path: string, method = "GET") {
 
 const params = { params: Promise.resolve({ id: "abc" }) };
 const fotoParams = { params: Promise.resolve({ id: "abc", itemId: "item-1" }) };
+const fotoIdParams = { params: Promise.resolve({ id: "abc", itemId: "item-1", fotoId: "foto-1" }) };
 
 const casos: Array<[string, () => Promise<Response>]> = [
   ["GET /api/dashboard", () => dashboardGet(criarRequest("/api/dashboard"))],
@@ -150,6 +159,22 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "DELETE /api/ordens-servico/[id]/itens/[itemId]/foto",
     () => osFotoDelete(criarRequest("/api/ordens-servico/abc/itens/item-1/foto", "DELETE"), fotoParams),
+  ],
+  [
+    "GET /api/ordens-servico/[id]/itens/[itemId]/fotos",
+    () => osFotosGet(criarRequest("/api/ordens-servico/abc/itens/item-1/fotos"), fotoParams),
+  ],
+  [
+    "POST /api/ordens-servico/[id]/itens/[itemId]/fotos",
+    () => osFotosPost(criarRequest("/api/ordens-servico/abc/itens/item-1/fotos", "POST"), fotoParams),
+  ],
+  [
+    "GET /api/ordens-servico/[id]/itens/[itemId]/fotos/[fotoId]",
+    () => osFotoIdGet(criarRequest("/api/ordens-servico/abc/itens/item-1/fotos/foto-1"), fotoIdParams),
+  ],
+  [
+    "DELETE /api/ordens-servico/[id]/itens/[itemId]/fotos/[fotoId]",
+    () => osFotoIdDelete(criarRequest("/api/ordens-servico/abc/itens/item-1/fotos/foto-1", "DELETE"), fotoIdParams),
   ],
   [
     "GET /api/ordens-servico/[id]/pagamentos",
