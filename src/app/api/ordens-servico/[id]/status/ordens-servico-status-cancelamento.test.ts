@@ -186,6 +186,7 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
       .mockResolvedValueOnce(ordemComStatus("ABERTA"))
       .mockResolvedValueOnce({ status: "ABERTA", valorPago: 40 });
     prismaMock.ordemServico.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.pagamento.count.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
 
     const response = await chamarPatch({ statusNovo: "CANCELADA" });
     const payload = await response.json();
@@ -195,17 +196,19 @@ describe("PATCH /api/ordens-servico/[id]/status - cancelamento", () => {
     expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
   });
 
-  it("recusa com 409 de pagamento quando a OS tem só sinal legado, sem Pagamento (#229)", async () => {
+  it("recusa com 409 de sinal legado, sem orientar estorno, quando a OS tem só sinal (#229, #230)", async () => {
     prismaMock.ordemServico.findUnique
       .mockResolvedValueOnce(ordemComStatus("ABERTA"))
       .mockResolvedValueOnce({ status: "ABERTA", valorPago: 0, valorSinal: 30 });
     prismaMock.ordemServico.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.pagamento.count.mockResolvedValue(0);
 
     const response = await chamarPatch({ statusNovo: "CANCELADA" });
     const payload = await response.json();
 
     expect(response.status).toBe(409);
-    expect(payload.message).toContain("possui pagamento registrado");
+    expect(payload.message).toContain("sinal registrado no sistema anterior");
+    expect(payload.message).not.toContain("Estorne");
     expect(prismaMock.historicoStatus.create).not.toHaveBeenCalled();
   });
 

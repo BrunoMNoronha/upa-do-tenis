@@ -230,13 +230,21 @@ export function HistoricoPagamentosList({
         setErro(payload?.message || "Não foi possível estornar o pagamento.");
         return;
       }
-      await onEstornado();
-      setPagamentoEstornando(null);
-      setSucesso("Pagamento estornado.");
     } catch {
       setErro("Falha de comunicação ao estornar o pagamento.");
+      return;
     } finally {
       setEnviando(false);
+    }
+
+    // O estorno já foi gravado: confirma antes de atualizar a tela, e uma falha
+    // na atualização não é apresentada como falha do estorno.
+    setPagamentoEstornando(null);
+    setSucesso("Pagamento estornado.");
+    try {
+      await onEstornado();
+    } catch {
+      setSucesso("Pagamento estornado. Não foi possível atualizar a tela; recarregue a página para ver os valores.");
     }
   };
 

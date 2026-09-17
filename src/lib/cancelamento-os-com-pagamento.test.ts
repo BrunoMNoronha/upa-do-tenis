@@ -9,6 +9,7 @@ import { abrirCaixa } from "@/lib/caixa";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import {
   MENSAGEM_CANCELAMENTO_COM_PAGAMENTO,
+  MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO,
   MENSAGEM_PAGAMENTO_OS_CANCELADA,
 } from "@/lib/ordens-servico-status";
 import { prisma } from "@/lib/prisma";
@@ -157,7 +158,8 @@ describe("cancelamento de OS com pagamento (#229)", () => {
     const resposta = await cancelar(id);
 
     expect(resposta.status).toBe(409);
-    expect((await resposta.json()).message).toBe(MENSAGEM_CANCELAMENTO_COM_PAGAMENTO);
+    // Sem pagamento a estornar, a mensagem não orienta estorno (#230).
+    expect((await resposta.json()).message).toBe(MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO);
     expect(await estado(id)).toEqual({ status: "ABERTA", valorPago: 0, pagamentos: 0, movimentos: 0, historico: 0 });
   });
 

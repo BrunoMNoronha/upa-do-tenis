@@ -29,6 +29,13 @@ export function podeCancelarOrdemServico(status: string): boolean {
 export const MENSAGEM_CANCELAMENTO_COM_PAGAMENTO =
   "Esta OS possui pagamento registrado. Estorne os pagamentos para poder cancelá-la.";
 
+/**
+ * Sinal legado (`valorSinal`) não tem estorno pelo sistema (fora da #230): a
+ * mensagem não pode orientar a estornar pagamentos que não existem.
+ */
+export const MENSAGEM_CANCELAMENTO_COM_SINAL_LEGADO =
+  "Esta OS possui sinal registrado no sistema anterior, que não tem estorno pelo sistema. O cancelamento continua bloqueado.";
+
 export const MENSAGEM_PAGAMENTO_OS_CANCELADA =
   "Não é possível registrar pagamento em uma OS cancelada.";
 
