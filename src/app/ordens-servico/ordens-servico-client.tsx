@@ -634,11 +634,14 @@ function OrdemServicoForm({
   servicos,
   onClose,
   onCriada,
+  onConcluida,
 }: {
   clientes: Cliente[];
   servicos: Servico[];
   onClose: () => void;
   onCriada: (dados: DadosCompartilhamentoAcompanhamento) => void;
+  /** Pede à lista uma atualização assim que o drawer terminar de fechar. */
+  onConcluida: () => void;
 }) {
   const router = useRouter();
   const [clientesDisponiveis, setClientesDisponiveis] =
@@ -744,10 +747,10 @@ function OrdemServicoForm({
     reset(criarDefaultValues());
     setFotosPorItem({});
     setOrdemPendenteFoto(null);
+    // O replaceState de onClose aborta um refresh disparado neste mesmo ciclo
+    // (inclusive o antecipado); a lista refaz a atualização após o fechamento.
+    onConcluida();
     onClose();
-    // O replaceState de onClose pode descartar o refresh antecipado ainda em
-    // andamento; atualiza de novo depois de fechar o drawer.
-    startTransition(() => router.refresh());
     if (criada.caminhoAcompanhamento) {
       onCriada({
         numeroOS: criada.numero,
@@ -1601,6 +1604,16 @@ export function OrdensServicoClient({
   // App Router, que atualiza useSearchParams; um hash (#nova-ordem) não
   // dispara "hashchange" nessa navegação, por isso o hash não é mais usado.
   const drawerOpen = searchParams.get(NOVA_ORDEM_PARAM) === "1";
+  const router = useRouter();
+  // Atualização da lista pedida ao concluir o cadastro. Só roda depois que o
+  // fechamento do drawer (replaceState) já refletiu em useSearchParams; antes
+  // disso, o App Router abortaria a requisição do refresh.
+  const [atualizarAposFechar, setAtualizarAposFechar] = useState(false);
+  useEffect(() => {
+    if (drawerOpen || !atualizarAposFechar) return;
+    setAtualizarAposFechar(false);
+    router.refresh();
+  }, [drawerOpen, atualizarAposFechar, router]);
   const [compartilhamento, setCompartilhamento] =
     useState<DadosCompartilhamentoAcompanhamento | null>(null);
   const [nomeEmpresa, setNomeEmpresa] = useState(NOME_EMPRESA_FALLBACK);
@@ -1684,6 +1697,7 @@ export function OrdensServicoClient({
               servicos={servicos}
               onClose={closeDrawer}
               onCriada={(dados) => setCompartilhamento({ ...dados, nomeExibicaoEmpresa: nomeEmpresa })}
+              onConcluida={() => setAtualizarAposFechar(true)}
             />
           </aside>
         </>
