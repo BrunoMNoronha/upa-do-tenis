@@ -17,6 +17,12 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
 
 ### Adicionado
+- **Cancelamento de venda de balcão — tela (fatia 2)**: botão "Cancelar venda" em cada venda concluída do histórico `/vendas` e no detalhe `/vendas/[id]`.
+  - Diálogo com número, total, forma de pagamento, quantidade de itens, aviso de que os produtos voltam ao estoque e o total sai do caixa, e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API em `role="alert"`.
+  - Depois do cancelamento, os dados são recarregados do servidor.
+  - Histórico: venda cancelada com etiqueta "Cancelada", total riscado e data do cancelamento, sem o botão.
+  - Detalhe: quadro "Venda cancelada" com data, usuário e motivo; total riscado e etiqueta "Venda Cancelada" no resumo; o recibo impresso mostra "Venda cancelada".
+  - Sem alteração de API, schema ou cálculo.
 - **Cancelamento de venda de balcão — modelo e API (fatia 1)**: `POST /api/vendas/[id]/cancelamento` com `{ motivo }` (5 a 500 caracteres, aparado). O cancelamento é sempre total e a venda continua no histórico.
   - **Migration `20260917150000_add_cancelamento_venda`** (aditiva): `Venda.dataCancelamento`, `Venda.motivoCancelamento` e `Venda.canceladoPorId` (FK para `Usuario`, `ON DELETE RESTRICT`), opcionais e sem backfill. CHECK `Venda_cancelamento_consistente_check`: venda `CANCELADA` tem os três preenchidos; qualquer outra não tem nenhum.
   - Uma transação trava a venda e o caixa, marca a venda como `CANCELADA` com data, motivo e usuário, devolve cada item ao estoque (movimentação `ESTORNO_VENDA` com o motivo, também para produto inativado depois) e lança SAÍDA `CANCELAMENTO_VENDA_BALCAO` do valor total no caixa aberto, na forma de pagamento da venda. Qualquer falha desfaz tudo.

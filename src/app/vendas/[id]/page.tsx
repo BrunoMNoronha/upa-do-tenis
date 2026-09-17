@@ -4,6 +4,7 @@ import { Badge, Card, SectionTitle } from "@/components/ui";
 import { obterVendaPorId } from "@/lib/vendas";
 import { formatCurrency } from "@/lib/formatters";
 import { BotaoImprimir } from "./botao-imprimir";
+import { CancelarVendaBotao } from "../components/CancelarVenda";
 
 import { exigirSessao } from "@/lib/auth-server";
 import { obterDadosEmpresa } from "@/lib/configuracoes";
@@ -30,6 +31,14 @@ export default async function VendaDetalhePage(props: {
     dateStyle: "short",
     timeStyle: "short",
   });
+  const cancelada = venda.status === "CANCELADA";
+  const dataCancelamento = venda.dataCancelamento
+    ? new Date(venda.dataCancelamento).toLocaleString("pt-BR", {
+        dateStyle: "short",
+        timeStyle: "short",
+        timeZone: "America/Sao_Paulo",
+      })
+    : null;
 
   return (
     <AppShell
@@ -46,11 +55,39 @@ export default async function VendaDetalhePage(props: {
         <p className="text-sm text-slate-500">
           Venda {venda.numero} - {date}
         </p>
+        {cancelada ? <p className="mt-2 text-lg font-bold uppercase text-rose-700">Venda cancelada</p> : null}
       </div>
 
-      <div className="mb-6 flex justify-end print:hidden">
+      <div className="mb-6 flex flex-wrap items-start justify-end gap-3 print:hidden">
+        {cancelada ? null : (
+          <CancelarVendaBotao
+            venda={{
+              id: venda.id,
+              numero: venda.numero,
+              valorTotal: Number(venda.valorTotal),
+              formaPagamento: venda.formaPagamento.nome,
+              quantidadeItens: venda.itens.length,
+            }}
+          />
+        )}
         <BotaoImprimir />
       </div>
+
+      {cancelada ? (
+        <Card className="mb-6 border-rose-200 bg-rose-50 p-6 print:hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-rose-800">Venda cancelada</h3>
+            <Badge tone="danger">Cancelada</Badge>
+          </div>
+          <p className="mt-3 text-sm text-rose-900">
+            Cancelada em {dataCancelamento}
+            {venda.canceladoPor?.nome ? ` por ${venda.canceladoPor.nome}` : ""} — {venda.motivoCancelamento}
+          </p>
+          <p className="mt-2 text-sm text-rose-800">
+            Os produtos voltaram ao estoque e o total saiu do caixa na mesma forma de pagamento.
+          </p>
+        </Card>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px] print:block">
         <section className="space-y-6">
@@ -121,16 +158,22 @@ export default async function VendaDetalhePage(props: {
               </div>
               <div className="border-t pt-3 mt-3 flex justify-between items-center">
                 <span className="font-medium text-slate-800">Total da Venda</span>
-                <span className="text-xl font-bold text-[color:var(--accent-strong)]">
+                <span className={`text-xl font-bold ${cancelada ? "text-slate-500 line-through" : "text-[color:var(--accent-strong)]"}`}>
                   {formatCurrency(Number(venda.valorTotal))}
                 </span>
               </div>
             </div>
             
             <div className="mt-6">
-              <Badge tone="success" className="w-full justify-center py-2 text-sm">
-                Pagamento Concluído
-              </Badge>
+              {cancelada ? (
+                <Badge tone="danger" className="w-full justify-center py-2 text-sm">
+                  Venda Cancelada
+                </Badge>
+              ) : (
+                <Badge tone="success" className="w-full justify-center py-2 text-sm">
+                  Pagamento Concluído
+                </Badge>
+              )}
             </div>
           </Card>
         </section>

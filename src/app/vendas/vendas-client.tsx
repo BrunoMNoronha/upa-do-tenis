@@ -2,20 +2,11 @@
 
 import { useState, useCallback } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { Badge, Button, Card, Input, Label, EmptyState } from "@/components/ui";
-import { formatCurrency } from "@/lib/formatters";
+import { Button, Card, Input, Label, EmptyState } from "@/components/ui";
 import { resetarPagina, type PaginacaoInfo } from "@/lib/paginacao";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
-
-type VendaSimples = {
-  id: string;
-  numero: string;
-  dataVenda: Date | string;
-  valorTotal: number;
-  formaPagamento: string;
-  quantidadeItens: number;
-  observacoes?: string | null;
-};
+import { CancelarVendaBotao } from "./components/CancelarVenda";
+import { VendaCardView, type VendaListagem } from "./components/VendaCard";
 
 type FormaPagamento = {
   id: string;
@@ -27,7 +18,7 @@ export function VendasClient({
   formasPagamento,
   pagination,
 }: {
-  vendas: VendaSimples[];
+  vendas: VendaListagem[];
   formasPagamento: FormaPagamento[];
   pagination: PaginacaoInfo;
 }) {
@@ -120,49 +111,11 @@ export function VendasClient({
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {vendas.map((venda) => (
-            <article
+            <VendaCardView
               key={venda.id}
-              className="rounded-3xl border border-black/10 p-5 shadow-[0_12px_30px_rgba(0,0,0,0.03)] transition hover:border-[color:var(--accent-soft)]"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--accent)]">
-                    {venda.numero}
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold text-slate-800">
-                    {formatCurrency(venda.valorTotal)}
-                  </h3>
-                </div>
-                <Badge tone="success">Concluída</Badge>
-              </div>
-
-              <div className="mt-4 grid gap-2 text-sm text-slate-600">
-                <p>
-                  <span className="font-semibold text-slate-700">Data:</span>{" "}
-                  {new Date(venda.dataVenda).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-700">Pagamento:</span>{" "}
-                  {venda.formaPagamento}
-                </p>
-                <p>
-                  <span className="font-semibold text-slate-700">Itens:</span>{" "}
-                  {venda.quantidadeItens}
-                </p>
-                {venda.observacoes && (
-                  <p className="truncate" title={venda.observacoes}>
-                    <span className="font-semibold text-slate-700">Obs:</span>{" "}
-                    {venda.observacoes}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-5 border-t pt-4">
-                <Button href={`/vendas/${venda.id}`} variant="secondary" className="w-full">
-                  Ver Detalhes
-                </Button>
-              </div>
-            </article>
+              venda={venda}
+              acaoCancelar={<CancelarVendaBotao venda={venda} className="w-full" />}
+            />
           ))}
         </div>
       )}
