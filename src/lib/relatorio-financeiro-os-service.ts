@@ -2,8 +2,7 @@ import { prisma } from './prisma';
 import { calcularResumoFinanceiroOS } from './ordens-servico-financeiro';
 import { parseDataLocal, inicioDoDia, inicioDoDiaSeguinte } from './date-range';
 import {
-  calcularAgregadosRelatorio,
-  calcularResumoRelatorio,
+  calcularResumoEAgregadosRelatorio,
   RelatorioFinanceiroOSAgregados,
   RelatorioFinanceiroOSResumo,
 } from './relatorio-financeiro-os-agregacoes';
@@ -168,9 +167,8 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
     itens = itens.filter(item => item.saldo === 0);
   }
 
-  // Resumo e agregados sobre TODOS os itens filtrados; tabela limitada à parte.
-  const resumo = calcularResumoRelatorio(itens);
-  const agregados = calcularAgregadosRelatorio(itens);
+  // Resumo e agregados sobre TODOS os itens filtrados computados em uma única pass O(N)
+  const { resumo, agregados } = calcularResumoEAgregadosRelatorio(itens);
   const totalItens = itens.length;
   const itensTabela = itens.slice(0, LIMITE_ITENS_TABELA);
 

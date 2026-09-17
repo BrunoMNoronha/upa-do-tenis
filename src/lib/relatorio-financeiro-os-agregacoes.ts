@@ -78,44 +78,87 @@ export function calcularResumoRelatorio(itens: ItemAgregavel[]): RelatorioFinanc
   };
 }
 
-function contarPorChave(
-  itens: ItemAgregavel[],
-  ordem: readonly string[],
-  chave: (item: ItemAgregavel) => string,
-): ContagemPorStatus[] {
-  const mapa = new Map<string, ContagemPorStatus>();
-  for (const status of ordem) {
-    mapa.set(status, { status, quantidade: 0, valorTotal: 0 });
+/**
+ * Realiza o cálculo combinado de resumo e agregados em uma única varredura O(N)
+ * sobre o array de itens, evitando iterações e alocações de mapas redundantes.
+ */
+export function calcularResumoEAgregadosRelatorio(itens: ItemAgregavel[]): {
+  resumo: RelatorioFinanceiroOSResumo;
+  agregados: RelatorioFinanceiroOSAgregados;
+} {
+  let quantidadeOS = 0;
+  let valorTotal = 0;
+  let valorPago = 0;
+  let saldoAberto = 0;
+  let quantidadeComSaldoAberto = 0;
+
+  const finMap = new Map<string, ContagemPorStatus>();
+  for (const status of STATUS_FINANCEIRO_ORDEM) {
+    finMap.set(status, { status, quantidade: 0, valorTotal: 0 });
+  }
+
+  const opMap = new Map<string, ContagemPorStatus>();
+  for (const status of STATUS_OPERACIONAL_ORDEM) {
+    opMap.set(status, { status, quantidade: 0, valorTotal: 0 });
   }
 
   for (const item of itens) {
-    const status = chave(item);
-    let entrada = mapa.get(status);
-    if (!entrada) {
-      // Status fora da ordem conhecida ainda é contado (nunca some silenciosamente).
-      entrada = { status, quantidade: 0, valorTotal: 0 };
-      mapa.set(status, entrada);
+    quantidadeOS++;
+    valorTotal += item.valorTotal;
+    valorPago += item.valorPago;
+    saldoAberto += item.saldo;
+    if (item.saldo > 0) {
+      quantidadeComSaldoAberto++;
     }
-    entrada.quantidade++;
-    entrada.valorTotal += item.valorTotal;
+
+    let entradaFin = finMap.get(item.statusFinanceiro);
+    if (!entradaFin) {
+      entradaFin = { status: item.statusFinanceiro, quantidade: 0, valorTotal: 0 };
+      finMap.set(item.statusFinanceiro, entradaFin);
+    }
+    entradaFin.quantidade++;
+    entradaFin.valorTotal += item.valorTotal;
+
+    let entradaOp = opMap.get(item.statusOperacional);
+    if (!entradaOp) {
+      entradaOp = { status: item.statusOperacional, quantidade: 0, valorTotal: 0 };
+      opMap.set(item.statusOperacional, entradaOp);
+    }
+    entradaOp.quantidade++;
+    entradaOp.valorTotal += item.valorTotal;
   }
 
-  return Array.from(mapa.values()).map((entrada) => ({
+  const resumo: RelatorioFinanceiroOSResumo = {
+    quantidadeOS,
+    valorTotal: arredondarMoeda(valorTotal),
+    valorPago: arredondarMoeda(valorPago),
+    saldoAberto: arredondarMoeda(saldoAberto),
+    quantidadeComSaldoAberto,
+  };
+
+  const porStatusFinanceiro: ContagemPorStatus[] = Array.from(finMap.values()).map((entrada) => ({
     ...entrada,
     valorTotal: arredondarMoeda(entrada.valorTotal),
   }));
-}
 
-export function calcularAgregadosRelatorio(itens: ItemAgregavel[]): RelatorioFinanceiroOSAgregados {
-  const resumo = calcularResumoRelatorio(itens);
+  const porStatusOperacional: ContagemPorStatus[] = Array.from(opMap.values()).map((entrada) => ({
+    ...entrada,
+    valorTotal: arredondarMoeda(entrada.valorTotal),
+  }));
 
-  return {
+  const agregados: RelatorioFinanceiroOSAgregados = {
     composicaoFinanceira: {
       valorTotal: resumo.valorTotal,
       valorPago: resumo.valorPago,
       saldoAberto: resumo.saldoAberto,
     },
-    porStatusFinanceiro: contarPorChave(itens, STATUS_FINANCEIRO_ORDEM, (item) => item.statusFinanceiro),
-    porStatusOperacional: contarPorChave(itens, STATUS_OPERACIONAL_ORDEM, (item) => item.statusOperacional),
+    porStatusFinanceiro,
+    porStatusOperacional,
   };
+
+  return { resumo, agregados };
+}
+
+export function calcularAgregadosRelatorio(itens: ItemAgregavel[]): RelatorioFinanceiroOSAgregados {
+  return calcularResumoEAgregadosRelatorio(itens).agregados;
 }
