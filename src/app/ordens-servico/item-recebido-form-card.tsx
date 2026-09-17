@@ -7,13 +7,16 @@ import type { UseFormRegisterReturn } from "react-hook-form";
 import { Button, Input, Label } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
 import { FotoOtimizadaResumo } from "@/components/foto-otimizada-resumo";
-import { useFotoOtimizada } from "@/components/use-foto-otimizada";
+import { useFotosOtimizadas } from "@/components/use-fotos-otimizadas";
 import { formatCurrency } from "@/lib/formatters";
 import { calcularSubtotalItem, type ServicoDoItem } from "@/lib/ordens-servico-itens";
 
 export type ServicoCatalogo = { id: string; nome: string; precoBase: unknown };
 
-export type EstadoFotoItem = { arquivo: File | null; processando: boolean };
+export type EstadoFotoItem = {
+  fotos: Array<{ chaveIdempotencia: string; arquivo: File }>;
+  processando: boolean;
+};
 
 export type StatusUploadFotoItem = "pendente" | "enviando" | "enviada" | "erro";
 
@@ -72,9 +75,10 @@ export function ItemRecebidoFormCard({
   podeRemover,
   bloqueado,
 }: Props) {
-  const foto = useFotoOtimizada();
-  const fotoInputRef = useRef<HTMLInputElement>(null);
-  const fotoProcessando = foto.estado === "processando";
+  const fotos = useFotosOtimizadas();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galeriaInputRef = useRef<HTMLInputElement>(null);
+  const fotoProcessando = fotos.processando;
   const subtotal = calcularSubtotalItem({ servicos });
   // Ids do DOM vêm de useId, estável entre SSR e hidratação. A clientKey é
   // gerada no navegador e mudaria entre os dois renders quando o drawer já
@@ -82,19 +86,16 @@ export function ItemRecebidoFormCard({
   const idBase = `item-${useId()}`;
 
   useEffect(() => {
-    onFotoChange(clientKey, { arquivo: foto.arquivo, processando: fotoProcessando });
-  }, [clientKey, foto.arquivo, fotoProcessando, onFotoChange]);
-
-  const selecionarFoto = (arquivo: File | null) => {
-    void foto.selecionar(arquivo).then((ok) => {
-      // Após erro, limpa o input para permitir escolher o mesmo arquivo de novo.
-      if (!ok && fotoInputRef.current) fotoInputRef.current.value = "";
+    onFotoChange(clientKey, {
+      fotos: fotos.fotos.map((foto) => ({ chaveIdempotencia: foto.chaveIdempotencia, arquivo: foto.arquivo })),
+      processando: fotoProcessando,
     });
-  };
+  }, [clientKey, fotos.fotos, fotoProcessando, onFotoChange]);
 
-  const limparFoto = () => {
-    foto.limpar();
-    if (fotoInputRef.current) fotoInputRef.current.value = "";
+  const selecionarFotos = (arquivos: File[], input: HTMLInputElement | null) => {
+    void fotos.selecionar(arquivos).then(() => {
+      if (input) input.value = "";
+    });
   };
 
   return (
@@ -131,73 +132,54 @@ export function ItemRecebidoFormCard({
         </div>
 
         <div className="grid content-start gap-2">
-          {/* Input real fica visualmente oculto; o label estilizado é a área de toque. */}
           <input
-            id={`${idBase}-foto`}
-            ref={fotoInputRef}
+            id={`${idBase}-camera`}
+            ref={cameraInputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp"
             capture="environment"
-            disabled={bloqueado}
-            onChange={(event) => selecionarFoto(event.target.files?.[0] ?? null)}
-            className="peer sr-only"
+            disabled={bloqueado || fotoProcessando || fotos.fotos.length >= fotos.limite}
+            onChange={(event) => selecionarFotos(Array.from(event.target.files ?? []), event.currentTarget)}
+            className="sr-only"
           />
-          <label
-            htmlFor={`${idBase}-foto`}
-            className={`relative flex min-h-[3.25rem] w-full cursor-pointer items-center gap-3 overflow-hidden rounded-2xl border border-dashed transition peer-focus-visible:ring-2 peer-focus-visible:ring-[color:var(--accent-soft)] peer-disabled:cursor-not-allowed peer-disabled:opacity-60 ${
-              foto.preview
-                ? "border-[color:var(--accent-soft)] bg-white p-2"
-                : "border-black/15 bg-white px-4 py-3 hover:border-[color:var(--accent)] hover:bg-[color:var(--accent-tint)]"
-            }`}
-          >
-            {foto.preview ? (
-              <>
-                <span className="relative block h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-slate-50">
-                  <Image src={foto.preview} alt={`Prévia da foto do item ${indice + 1}`} fill unoptimized className="object-cover" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-[color:var(--text)]">Foto selecionada</span>
-                  <span className="block text-xs text-[color:var(--accent-strong)]">Toque para trocar</span>
-                </span>
-              </>
-            ) : (
-              <>
-                <svg
-                  className="h-6 w-6 shrink-0 text-[color:var(--accent-strong)]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.2l1.1-1.6a1.5 1.5 0 0 1 1.2-.6h4a1.5 1.5 0 0 1 1.2.6L16.3 6h1.2A2.5 2.5 0 0 1 20 8.5V17a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17z" />
-                  <circle cx="12" cy="12.5" r="3.5" />
-                </svg>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-medium text-[color:var(--text)]">Foto do item (opcional)</span>
-                  <span className="block text-xs text-slate-500">Tirar foto ou escolher da galeria</span>
-                </span>
-              </>
-            )}
-          </label>
-          {foto.preview ? (
-            <button
-              type="button"
-              onClick={limparFoto}
-              disabled={bloqueado}
-              className="justify-self-start text-xs font-semibold text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Remover foto
-            </button>
-          ) : null}
+          <input
+            id={`${idBase}-galeria`}
+            ref={galeriaInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            disabled={bloqueado || fotoProcessando || fotos.fotos.length >= fotos.limite}
+            onChange={(event) => selecionarFotos(Array.from(event.target.files ?? []), event.currentTarget)}
+            className="sr-only"
+          />
+          <div className="flex flex-wrap gap-2">
+            <label htmlFor={`${idBase}-camera`} className="cursor-pointer rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
+              Tirar foto
+            </label>
+            <label htmlFor={`${idBase}-galeria`} className="cursor-pointer rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
+              Escolher da galeria
+            </label>
+            <span className="self-center text-xs text-slate-500">{fotos.fotos.length} de {fotos.limite} fotos</span>
+          </div>
+          {fotos.fotos.length > 0 ? (
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label={`Fotos selecionadas do item ${indice + 1}`}>
+              {fotos.fotos.map((foto, fotoIndice) => (
+                <li key={foto.chaveIdempotencia} className="rounded-xl border border-black/10 bg-white p-2">
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-50">
+                    <Image src={foto.preview} alt={`Prévia ${fotoIndice + 1} do item ${indice + 1}`} fill unoptimized className="object-cover" />
+                  </div>
+                  <button type="button" onClick={() => fotos.remover(foto.chaveIdempotencia)} disabled={bloqueado} className="mt-2 text-xs font-semibold text-rose-700 disabled:opacity-60">
+                    Remover
+                  </button>
+                  <FotoOtimizadaResumo resultado={foto.resultado} />
+                </li>
+              ))}
+            </ul>
+          ) : <p className="text-xs text-slate-500">Nenhuma foto selecionada.</p>}
           {fotoProcessando ? <p role="status" className="text-sm text-slate-600">Otimizando foto…</p> : null}
-          {foto.erro ? <p role="alert" className="text-sm text-red-600">{foto.erro}</p> : null}
-          {foto.resultado ? <FotoOtimizadaResumo resultado={foto.resultado} /> : null}
+          {fotos.erro ? <p role="alert" className="text-sm text-red-600">{fotos.erro}</p> : null}
           {statusUpload === "enviada" ? (
-            <p role="status" className="text-sm text-emerald-700">Foto salva na OS.</p>
+            <p role="status" className="text-sm text-emerald-700">Fotos salvas na OS.</p>
           ) : null}
           {statusUpload === "erro" ? (
             <p role="alert" className="text-sm text-red-600">{erroUpload ?? "Não foi possível salvar a foto deste item."}</p>

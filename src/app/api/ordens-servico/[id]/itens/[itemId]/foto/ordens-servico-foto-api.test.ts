@@ -11,6 +11,9 @@ const { authMock, delMock, getMock, putMock, prismaMock } = vi.hoisted(() => ({
       findFirst: vi.fn(),
       updateMany: vi.fn(),
     },
+    fotoItemOrdem: {
+      count: vi.fn(),
+    },
   },
 }));
 
@@ -50,6 +53,7 @@ describe("API da foto de recebimento da OS", () => {
     authMock.mockResolvedValue(null);
     prismaMock.itemOrdemServico.findFirst.mockResolvedValue(item());
     prismaMock.itemOrdemServico.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.fotoItemOrdem.count.mockResolvedValue(0);
     putMock.mockResolvedValue({ pathname: "ordens-servico/os-1/itens/item-1/nova.jpg" });
     delMock.mockResolvedValue(undefined);
   });
@@ -121,6 +125,17 @@ describe("API da foto de recebimento da OS", () => {
     expect(response.status).toBe(204);
     expect(prismaMock.itemOrdemServico.updateMany).toHaveBeenCalledBefore(delMock);
     expect(delMock).toHaveBeenCalledWith("foto.jpg");
+  });
+
+  it("preserva o Blob legado quando a galeria migrada ainda o referencia", async () => {
+    prismaMock.itemOrdemServico.findFirst.mockResolvedValue(item("ABERTA", "foto.jpg"));
+    prismaMock.fotoItemOrdem.count.mockResolvedValue(1);
+    const request = new NextRequest("http://localhost/api/ordens-servico/os-1/itens/item-1/foto", { method: "DELETE" });
+
+    const response = await DELETE(request, props);
+
+    expect(response.status).toBe(204);
+    expect(delMock).not.toHaveBeenCalled();
   });
 
   it("serve a foto privada somente pela rota autenticada", async () => {

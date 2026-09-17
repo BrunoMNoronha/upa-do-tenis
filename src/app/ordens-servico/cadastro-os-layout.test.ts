@@ -46,7 +46,9 @@ describe("layout do formulário de cadastro de OS", () => {
   it("renderiza um card de item com descrição, foto e serviços; sem valor total digitável (issue #205)", () => {
     expect(html).toContain('data-testid="item-recebido-0"');
     expect(html).toContain('name="itens.0.descricao"');
-    expect(html).toMatch(/<input[^>]*id="item-[^"]+-foto"[^>]*type="file"/);
+    expect(html).toMatch(/<input[^>]*id="item-[^"]+-camera"[^>]*type="file"/);
+    expect(html).toMatch(/<input[^>]*id="item-[^"]+-galeria"[^>]*type="file"[^>]*multiple/);
+    expect(html).toContain("0 de 5 fotos");
     expect(html).toMatch(/<input[^>]*id="item-[^"]+-servico"[^>]*role="combobox"/);
     expect(html).toContain(">+ Adicionar outro item</button>");
     expect(html).toContain('data-testid="total-ordem"');

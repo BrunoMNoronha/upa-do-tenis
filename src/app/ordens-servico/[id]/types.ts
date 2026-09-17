@@ -23,6 +23,7 @@ export type ItemOS = {
   valor: number;
   observacoes?: string | null;
   possuiFotoRecebimento: boolean;
+  fotos: Array<{ id: string; criadoEm: string }>;
   servicos: ServicoItem[];
   insumos: InsumoAplicado[];
 };

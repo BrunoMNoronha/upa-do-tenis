@@ -203,6 +203,10 @@ export async function obterDetalheOrdemServico(id: string) {
       cliente: true,
       itens: {
         include: {
+          fotos: {
+            select: { id: true, criadoEm: true },
+            orderBy: [{ criadoEm: "asc" }, { id: "asc" }],
+          },
           servicos: {
             include: {
               servico: true,
@@ -250,10 +254,17 @@ export async function obterDetalheOrdemServico(id: string) {
 
   return {
     ...ordemNormalizada,
-    itens: ordemNormalizada.itens.map((item) => ({
-      ...omitirCaminhoFotoRecebimento(item),
-      possuiFotoRecebimento: Boolean(item.fotoRecebimentoPathname),
-    })),
+    itens: ordemNormalizada.itens.map((item) => {
+      const fotos = (item.fotos ?? []).map((foto) => ({
+        id: foto.id,
+        criadoEm: foto.criadoEm,
+      }));
+      return {
+        ...omitirCaminhoFotoRecebimento(item),
+        fotos,
+        possuiFotoRecebimento: fotos.length > 0 || Boolean(item.fotoRecebimentoPathname),
+      };
+    }),
     resumoFinanceiro,
   };
 }

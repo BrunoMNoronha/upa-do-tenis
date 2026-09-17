@@ -152,6 +152,7 @@ const criarDefaultValues = (): OrdemServicoFormValues => {
 type UploadFotoItem = {
   clientKey: string;
   itemId: string;
+  chaveIdempotencia: string;
   arquivo: File;
   status: StatusUploadFotoItem;
   erro?: string;
@@ -678,7 +679,10 @@ function OrdemServicoForm({
   const registrarFotoDoItem = useCallback((clientKey: string, estado: EstadoFotoItem) => {
     setFotosPorItem((atual) => {
       const anterior = atual[clientKey];
-      if (anterior && anterior.arquivo === estado.arquivo && anterior.processando === estado.processando) {
+      const mesmasFotos = anterior?.fotos.length === estado.fotos.length && anterior.fotos.every((foto, indice) =>
+        foto.chaveIdempotencia === estado.fotos[indice]?.chaveIdempotencia && foto.arquivo === estado.fotos[indice]?.arquivo,
+      );
+      if (anterior && mesmasFotos && anterior.processando === estado.processando) {
         return atual;
       }
       return { ...atual, [clientKey]: estado };
@@ -695,10 +699,11 @@ function OrdemServicoForm({
     numeroOSDigitado,
   );
 
-  const enviarFoto = async (ordemId: string, itemId: string, arquivo: File) => {
+  const enviarFoto = async (ordemId: string, itemId: string, arquivo: File, chaveIdempotencia: string) => {
     const dados = new FormData();
     dados.set("foto", arquivo);
-    const response = await fetch(`/api/ordens-servico/${ordemId}/itens/${itemId}/foto`, {
+    dados.set("chaveIdempotencia", chaveIdempotencia);
+    const response = await fetch(`/api/ordens-servico/${ordemId}/itens/${itemId}/fotos`, {
       method: "POST",
       body: dados,
     });
@@ -721,7 +726,7 @@ function OrdemServicoForm({
         continue;
       }
       try {
-        await enviarFoto(ordemId, upload.itemId, upload.arquivo);
+        await enviarFoto(ordemId, upload.itemId, upload.arquivo, upload.chaveIdempotencia);
         resultado.push({ ...upload, status: "enviada", erro: undefined });
       } catch (error) {
         resultado.push({
@@ -772,8 +777,8 @@ function OrdemServicoForm({
 
   const montarMensagemFotosComErro = (quantidade: number) =>
     quantidade === 1
-      ? "A OS foi criada, mas a foto de um item não foi salva. Reenvie a foto ou abra a OS para continuar."
-      : `A OS foi criada, mas as fotos de ${quantidade} itens não foram salvas. Reenvie as fotos ou abra a OS para continuar.`;
+      ? "A OS foi criada, mas uma foto não foi salva. Reenvie a foto ou abra a OS para continuar."
+      : `A OS foi criada, mas ${quantidade} fotos não foram salvas. Reenvie as fotos ou abra a OS para continuar.`;
 
   const {
     register: registerCliente,
@@ -869,8 +874,8 @@ function OrdemServicoForm({
     const item = itensAtuais?.[indice];
     const clientKey = itensFields[indice]?.clientKey ?? item?.clientKey ?? "";
     const temConteudo =
-      (item?.servicos?.length ?? 0) > 0 || Boolean(fotosPorItem[clientKey]?.arquivo);
-    if (temConteudo && !window.confirm(`Remover o item ${indice + 1}? Os serviços e a foto dele serão descartados.`)) {
+      (item?.servicos?.length ?? 0) > 0 || (fotosPorItem[clientKey]?.fotos.length ?? 0) > 0;
+    if (temConteudo && !window.confirm(`Remover o item ${indice + 1}? Os serviços e as fotos dele serão descartados.`)) {
       return;
     }
     removerItemDoFormulario(indice);
@@ -928,13 +933,19 @@ function OrdemServicoForm({
     const uploads: UploadFotoItem[] = [];
     values.itens.forEach((item, indice) => {
       const clientKey = item.clientKey ?? "";
-      const arquivo = fotosPorItem[clientKey]?.arquivo;
-      if (!arquivo) return;
+      const fotos = fotosPorItem[clientKey]?.fotos ?? [];
+      if (fotos.length === 0) return;
       const persistido =
         criada.itens.find((candidato) => candidato.clientKey && candidato.clientKey === clientKey) ??
         criada.itens[indice];
       if (!persistido) return;
-      uploads.push({ clientKey, itemId: persistido.id, arquivo, status: "pendente" });
+      fotos.forEach((foto) => uploads.push({
+        clientKey,
+        itemId: persistido.id,
+        chaveIdempotencia: foto.chaveIdempotencia,
+        arquivo: foto.arquivo,
+        status: "pendente",
+      }));
     });
 
     if (uploads.length > 0) {
@@ -950,9 +961,12 @@ function OrdemServicoForm({
     concluirCriacao(criadaComCliente);
   });
 
-  const statusUploadPorClientKey = new Map(
-    (ordemPendenteFoto?.uploads ?? []).map((upload) => [upload.clientKey, upload] as const),
-  );
+  const statusUploadPorClientKey = new Map<string, { status: StatusUploadFotoItem; erro?: string }>();
+  for (const upload of ordemPendenteFoto?.uploads ?? []) {
+    const atual = statusUploadPorClientKey.get(upload.clientKey);
+    if (upload.status === "erro") statusUploadPorClientKey.set(upload.clientKey, { status: "erro", erro: upload.erro });
+    else if (!atual) statusUploadPorClientKey.set(upload.clientKey, { status: upload.status });
+  }
 
   return (
     <section id="nova-ordem">

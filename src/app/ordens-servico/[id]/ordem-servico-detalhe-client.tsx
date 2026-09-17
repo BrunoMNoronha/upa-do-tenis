@@ -307,7 +307,8 @@ export function OrdemServicoDetalheClient({
                     ordemServicoId={ordem.id}
                     itemId={item.id}
                     descricaoItem={item.descricao}
-                    possuiFoto={item.possuiFotoRecebimento}
+                    fotos={item.fotos}
+                    possuiFotoLegada={item.possuiFotoRecebimento && item.fotos.length === 0}
                     editavel={ordem.status === "ABERTA"}
                     onAtualizada={() => carregarDetalhe(true)}
                   />
