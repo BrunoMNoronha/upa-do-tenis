@@ -155,6 +155,7 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
         tone="danger"
         onConfirmar={() => confirmarExclusao((produto) => onDeleteCurrent(produto.id))}
         onCancelar={cancelarExclusao}
+        isConfirmando={isPending}
       />
     </Card>
   );
