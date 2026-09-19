@@ -10,3 +10,11 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2024-05-28 - Missing Server-Side Access Control on Ordens Servico POST
+
+**Vulnerability:** A private API route (`POST /api/ordens-servico`) lacked the standard server-side authorization guard, relying solely on extracting the user from the request.
+
+**Learning:** When creating new routes, manual checks for session presence can be implemented but they might bypass the standardized mechanism that rejects unauthorized requests uniformly.
+
+**Prevention:** Always use the standard `exigirSessaoApi` helper at the very beginning of private API routes to guarantee consistent enforcement of access controls before any other logic is executed.
