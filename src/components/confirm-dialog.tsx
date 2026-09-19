@@ -13,6 +13,7 @@ type ConfirmDialogProps = {
   tone?: "danger" | "default";
   onConfirmar: () => void;
   onCancelar: () => void;
+  isConfirmando?: boolean;
 };
 
 /**
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   tone = "default",
   onConfirmar,
   onCancelar,
+  isConfirmando,
 }: ConfirmDialogProps) {
   const cancelarRef = useRef<HTMLButtonElement>(null);
 
@@ -83,6 +85,7 @@ export function ConfirmDialog({
             type="button"
             className={tone === "danger" ? "!bg-rose-600 hover:!bg-rose-700" : undefined}
             onClick={onConfirmar}
+            isLoading={isConfirmando}
           >
             {textoConfirmar}
           </Button>

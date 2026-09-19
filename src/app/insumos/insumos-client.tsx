@@ -385,6 +385,7 @@ export function InsumosClient({ insumos, mostrarAlerta, busca, pagination }: Ins
           })
         }
         onCancelar={cancelarExclusao}
+        isConfirmando={isPending}
       />
     </section>
   );

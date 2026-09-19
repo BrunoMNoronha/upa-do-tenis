@@ -295,6 +295,7 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
           })
         }
         onCancelar={cancelarExclusao}
+        isConfirmando={isPending}
       />
     </section>
   );

@@ -17,3 +17,7 @@
 ## 2026-09-15 - Estado de carregamento inconsistente nos botões
 **Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
 **Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.
+
+## 2026-09-16 - Estado de carregamento no ConfirmDialog
+**Aprendizado:** Componentes modais genéricos, como o ConfirmDialog, frequentemente deixam de implementar feedback visual nativo (`isLoading`) em suas ações primárias de submissão, forçando as telas consumidoras a realizar overrides manuais inconsistentes (ex: mudando o texto de "Confirmar" para "Cancelando...").
+**Ação:** Expandir componentes genéricos modais (`ConfirmDialog`) para receber um estado de carregamento explícito (ex: `isConfirmando`), vinculando-o ao `<Button isLoading={...}>` subjacente para centralizar e garantir um feedback visual robusto de submissão assíncrona, eliminando overrides de texto nas telas filhas.
