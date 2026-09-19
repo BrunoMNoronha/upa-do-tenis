@@ -64,9 +64,10 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
 
     const servicoId = id;
 
-    const count = await prisma.servicoItemOrdem.count({
-      where: { servicoId }
-    });
+    const [count, countAtendimentosRapidos] = await Promise.all([
+      prisma.servicoItemOrdem.count({ where: { servicoId } }),
+      prisma.itemAtendimentoRapido.count({ where: { servicoId } })
+    ]);
 
     if (count > 0) {
       return NextResponse.json(
@@ -74,10 +75,6 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
         { status: 409 }
       );
     }
-
-    const countAtendimentosRapidos = await prisma.itemAtendimentoRapido.count({
-      where: { servicoId }
-    });
 
     if (countAtendimentosRapidos > 0) {
       return NextResponse.json(
