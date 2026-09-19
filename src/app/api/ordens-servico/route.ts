@@ -44,6 +44,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
     const usuario = await obterUsuarioSessaoDaRequest(req);
     if (!usuario) {
       return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
