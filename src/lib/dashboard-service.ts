@@ -103,6 +103,7 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     ticketMedioAgg,
     topServicosAgg,
     topInsumosAgg,
+    execucoesAtendimentoRapidoAgg,
   ] = await Promise.all([
     // 1. Total Recebido no período (Soma de todos os pagamentos: de OS e de
     //    Atendimento Rápido; cada Pagamento tem exatamente uma origem, garantida
@@ -192,6 +193,18 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
       orderBy: { _sum: { quantidade: 'desc' } },
       take: 5,
     }),
+    // 6b. Execuções de serviço em Atendimentos Rápidos do período (um item = uma execução).
+    //     Atendimento estornado não conta: o estorno é sempre total.
+    prisma.itemAtendimentoRapido.groupBy({
+      by: ['servicoId'],
+      _count: { servicoId: true },
+      where: {
+        atendimentoRapido: {
+          dataHora: { gte: inicio, lt: fimExclusivo },
+          pagamentos: { none: { estorno: { isNot: null } } },
+        },
+      },
+    }),
   ]);
 
   // Recebido líquido: pagamentos do período menos estornos feitos no período (#230).
@@ -214,19 +227,6 @@ export async function getDashboardMetrics(dataInicio: string, dataFim: string): 
     else if (status === 'CONCLUIDA') osConcluidas = _count.id;
     else if (status === 'ENTREGUE') osEntregues = _count.id;
   }
-
-  // 6b. Execuções de serviço em Atendimentos Rápidos do período (um item = uma execução).
-  //     Atendimento estornado não conta: o estorno é sempre total.
-  const execucoesAtendimentoRapidoAgg = await prisma.itemAtendimentoRapido.groupBy({
-    by: ['servicoId'],
-    _count: { servicoId: true },
-    where: {
-      atendimentoRapido: {
-        dataHora: { gte: inicio, lt: fimExclusivo },
-        pagamentos: { none: { estorno: { isNot: null } } },
-      },
-    },
-  });
 
   const rankingServicos = combinarRankingServicos(
     topServicosAgg.map(agg => ({ servicoId: agg.servicoId, quantidade: agg._count.servicoId })),
