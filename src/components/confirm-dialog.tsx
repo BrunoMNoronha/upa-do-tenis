@@ -30,6 +30,7 @@ export function ConfirmDialog({
   onCancelar,
 }: ConfirmDialogProps) {
   const cancelarRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!aberto) {
@@ -41,6 +42,29 @@ export function ConfirmDialog({
     const aoPressionarTecla = (evento: KeyboardEvent) => {
       if (evento.key === "Escape") {
         onCancelar();
+        return;
+      }
+      if (evento.key !== "Tab" || !containerRef.current) return;
+
+      const focaveis = Array.from(
+        containerRef.current.querySelectorAll<HTMLElement>(SELETOR_FOCAVEIS),
+      );
+      if (focaveis.length === 0) {
+        evento.preventDefault();
+        return;
+      }
+      const primeiro = focaveis[0];
+      const ultimo = focaveis[focaveis.length - 1];
+      const atual = document.activeElement;
+      const dentro =
+        atual instanceof Node && containerRef.current.contains(atual);
+
+      if (evento.shiftKey && (!dentro || atual === primeiro)) {
+        evento.preventDefault();
+        ultimo.focus();
+      } else if (!evento.shiftKey && (!dentro || atual === ultimo)) {
+        evento.preventDefault();
+        primeiro.focus();
       }
     };
 
@@ -61,6 +85,7 @@ export function ConfirmDialog({
       onClick={onCancelar}
     >
       <div
+        ref={containerRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-titulo"
@@ -68,20 +93,33 @@ export function ConfirmDialog({
         className="w-full max-w-md rounded-[1.75rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-[0_20px_40px_rgba(31,41,55,0.25)]"
         onClick={(evento) => evento.stopPropagation()}
       >
-        <h2 id="confirm-dialog-titulo" className="text-xl font-semibold tracking-tight text-[color:var(--text)]">
+        <h2
+          id="confirm-dialog-titulo"
+          className="text-xl font-semibold tracking-tight text-[color:var(--text)]"
+        >
           {titulo}
         </h2>
-        <p id="confirm-dialog-descricao" className="mt-3 text-sm leading-6 text-slate-600">
+        <p
+          id="confirm-dialog-descricao"
+          className="mt-3 text-sm leading-6 text-slate-600"
+        >
           {descricao}
         </p>
 
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <Button ref={cancelarRef} type="button" variant="secondary" onClick={onCancelar}>
+          <Button
+            ref={cancelarRef}
+            type="button"
+            variant="secondary"
+            onClick={onCancelar}
+          >
             {textoCancelar}
           </Button>
           <Button
             type="button"
-            className={tone === "danger" ? "!bg-rose-600 hover:!bg-rose-700" : undefined}
+            className={
+              tone === "danger" ? "!bg-rose-600 hover:!bg-rose-700" : undefined
+            }
             onClick={onConfirmar}
           >
             {textoConfirmar}
@@ -91,3 +129,6 @@ export function ConfirmDialog({
     </div>
   );
 }
+
+const SELETOR_FOCAVEIS =
+  'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])';
