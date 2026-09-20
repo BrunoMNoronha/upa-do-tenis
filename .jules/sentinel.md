@@ -10,3 +10,8 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2024-12-07 - Inconsistent route protection
+**Vulnerability:** Private routes omitted the standard server-side session helper (`exigirSessaoApi`), relying only on a partial custom check.
+**Learning:** Direct usage of `obterUsuarioSessaoDaRequest` does not guarantee a standardized 401 response and uniform behavior across the application.
+**Prevention:** Always apply the standard `exigirSessaoApi` helper on private API routes before proceeding with specific data extraction.
