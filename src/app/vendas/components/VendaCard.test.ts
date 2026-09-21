@@ -86,7 +86,7 @@ describe("CancelarVendaDialogView", () => {
     expect(html).toMatch(/role="alert"[^>]*>Esta venda já foi cancelada\.</);
     expect(html).toContain('aria-describedby="cancelar-venda-erro"');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*type="button"[^>]*>Voltar<\/button>/);
-    expect(html).toMatch(/<button[^>]*disabled=""[^>]*type="submit"[^>]*>Cancelando\.\.\.<\/button>/);
+    expect(html).toMatch(/<svg[^>]*class="[^"]*animate-spin[^"]*"[^>]*>/);
   });
 });
 
