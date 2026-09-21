@@ -128,12 +128,21 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
   // Respostas sem o campo (API anterior) são tratadas como indisponíveis.
   if (!Array.isArray(serie)) return { disponivel: false };
 
-  const maior = serie.reduce((acc, item) => Math.max(acc, item.valor), 0);
-  const maiorNegativo = serie.reduce((acc, item) => Math.max(acc, -item.valor), 0);
+  let maior = 0;
+  let maiorNegativo = 0;
+  let diasComRecebimento = 0;
+
+  for (const item of serie) {
+    if (item.valor > maior) maior = item.valor;
+    if (-item.valor > maiorNegativo) maiorNegativo = -item.valor;
+    if (item.valor > 0) diasComRecebimento++;
+  }
+
   const escala = maior + maiorNegativo;
   let melhorDia: ItemRecebimentoDia | null = null;
+  const dias: ItemRecebimentoDia[] = [];
 
-  const dias = serie.map((item) => {
+  for (const item of serie) {
     const [ano, mes, dia] = item.dia.split("-");
     const diaDaSemana = formatadorDiaDaSemana.format(new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia))));
     const itemVm: ItemRecebimentoDia = {
@@ -144,14 +153,14 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
       proporcao: percentualInteiro(Math.abs(item.valor), escala),
     };
     if (item.valor > 0 && (melhorDia === null || item.valor > melhorDia.valor)) melhorDia = itemVm;
-    return itemVm;
-  });
+    dias.push(itemVm);
+  }
 
   return {
     disponivel: true,
     dias,
     melhorDia,
-    diasComRecebimento: dias.filter((item) => item.valor > 0).length,
+    diasComRecebimento,
     alturaAreaPositiva: calcularAlturaAreaPositiva(maior, maiorNegativo),
   };
 }

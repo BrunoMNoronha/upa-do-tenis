@@ -19,3 +19,6 @@
 ## 2026-09-15 - Paralelização de I/O em Server Components
 **Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
 **Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+## 2024-05-24 - Otimização de agregações sobre arrays (Série Diária no Dashboard)
+**Learning:** Agregações subsequentes sobre a mesma estrutura iterável (como `.reduce`, `.map` e `.filter().length`) resultam em repetição de processamento e alocações indesejadas de memória intermediária O(k*N).
+**Action:** Consolidar computações baseadas no mesmo vetor de estado em um único loop `for...of` com variávies mutáveis simples antes de despachar estruturas para a UI, otimizando de O(k*N) para O(N).
