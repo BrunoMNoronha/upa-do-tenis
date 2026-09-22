@@ -19,3 +19,7 @@
 ## 2026-09-15 - Paralelização de I/O em Server Components
 **Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
 **Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+
+## 2026-10-25 - Paralelização massiva de agregações independentes
+**Learning:** Agregações massivas do banco de dados (ex: `count`, `aggregate`, `sum`, etc) executadas iterativamente usando `await` são ofensoras clássicas de performance (Gargalo O(N)) por manter o I/O bloqueado.
+**Action:** Agrupar sempre operações independentes em um único bloco `Promise.all()` em rotas da API, para que as requisições atinjam o banco concorrentemente. Em otimizações (Bolt), pesquise globalmente por blocos sequenciais `await prisma.<model>.count` usando o bash em todo o repositório.
