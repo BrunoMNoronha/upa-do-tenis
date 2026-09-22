@@ -16,9 +16,11 @@ type ComboboxProps = {
   placeholder?: string;
   emptyText?: string;
   id?: string;
+  "aria-invalid"?: boolean;
+  "aria-describedby"?: string;
 };
 
-export function Combobox({ options, value, onChange, placeholder = "Selecione...", emptyText = "Nenhum resultado", id }: ComboboxProps) {
+export function Combobox({ options, value, onChange, placeholder = "Selecione...", emptyText = "Nenhum resultado", id, "aria-invalid": ariaInvalid, "aria-describedby": ariaDescribedBy }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -111,6 +113,8 @@ export function Combobox({ options, value, onChange, placeholder = "Selecione...
         aria-haspopup="listbox"
         aria-autocomplete="list"
         aria-activedescendant={activeIndex >= 0 ? `${comboboxId}-option-${activeIndex}` : undefined}
+        aria-invalid={ariaInvalid}
+        aria-describedby={ariaDescribedBy}
         placeholder={placeholder}
         value={query}
         onKeyDown={handleKeyDown}
