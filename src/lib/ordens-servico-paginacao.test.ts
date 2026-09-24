@@ -17,6 +17,7 @@ const { prismaMock, valorTotalRef } = vi.hoisted(() => {
   return {
     valorTotalRef,
     prismaMock: {
+      $transaction: vi.fn(async (ops) => Promise.all(ops)),
       ordemServico: {
         findMany: vi.fn(),
         count: vi.fn(),
