@@ -17,3 +17,7 @@
 ## 2026-09-15 - Estado de carregamento inconsistente nos botões
 **Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
 **Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.
+
+## 2026-09-15 - Estado de carregamento inconsistente nos botões
+**Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
+**Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.

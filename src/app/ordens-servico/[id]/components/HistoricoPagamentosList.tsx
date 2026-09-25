@@ -157,8 +157,8 @@ export function EstornarPagamentoDialogView({
           <Button type="button" variant="secondary" disabled={enviando} onClick={onCancelar}>
             Voltar
           </Button>
-          <Button type="submit" disabled={enviando} className="!bg-rose-600 hover:!bg-rose-700">
-            {enviando ? "Estornando..." : "Confirmar estorno"}
+          <Button type="submit" isLoading={enviando} className="!bg-rose-600 hover:!bg-rose-700">
+            Confirmar estorno
           </Button>
         </div>
       </form>
