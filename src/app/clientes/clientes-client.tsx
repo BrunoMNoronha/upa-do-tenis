@@ -134,8 +134,8 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
         <form className="grid gap-4" onSubmit={onSubmit}>
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" {...register("nome")} placeholder="Nome do cliente" />
-            {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
+            <Input id="nome" {...register("nome")} placeholder="Nome do cliente" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
+            {errors.nome ? <p id="nome-error" className="text-sm text-red-600">{errors.nome.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
@@ -148,15 +148,17 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
                 register("telefone").onChange(e);
               }}
               placeholder="(11) 99999-9999"
+              aria-invalid={Boolean(errors.telefone)}
+              aria-describedby={errors.telefone ? "telefone-error" : undefined}
             />
-            {errors.telefone ? <p className="text-sm text-red-600">{errors.telefone.message}</p> : null}
+            {errors.telefone ? <p id="telefone-error" className="text-sm text-red-600">{errors.telefone.message}</p> : null}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" {...register("email")} placeholder="cliente@exemplo.com" />
-              {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
+              <Input id="email" {...register("email")} placeholder="cliente@exemplo.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
+              {errors.email ? <p id="email-error" className="text-sm text-red-600">{errors.email.message}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -169,8 +171,10 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
                   register("cpfCnpj").onChange(e);
                 }}
                 placeholder="Opcional"
+                aria-invalid={Boolean(errors.cpfCnpj)}
+                aria-describedby={errors.cpfCnpj ? "cpfCnpj-error" : undefined}
               />
-              {errors.cpfCnpj ? <p className="text-sm text-red-600">{errors.cpfCnpj.message}</p> : null}
+              {errors.cpfCnpj ? <p id="cpfCnpj-error" className="text-sm text-red-600">{errors.cpfCnpj.message}</p> : null}
             </div>
           </div>
 
@@ -184,7 +188,7 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
             />
           </div>
 
-          {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {submitError ? <p role="alert" className="text-sm text-red-600">{submitError}</p> : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" isLoading={isSubmitting || isPending}>
