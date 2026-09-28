@@ -17,3 +17,7 @@
 ## 2026-09-15 - Estado de carregamento inconsistente nos botões
 **Aprendizado:** Botões de ação manipulavam texto manualmente junto de `disabled` para expressar submissão ("Salvando...", "Carregando..."), causando saltos visuais e feedback divergente, embora `<Button>` já ofereça `isLoading` nativo com spinner.
 **Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.
+
+## 2024-05-18 - Improve feedback during form filtering
+**Learning:** Re-using native generic Button components property `isLoading` allows replacing text toggles (e.g., 'Aplicando...') and manual `disabled` states with built-in UI spinner. This ensures consistent layout by preventing visual jumps and provides clear processing feedback to users without over-engineering states.
+**Action:** Always favor `isLoading` over combining `disabled={...}` and conditionally mapped strings for button actions, to provide uniform and polished state feedback.

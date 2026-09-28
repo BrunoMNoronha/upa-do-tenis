@@ -105,10 +105,10 @@ export function RelatorioFinanceiroOSFiltros({
         <div className="col-span-full xl:col-span-1 xl:col-start-4 flex justify-end">
           <Button 
             onClick={onFiltrar} 
-            disabled={loading}
+            isLoading={loading}
             className="w-full md:w-auto"
           >
-            {loading ? 'Aplicando...' : 'Aplicar Filtros'}
+            Aplicar Filtros
           </Button>
         </div>
       </div>
