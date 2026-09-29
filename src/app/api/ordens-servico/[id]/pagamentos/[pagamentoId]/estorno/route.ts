@@ -38,10 +38,7 @@ export async function POST(
       );
     }
 
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) {
-      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
-    }
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
 
     const resultado = await estornarPagamentoOrdemServico(
       parsedParams.data.id,

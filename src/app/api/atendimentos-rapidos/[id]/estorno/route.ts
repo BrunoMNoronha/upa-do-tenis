@@ -35,10 +35,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       );
     }
 
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) {
-      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
-    }
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
 
     const resultado = await estornarAtendimentoRapido(parsedParams.data.id, parsedBody.data, usuario.id);
 
