@@ -47,7 +47,10 @@ export async function POST(req: NextRequest) {
     const naoAutenticado = await exigirSessaoApi(req);
     if (naoAutenticado) return naoAutenticado;
 
-    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
+    const usuario = await obterUsuarioSessaoDaRequest(req);
+    if (!usuario) {
+      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    }
 
     const body = await req.json();
     const result = ordemServicoFormSchema.safeParse(body);
