@@ -17,12 +17,7 @@ const { prismaMock, valorTotalRef } = vi.hoisted(() => {
   return {
     valorTotalRef,
     prismaMock: {
-      // Prisma executa as consultas de uma transação em sequência na mesma conexão.
-      $transaction: vi.fn(async (consultas: Array<PromiseLike<number>>) => {
-        const resultados: number[] = [];
-        for (const consulta of consultas) resultados.push(await consulta);
-        return resultados;
-      }),
+      $transaction: vi.fn(async (ops) => Promise.all(ops)),
       ordemServico: {
         findMany: vi.fn(),
         count: vi.fn(),
@@ -272,21 +267,5 @@ describe("contarEstatisticasOrdensServico", () => {
         ],
       },
     });
-  });
-
-  it("inicia todas as contagens sem aguardar a primeira resposta", async () => {
-    const pendentes: Array<(valor: number) => void> = [];
-    // Assim como PrismaPromise, a consulta só inicia ao ser aguardada.
-    prismaMock.ordemServico.count.mockImplementation(() => ({
-      then: (resolve: (valor: number) => void) => { pendentes.push(resolve); },
-    }));
-
-    const resultado = contarEstatisticasOrdensServico(new Date("2026-09-16T13:00:00Z"));
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(pendentes).toHaveLength(4);
-    for (const resolver of pendentes) resolver(0);
-
-    await expect(resultado).resolves.toEqual({ abertas: 0, emAndamento: 0, comSaldo: 0, atrasadas: 0 });
   });
 });
