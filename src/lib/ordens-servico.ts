@@ -119,10 +119,7 @@ export async function contarEstatisticasOrdensServico(
     { agora, referencias: { valorTotal: prisma.ordemServico.fields.valorTotal } },
   );
 
-  // Otimização: Combina as 4 contagens concorrentes em uma única transação
-  // que o Prisma despacha ao banco em um batch, reduzindo de 4 chamadas
-  // de rede separadas para apenas 1.
-  const [abertas, emAndamento, comSaldo, atrasadas] = await prisma.$transaction([
+  const [abertas, emAndamento, comSaldo, atrasadas] = await Promise.all([
     prisma.ordemServico.count({ where: { status: "ABERTA" } }),
     prisma.ordemServico.count({ where: { status: "EM_ANDAMENTO" } }),
     prisma.ordemServico.count({ where: { saldo: { gt: 0 } } }),
