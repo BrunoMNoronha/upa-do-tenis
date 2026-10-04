@@ -88,6 +88,6 @@ describe("EstornarAtendimentoRapidoDialogView", () => {
     expect(html).toMatch(/role="alert"[^>]*>Este atendimento já foi estornado\.</);
     expect(html).toContain('aria-describedby="estornar-atendimento-erro"');
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*type="button"[^>]*>Voltar<\/button>/);
-    expect(html).toMatch(/<svg[^>]*class="[^"]*animate-spin[^"]*"[^>]*>/);
+    expect(html).toMatch(/<button[^>]*disabled=""[^>]*type="submit"[^>]*>[\s\S]*?<svg[^>]*class="[^\"]*animate-spin[^\"]*"[^>]*>[\s\S]*?<\/svg>[\s\S]*?Confirmar estorno[\s\S]*?<\/button>/);
   });
 });
