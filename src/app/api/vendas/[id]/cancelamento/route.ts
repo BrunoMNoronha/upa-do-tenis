@@ -22,7 +22,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ id: stri
       );
     }
 
-    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
+    const usuario = await obterUsuarioSessaoDaRequest(req);
+    if (!usuario) {
+      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    }
 
     const venda = await cancelarVendaBalcao(id, parsed.data, usuario.id);
 

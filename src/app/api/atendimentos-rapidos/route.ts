@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
+    const usuario = await obterUsuarioSessaoDaRequest(req);
     const { atendimento, reaproveitado } = await registrarAtendimentoRapido(result.data, {
       usuarioId: usuario?.id ?? null,
     });

@@ -1,4 +1,16 @@
-## 2025-02-28 - Missing session enforcement in API routes
-**Vulnerability:** Several API routes relied on manually checking `obterUsuarioSessaoDaRequest` and validating the session state, rather than using the centralized, standard `exigirSessaoApi` middleware. This approach can easily lead to missed authentication checks or inconsistencies across endpoints.
-**Learning:** Consistently using the project's standard authentication enforcement function (`exigirSessaoApi`) prevents accidental omissions and ensures a uniform security posture across all private API routes.
-**Prevention:** Establish a convention where all private API routes begin with a call to `exigirSessaoApi` and only after that proceed to fetch user details or process the request.
+## 2024-05-24 - Testing Intl.DateTimeFormat
+**Learning:** Using `Intl.DateTimeFormat` with Vitest can yield different formats across CI environments or local timezones, leading to flaky tests if strict string matching is used.
+**Action:** When testing locale-specific output like dates in unit tests without forcing timezone configs, use Regex to match the exact format structure (e.g. `^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$`) rather than specific values to ensure cross-environment reliability.
+
+## 2024-09-08 - Session Cookie Configuration Update
+**Vulnerability:** Weak `sameSite` configuration for authentication cookies
+**Learning:** The session cookie for Next.js was configured to use `sameSite: "lax"`, which is less restrictive and could potentially be a minor weakness in scenarios where cross-site requests are involved, though mitigated by other strategies.
+**Prevention:** Always enforce `sameSite: "strict"` on authentication and session cookies unless cross-site usage is strictly required for the feature (e.g. SSO).
+
+## 2026-09-12 - Respostas seguras na API de clientes
+**Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
+**Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2026-10-04 - Padronização defensiva da sessão na criação de OS
+**Aprendizado:** A verificação manual anterior já rejeitava sessão inválida e usuário inativo. O helper padroniza a entrada da rota; uma segunda consulta ainda pode retornar null.
+**Ação:** Preservar a resposta 401 antes de ler o body ou gravar dados, inclusive se a sessão perder validade entre as consultas. Não afirmar acesso anônimo confirmado.
