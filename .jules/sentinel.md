@@ -11,7 +11,6 @@
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
 
-## 2024-12-07 - Inconsistent route protection
-**Vulnerability:** Private routes omitted the standard server-side session helper (`exigirSessaoApi`), relying only on a partial custom check.
-**Learning:** Direct usage of `obterUsuarioSessaoDaRequest` does not guarantee a standardized 401 response and uniform behavior across the application.
-**Prevention:** Always apply the standard `exigirSessaoApi` helper on private API routes before proceeding with specific data extraction.
+## 2026-10-04 - Padronização defensiva da sessão na criação de OS
+**Aprendizado:** A verificação manual anterior já rejeitava sessão inválida e usuário inativo. O helper padroniza a entrada da rota; uma segunda consulta ainda pode retornar null.
+**Ação:** Preservar a resposta 401 antes de ler o body ou gravar dados, inclusive se a sessão perder validade entre as consultas. Não afirmar acesso anônimo confirmado.
