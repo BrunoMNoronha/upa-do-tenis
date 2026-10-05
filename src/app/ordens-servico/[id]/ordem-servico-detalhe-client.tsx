@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Badge, Button, Card, PanelHeader, SectionTitle, LoadingState, ErrorState, EmptyState, Input } from "@/components/ui";
 import { Combobox } from "@/components/combobox";
@@ -46,18 +46,21 @@ function LinhaResumo({ label, valor }: { label: string; valor: number }) {
 
 export function OrdemServicoDetalheClient({
   ordemServicoId,
+  initialOrdem,
   formasPagamento,
   insumosDisponiveis,
   servicosDisponiveis,
 }: {
   ordemServicoId: string;
+  initialOrdem: OrdemServicoDetalhe | null;
   formasPagamento: FormaPagamento[];
   insumosDisponiveis: InsumoDisponivel[];
   servicosDisponiveis: ServicoDisponivel[];
 }) {
-  const [estado, setEstado] = useState<EstadoTela>("carregando");
+  const [estado, setEstado] = useState<EstadoTela>(initialOrdem ? "sucesso" : "nao-encontrada");
   const [erro, setErro] = useState<string | null>(null);
-  const [ordem, setOrdem] = useState<OrdemServicoDetalhe | null>(null);
+  const [ordem, setOrdem] = useState<OrdemServicoDetalhe | null>(initialOrdem);
+  const requisicaoAtual = useRef(0);
 
   const [itemServicoEditando, setItemServicoEditando] = useState<string | null>(null);
   const [servicosEditando, setServicosEditando] = useState<ServicoItem[]>([]);
@@ -71,38 +74,46 @@ export function OrdemServicoDetalheClient({
   const [compartilhando, setCompartilhando] = useState(false);
   const fecharCompartilhamento = useCallback(() => setCompartilhando(false), []);
 
+  useEffect(() => {
+    requisicaoAtual.current += 1;
+    setOrdem(initialOrdem);
+    setEstado(initialOrdem ? "sucesso" : "nao-encontrada");
+    setErro(null);
+    return () => { requisicaoAtual.current += 1; };
+  }, [initialOrdem, ordemServicoId]);
+
   const carregarDetalhe = useCallback(async (silencioso = false) => {
+    const numeroRequisicao = ++requisicaoAtual.current;
+    setErro(null);
     if (!silencioso) {
       setEstado("carregando");
-      setErro(null);
     }
-
-    const response = await fetch(`/api/ordens-servico/${ordemServicoId}`, {
-      method: "GET",
-      cache: "no-store",
-    });
-
-    if (response.status === 404) {
-      setEstado("nao-encontrada");
-      setOrdem(null);
-      return;
+    try {
+      const response = await fetch(`/api/ordens-servico/${ordemServicoId}`, {
+        method: "GET",
+        cache: "no-store",
+      });
+      if (numeroRequisicao !== requisicaoAtual.current) return;
+      if (response.status === 404) {
+        setEstado("nao-encontrada");
+        setOrdem(null);
+        return;
+      }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        if (numeroRequisicao !== requisicaoAtual.current) return;
+        throw new Error(payload?.message || "Não foi possível carregar o detalhe da OS.");
+      }
+      const payload = (await response.json()) as { ordemServico: OrdemServicoDetalhe };
+      if (numeroRequisicao !== requisicaoAtual.current) return;
+      setOrdem(payload.ordemServico);
+      setEstado("sucesso");
+    } catch (falha) {
+      if (numeroRequisicao !== requisicaoAtual.current) return;
+      setErro(falha instanceof Error ? falha.message : "Falha de comunicação ao carregar a OS.");
+      if (!silencioso) setEstado("erro");
     }
-
-    if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setErro(payload?.message || "Não foi possível carregar o detalhe da OS.");
-      setEstado("erro");
-      return;
-    }
-
-    const payload = (await response.json()) as { ordemServico: OrdemServicoDetalhe };
-    setOrdem(payload.ordemServico);
-    setEstado("sucesso");
   }, [ordemServicoId]);
-
-  useEffect(() => {
-    void carregarDetalhe();
-  }, [carregarDetalhe]);
 
   const iniciarEdicaoServicos = (item: ItemOS) => {
     setItemServicoEditando(item.id);
@@ -222,6 +233,7 @@ export function OrdemServicoDetalheClient({
 
   return (
     <section className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+      {erro ? <p role="alert" className="lg:col-span-2 text-sm text-red-700">{erro} <button type="button" className="underline" onClick={() => void carregarDetalhe(true)}>Tentar novamente</button></p> : null}
       <div className="space-y-6">
         <Card className="overflow-hidden">
           <div className="border-b border-[color:var(--border)] bg-gradient-to-b from-[color:var(--accent-tint)] to-transparent p-6">

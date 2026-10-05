@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { obterUsuarioSessao } from "@/lib/auth-server";
 import { obterConfigCaptcha } from "@/lib/captcha";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 import { LoginForm } from "./login-form";
 

@@ -4,7 +4,10 @@ import { LoadingState } from "@/components/ui";
 import { VendasClient } from "./vendas-client";
 import { listarVendasBalcaoPaginado } from "@/lib/vendas";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
-import { listarFormasPagamento } from "@/lib/formas-pagamento";
+import {
+  listarFormasPagamentoComCache as listarFormasPagamento,
+  obterDadosEmpresaComCache as obterDadosEmpresa,
+} from "@/lib/dados-cache";
 
 import { exigirSessao } from "@/lib/auth-server";
 
@@ -25,16 +28,18 @@ export default async function VendasPage(props: {
   const dataFinal = typeof searchParams.dataFinal === "string" ? searchParams.dataFinal : undefined;
   const formaPagamentoId = typeof searchParams.formaPagamentoId === "string" ? searchParams.formaPagamentoId : undefined;
 
-  const [{ data: vendas, pagination }, formasPagamento] = await Promise.all([
+  const [{ data: vendas, pagination }, formasPagamento, dadosEmpresa] = await Promise.all([
     listarVendasBalcaoPaginado({
       filtros: { dataInicial, dataFinal, formaPagamentoId },
       paginacao: lerPaginacaoDeSearchParams(searchParams),
     }),
     listarFormasPagamento(),
+    obterDadosEmpresa(),
   ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Operação e Atendimento"
       title="Histórico de Vendas"
       description="Consulte as vendas realizadas no balcão, filtre por período e forma de pagamento."

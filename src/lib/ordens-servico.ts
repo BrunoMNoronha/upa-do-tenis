@@ -9,6 +9,7 @@ import {
   type FiltrosListagemOrdensServico,
 } from "@/lib/ordens-servico-listagem";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
+import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 
 export {
   transicoesPermitidas,
@@ -104,6 +105,35 @@ export type EstatisticasOrdensServico = {
   atrasadas: number;
 };
 
+/** Clientes ativos do cadastro de OS; a leitura permanece sempre atual. */
+export async function listarClientesCadastroOS() {
+  return prisma.cliente.findMany({
+    where: { ativo: true },
+    orderBy: [{ criadoEm: "desc" }, { nome: "asc" }],
+    select: { id: true, nome: true, telefone: true },
+  });
+}
+
+/** Opções leves, consultadas somente quando o cadastro de OS é aberto. */
+export async function listarOpcoesCadastroOS() {
+  const [clientes, servicos] = await Promise.all([
+    listarClientesCadastroOS(),
+    prisma.servico.findMany({
+      where: { ativo: true },
+      orderBy: { nome: "asc" },
+      select: { id: true, nome: true, precoBase: true },
+    }),
+  ]);
+  return {
+    clientes,
+    servicos: servicos.map((servico) => ({
+      id: servico.id,
+      nome: servico.nome,
+      precoBase: servico.precoBase.toString(),
+    })),
+  };
+}
+
 /**
  * Contadores exibidos no topo da listagem. São calculados sobre TODAS as OS
  * (não apenas a página atual nem o filtro ativo), preservando o comportamento
@@ -164,6 +194,84 @@ export async function listarOrdensServicoPaginado(params: {
 }
 
 export type ResultadoListagemOrdensServico = Awaited<ReturnType<typeof listarOrdensServicoPaginado>>;
+
+/** Leitura da página: mantém os insumos do cálculo financeiro apenas no servidor. */
+export async function listarOrdensServicoResumoPaginado(params: {
+  filtros: FiltrosListagemOrdensServico;
+  paginacao: PaginacaoNormalizada;
+  agora?: Date;
+}) {
+  const where = montarWhereListagemOrdensServico(params.filtros, {
+    agora: params.agora ?? new Date(),
+    referencias: { valorTotal: prisma.ordemServico.fields.valorTotal },
+  });
+  const resultado = await paginarConsulta({
+    paginacao: params.paginacao,
+    contar: () => prisma.ordemServico.count({ where }),
+    buscar: ({ skip, take }) => prisma.ordemServico.findMany({
+      where,
+      orderBy: orderByListagemOrdemServicoPaginada,
+      skip,
+      take,
+      select: {
+        id: true, numero: true, status: true, favorita: true,
+        dataPrevisao: true, observacoes: true,
+        valorTotal: true, valorDesconto: true, valorSinal: true, valorPago: true,
+        cliente: { select: { nome: true, telefone: true } },
+        pagamentos: { select: { valor: true, estorno: { select: { id: true } } } },
+        itens: { select: {
+          descricao: true, valor: true,
+          servicos: { select: {
+            valor: true,
+            servico: { select: { nome: true, precoBase: true } },
+          } },
+        } },
+        historicosStatus: {
+          select: { id: true, statusAnterior: true, statusNovo: true, observacao: true, criadoEm: true },
+          orderBy: { criadoEm: "desc" },
+        },
+      },
+    }),
+  });
+
+  return {
+    data: resultado.data.map((ordem) => {
+      const financeiro = calcularResumoFinanceiroOS({
+        statusOperacional: ordem.status,
+        valorTotal: ordem.valorTotal,
+        valorDesconto: ordem.valorDesconto,
+        valorSinal: ordem.valorSinal,
+        valorPago: ordem.valorPago,
+        pagamentos: ordem.pagamentos,
+        itens: ordem.itens,
+      });
+      return {
+        id: ordem.id,
+        numero: ordem.numero,
+        status: ordem.status,
+        favorita: ordem.favorita,
+        dataPrevisao: ordem.dataPrevisao.toISOString(),
+        observacoes: ordem.observacoes,
+        cliente: ordem.cliente,
+        itens: ordem.itens.map((item) => ({
+          descricao: item.descricao,
+          servicos: item.servicos.map((vinculo) => ({ servico: { nome: vinculo.servico.nome } })),
+        })),
+        historicosStatus: ordem.historicosStatus.map((historico) => ({
+          ...historico,
+          criadoEm: historico.criadoEm.toISOString(),
+        })),
+        valorTotal: financeiro.valorTotal,
+        valorPago: financeiro.valorPago,
+        saldo: financeiro.saldo,
+        statusFinanceiro: financeiro.statusFinanceiro,
+      };
+    }),
+    pagination: resultado.pagination,
+  };
+}
+
+export type OrdemServicoResumo = Awaited<ReturnType<typeof listarOrdensServicoResumoPaginado>>["data"][number];
 
 export async function listarOrdensServico() {
   const ordens = await prisma.ordemServico.findMany({
@@ -280,5 +388,14 @@ export async function obterDetalheOrdemServico(id: string) {
       };
     }),
     resumoFinanceiro,
+  };
+}
+
+/** Mesmo contrato entregue pelo GET de detalhe, compartilhado com a página RSC. */
+export async function obterDetalheOrdemServicoDto(id: string) {
+  const ordem = await obterDetalheOrdemServico(id);
+  return {
+    ...ordem,
+    caminhoAcompanhamento: montarCaminhoAcompanhamento(ordem.id),
   };
 }

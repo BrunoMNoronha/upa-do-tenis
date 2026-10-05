@@ -56,6 +56,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // O Next resolve este marcador por alias no build; nos testes usamos
+      // o mesmo módulo vazio fornecido pelo framework, sem nova dependência.
+      "server-only": path.resolve(__dirname, "node_modules/next/dist/compiled/server-only/empty.js"),
     },
   },
   test: {

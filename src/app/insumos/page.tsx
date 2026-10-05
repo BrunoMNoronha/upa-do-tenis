@@ -6,6 +6,7 @@ import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +24,14 @@ export default async function InsumosPage(props: {
   const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
 
   const busca = lerBuscaDeSearchParams(searchParams);
-  const { data: insumosFetch, pagination } = await listarInsumosPaginado({
-    estoqueBaixo: mostrarAlerta,
-    busca,
-    paginacao: lerPaginacaoDeSearchParams(searchParams),
-  });
+  const [{ data: insumosFetch, pagination }, dadosEmpresa] = await Promise.all([
+    listarInsumosPaginado({
+      estoqueBaixo: mostrarAlerta,
+      busca,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    obterDadosEmpresa(),
+  ]);
   const insumosVisiveis = insumosFetch.map((insumo) => ({
     id: insumo.id,
     nome: insumo.nome,
@@ -41,6 +45,7 @@ export default async function InsumosPage(props: {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Estoque"
       title="Insumos e Produtos"
       description="Gerencie os materiais utilizados nos serviços ou produtos para venda no balcão."

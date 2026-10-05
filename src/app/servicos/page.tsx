@@ -6,6 +6,7 @@ import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +22,17 @@ export default async function ServicosPage(props: {
 
   const searchParams = await props.searchParams;
   const busca = lerBuscaDeSearchParams(searchParams);
-  const { data: servicos, pagination } = await listarServicosParaGestaoPaginado({
-    busca,
-    paginacao: lerPaginacaoDeSearchParams(searchParams),
-  });
+  const [{ data: servicos, pagination }, dadosEmpresa] = await Promise.all([
+    listarServicosParaGestaoPaginado({
+      busca,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    obterDadosEmpresa(),
+  ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Catálogo"
       title="Serviços"
       description="Gerencie os serviços prestados pela sapataria."

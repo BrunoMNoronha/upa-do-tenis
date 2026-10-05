@@ -10,6 +10,7 @@ import { normalizarPaginacao } from "@/lib/paginacao";
 import {
   contarEstatisticasOrdensServico,
   listarOrdensServicoPaginado,
+  listarOrdensServicoResumoPaginado,
 } from "@/lib/ordens-servico";
 
 const { prismaMock, valorTotalRef } = vi.hoisted(() => {
@@ -236,6 +237,38 @@ describe("listarOrdensServicoPaginado", () => {
     const resultado = await listarOrdensServicoPaginado({ filtros: {}, paginacao: normalizarPaginacao({}) });
 
     expect(resultado).toEqual({ data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 1 } });
+  });
+});
+
+describe("resumo paginado da página de OS", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("projeta campos do card e mantém estornos no cálculo sem enviá-los ao navegador", async () => {
+    prismaMock.ordemServico.count.mockResolvedValue(1);
+    prismaMock.ordemServico.findMany.mockResolvedValue([ordemBruta("a", {
+      itens: [{ descricao: "Tênis", valor: new Prisma.Decimal(100), servicos: [{
+        valor: new Prisma.Decimal(100), servico: { nome: "Reparo", precoBase: new Prisma.Decimal(100) },
+      }] }],
+      pagamentos: [
+        { valor: new Prisma.Decimal(40), estorno: { id: "estorno" } },
+        { valor: new Prisma.Decimal(10), estorno: null },
+      ],
+    })]);
+
+    const resultado = await listarOrdensServicoResumoPaginado({
+      filtros: {}, paginacao: normalizarPaginacao({}),
+    });
+
+    const args = prismaMock.ordemServico.findMany.mock.calls[0][0];
+    expect(args.select.pagamentos).toEqual({ select: { valor: true, estorno: { select: { id: true } } } });
+    expect(args.select.cliente).toEqual({ select: { nome: true, telefone: true } });
+    expect(resultado.data[0]).toMatchObject({
+      id: "a", valorPago: 10, saldo: 90, statusFinanceiro: "PARCIAL",
+      itens: [{ descricao: "Tênis", servicos: [{ servico: { nome: "Reparo" } }] }],
+    });
+    expect(resultado.data[0]).not.toHaveProperty("pagamentos");
+    expect(resultado.data[0]).not.toHaveProperty("valorSinal");
+    expect(JSON.parse(JSON.stringify(resultado.data[0]))).toEqual(resultado.data[0]);
   });
 });
 

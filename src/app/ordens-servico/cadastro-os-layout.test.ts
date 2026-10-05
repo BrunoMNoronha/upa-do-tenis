@@ -9,21 +9,17 @@ vi.mock("next/navigation", () => ({
   usePathname: () => "/ordens-servico",
 }));
 
-import { OrdensServicoClient } from "./ordens-servico-client";
+import { OrdemServicoForm } from "./ordem-servico-form";
 import { dataOperacionalHoje } from "@/lib/date-range";
 import { calcularPrazoPrevistoPadrao } from "@/lib/ordens-servico-prazo";
 
-const filtros = { statusOperacional: "TODAS" as const, statusFinanceiro: "TODAS" as const, busca: "", atrasadas: false };
-const paginacao = { page: 1, pageSize: 20, total: 0, totalPages: 1 };
-
 function renderizarCadastro() {
-  return renderToStaticMarkup(createElement(OrdensServicoClient, {
-    initialOrders: [],
-    pagination: paginacao,
-    estatisticas: { abertas: 0, emAndamento: 0, comSaldo: 0, atrasadas: 0 },
-    filtros,
+  return renderToStaticMarkup(createElement(OrdemServicoForm, {
     clientes: [{ id: "c1", nome: "Cliente Teste", telefone: "11987654321" }],
-    servicos: [{ id: "s1", nome: "Troca de sola", precoBase: 50 }],
+    servicos: [{ id: "s1", nome: "Troca de sola", precoBase: "50" }],
+    onClose: vi.fn(),
+    onCriada: vi.fn(),
+    onConcluida: vi.fn(),
   }));
 }
 
@@ -112,6 +108,5 @@ describe("layout do formulário de cadastro de OS", () => {
   it("mantém as ações existentes: cadastrar (primária) e cancelar (secundária)", () => {
     expect(html).toContain("Cadastrar ordem");
     expect(html).toContain(">Cancelar</button>");
-    expect(html).toContain('aria-label="Fechar cadastro de OS"');
   });
 });

@@ -4,6 +4,7 @@ import { FormasPagamentoClient } from "./formas-pagamento-client";
 import { listarFormasPagamentoParaGestao } from "@/lib/formas-pagamento";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,11 @@ export const metadata = {
 export default async function FormasPagamentoPage() {
   await exigirSessao();
 
-  const formas = await listarFormasPagamentoParaGestao();
+  const [formas, dadosEmpresa] = await Promise.all([listarFormasPagamentoParaGestao(), obterDadosEmpresa()]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Financeiro"
       title="Formas de Pagamento"
       description="Gerencie os métodos de pagamento aceitos na loja."

@@ -4,12 +4,11 @@ import { prisma } from "@/lib/prisma";
 
 import { ordemServicoIdParamsSchema } from "@/lib/ordens-servico-schema";
 import {
-  obterDetalheOrdemServico,
+  obterDetalheOrdemServicoDto,
   OrdemServicoDetalheError,
 } from "@/lib/ordens-servico";
 import { INCLUDE_ESTORNO_PAGAMENTO, calcularResumoFinanceiroOS, arredondarMoeda } from "@/lib/ordens-servico-financeiro";
 import { ordemServicoServicosAtualizarSchema } from "@/lib/ordens-servico-schema";
-import { montarCaminhoAcompanhamento } from "@/lib/os-acompanhamento-token";
 
 export async function GET(
   req: NextRequest,
@@ -32,14 +31,8 @@ export async function GET(
       );
     }
 
-    const ordemServico = await obterDetalheOrdemServico(parsedParams.data.id);
-
-    return NextResponse.json({
-      ordemServico: {
-        ...ordemServico,
-        caminhoAcompanhamento: montarCaminhoAcompanhamento(ordemServico.id),
-      },
-    });
+    const ordemServico = await obterDetalheOrdemServicoDto(parsedParams.data.id);
+    return NextResponse.json({ ordemServico });
   } catch (error) {
     if (error instanceof OrdemServicoDetalheError) {
       return NextResponse.json({ message: error.message }, { status: error.status });

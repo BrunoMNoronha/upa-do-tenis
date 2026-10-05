@@ -3,7 +3,7 @@ import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { AppShell } from '@/components/app-shell';
 
 import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const metadata = {
   title: 'Dashboard',
@@ -18,6 +18,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Relatórios e Métricas"
       title="Dashboard"
       description={`Visão geral financeira e operacional de ${dadosEmpresa.nomeFantasia}.`}

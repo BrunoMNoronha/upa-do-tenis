@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge, Button, Card, SectionTitle } from "@/components/ui";
 
 import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 const highlights = [
   "Clientes",
@@ -20,6 +20,7 @@ export default async function HomePage() {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Painel inicial"
       title={`Base administrativa de ${dadosEmpresa.nomeFantasia}`}
       description="Painel inicial do MVP v1 para clientes, ordens de serviço e operação da sapataria, já preparado para evoluir com navegação e layout consistentes."

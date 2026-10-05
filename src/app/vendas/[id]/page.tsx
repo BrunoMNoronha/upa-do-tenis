@@ -7,7 +7,7 @@ import { BotaoImprimir } from "./botao-imprimir";
 import { CancelarVendaBotao } from "../components/CancelarVenda";
 
 import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const metadata = {
   title: "Detalhes da Venda",
@@ -42,6 +42,7 @@ export default async function VendaDetalhePage(props: {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Operação e Atendimento / Vendas"
       title={`Venda ${venda.numero}`}
       description={`Detalhes da venda registrada em ${date}.`}
