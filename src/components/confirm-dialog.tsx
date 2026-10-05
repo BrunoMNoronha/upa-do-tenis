@@ -13,6 +13,7 @@ type ConfirmDialogProps = {
   tone?: "danger" | "default";
   onConfirmar: () => void;
   onCancelar: () => void;
+  isConfirmando?: boolean;
 };
 
 /**
@@ -28,6 +29,7 @@ export function ConfirmDialog({
   tone = "default",
   onConfirmar,
   onCancelar,
+  isConfirmando = false,
 }: ConfirmDialogProps) {
   const cancelarRef = useRef<HTMLButtonElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,11 +39,12 @@ export function ConfirmDialog({
       return;
     }
 
-    cancelarRef.current?.focus();
+    if (isConfirmando) containerRef.current?.focus();
+    else cancelarRef.current?.focus();
 
     const aoPressionarTecla = (evento: KeyboardEvent) => {
       if (evento.key === "Escape") {
-        onCancelar();
+        if (!isConfirmando) onCancelar();
         return;
       }
       if (evento.key !== "Tab" || !containerRef.current) return;
@@ -73,7 +76,7 @@ export function ConfirmDialog({
     return () => {
       document.removeEventListener("keydown", aoPressionarTecla);
     };
-  }, [aberto, onCancelar]);
+  }, [aberto, isConfirmando, onCancelar]);
 
   if (!aberto) {
     return null;
@@ -82,10 +85,11 @@ export function ConfirmDialog({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onCancelar}
+      onClick={isConfirmando ? undefined : onCancelar}
     >
       <div
         ref={containerRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby="confirm-dialog-titulo"
@@ -112,6 +116,7 @@ export function ConfirmDialog({
             type="button"
             variant="secondary"
             onClick={onCancelar}
+            disabled={isConfirmando}
           >
             {textoCancelar}
           </Button>
@@ -121,6 +126,7 @@ export function ConfirmDialog({
               tone === "danger" ? "!bg-rose-600 hover:!bg-rose-700" : undefined
             }
             onClick={onConfirmar}
+            isLoading={isConfirmando}
           >
             {textoConfirmar}
           </Button>
