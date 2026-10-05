@@ -12,8 +12,9 @@ vi.mock("@/lib/auth-server", () => ({
   exigirSessaoApi: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("@/lib/servicos", () => ({
-  listarServicos: listarServicosMock,
+vi.mock("@/lib/dados-cache", () => ({
+  listarServicosComCache: listarServicosMock,
+  invalidarCacheServicos: vi.fn(),
 }));
 
 vi.mock("@/lib/produtos", () => ({
@@ -46,6 +47,7 @@ describe("GET listagens da API", () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(body).toEqual(servicos);
   });
 

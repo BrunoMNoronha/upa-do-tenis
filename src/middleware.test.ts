@@ -41,7 +41,7 @@ describe("middleware de autenticação", () => {
     expect(response.headers.get("location")).toBe("http://localhost/login");
   });
 
-  it("responde 401 em API privada sem sessão", async () => {
+  it("responde 401 sem cache HTTP em API privada sem sessão", async () => {
     for (const rota of [
       "/api/dashboard",
       "/api/caixa",
@@ -51,10 +51,16 @@ describe("middleware de autenticação", () => {
       "/api/relatorios/financeiro-os",
       "/api/vendas",
       "/api/usuarios",
+      "/api/servicos",
+      "/api/configuracoes",
+      "/api/configuracoes/dados-empresa",
+      "/api/ordens-servico/opcoes-cadastro",
     ]) {
       const response = await middleware(criarRequest(rota));
 
       expect(response.status, `rota ${rota}`).toBe(401);
+      expect(response.headers.get("Cache-Control"), `rota ${rota}`).toBe("private, no-store");
+      expect(await response.json()).toEqual({ message: "Não autenticado." });
     }
   });
 
@@ -62,6 +68,8 @@ describe("middleware de autenticação", () => {
     const response = await middleware(criarRequest("/api/caixa", "token-invalido"));
 
     expect(response.status).toBe(401);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({ message: "Não autenticado." });
   });
 
   it("deixa passar página privada com sessão válida", async () => {

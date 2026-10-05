@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { exigirSessao } from "@/lib/auth-server";
-import { listarFormasPagamento } from "@/lib/formas-pagamento";
-import { listarServicos } from "@/lib/servicos";
+import {
+  listarFormasPagamentoComCache as listarFormasPagamento,
+  listarServicosComCache as listarServicos,
+} from "@/lib/dados-cache";
 import { AtendimentoRapidoClient } from "./atendimento-rapido-client";
 
 export const metadata = {

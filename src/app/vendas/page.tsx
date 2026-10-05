@@ -4,7 +4,7 @@ import { LoadingState } from "@/components/ui";
 import { VendasClient } from "./vendas-client";
 import { listarVendasBalcaoPaginado } from "@/lib/vendas";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
-import { listarFormasPagamento } from "@/lib/formas-pagamento";
+import { listarFormasPagamentoComCache as listarFormasPagamento } from "@/lib/dados-cache";
 
 import { exigirSessao } from "@/lib/auth-server";
 

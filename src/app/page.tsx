@@ -2,7 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { Badge, Button, Card, SectionTitle } from "@/components/ui";
 
 import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 const highlights = [
   "Clientes",

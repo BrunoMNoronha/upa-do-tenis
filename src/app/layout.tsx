@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
 // Fonte da interface. A variável CSS é consumida em globals.css (--font-sans),

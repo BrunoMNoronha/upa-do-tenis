@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { listarProdutos } from "@/lib/produtos";
-import { listarFormasPagamento } from "@/lib/formas-pagamento";
+import { listarFormasPagamentoComCache as listarFormasPagamento } from "@/lib/dados-cache";
 import { VendaBalcaoClient } from "./venda-balcao-client";
 
 import { exigirSessao } from "@/lib/auth-server";

@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 
 import { listarProdutosCatalogo, type ProdutoCatalogo } from "@/lib/catalogo-publico";
-import { obterDadosEmpresa, obterDadosEmpresaPersistidos } from "@/lib/configuracoes";
+import {
+  obterDadosEmpresaComCache as obterDadosEmpresa,
+  obterDadosEmpresaPersistidosComCache as obterDadosEmpresaPersistidos,
+} from "@/lib/dados-cache";
 import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
 import { CatalogoClient } from "./catalogo-client";

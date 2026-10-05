@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Card, Input, PanelHeader } from "@/components/ui";
 import { validarUrlHttps } from "@/lib/configuracoes-schema";
 
@@ -10,6 +11,7 @@ type ConfiguracoesClientProps = {
 };
 
 export function ConfiguracoesClient({ linkInicial, nomeEmpresa }: ConfiguracoesClientProps) {
+  const router = useRouter();
   const [linkGoogle, setLinkGoogle] = useState(linkInicial ?? "");
   const [linkSalvo, setLinkSalvo] = useState(linkInicial ?? "");
   const [salvando, setSalvando] = useState(false);
@@ -50,6 +52,7 @@ export function ConfiguracoesClient({ linkInicial, nomeEmpresa }: ConfiguracoesC
       setLinkGoogle(salvo);
       setLinkSalvo(salvo);
       setMensagemSucesso("Configurações atualizadas com sucesso.");
+      router.refresh();
     } catch {
       setMensagemErro("Falha de comunicação com o servidor. Tente novamente.");
     } finally {

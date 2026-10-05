@@ -1,20 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { configuracaoAvaliacaoSchema } from "@/lib/configuracoes-schema";
-import { obterLinkAvaliacaoGoogle, salvarLinkAvaliacaoGoogle } from "@/lib/configuracoes";
+import { salvarLinkAvaliacaoGoogle } from "@/lib/configuracoes";
+import { invalidarCacheLinkAvaliacaoGoogle, obterLinkAvaliacaoGoogleComCache } from "@/lib/dados-cache";
+
+const SEM_CACHE_HTTP = { "Cache-Control": "private, no-store" };
 
 export async function GET(req: NextRequest) {
   try {
     const naoAutenticado = await exigirSessaoApi(req);
-    if (naoAutenticado) return naoAutenticado;
+    if (naoAutenticado) {
+      naoAutenticado.headers.set("Cache-Control", "private, no-store");
+      return naoAutenticado;
+    }
 
-    const linkAvaliacaoGoogle = await obterLinkAvaliacaoGoogle();
-    return NextResponse.json({ linkAvaliacaoGoogle }, { status: 200 });
+    const linkAvaliacaoGoogle = await obterLinkAvaliacaoGoogleComCache();
+    return NextResponse.json({ linkAvaliacaoGoogle }, { status: 200, headers: SEM_CACHE_HTTP });
   } catch (error) {
     console.error("Erro ao carregar configurações:", error);
     return NextResponse.json(
       { message: "Erro interno ao carregar as configurações." },
-      { status: 500 }
+      { status: 500, headers: SEM_CACHE_HTTP }
     );
   }
 }
@@ -39,6 +45,7 @@ export async function PUT(req: NextRequest) {
 
     const novoLink = parseResult.data.linkAvaliacaoGoogle ?? null;
     await salvarLinkAvaliacaoGoogle(novoLink);
+    invalidarCacheLinkAvaliacaoGoogle();
 
     return NextResponse.json(
       {
