@@ -104,6 +104,15 @@ export type EstatisticasOrdensServico = {
   atrasadas: number;
 };
 
+/** Clientes atuais do cadastro de OS; dados pessoais não entram no Data Cache. */
+export function listarClientesCadastroOS() {
+  return prisma.cliente.findMany({
+    where: { ativo: true },
+    orderBy: [{ criadoEm: "desc" }, { nome: "asc" }],
+    select: { id: true, nome: true, telefone: true },
+  });
+}
+
 /**
  * Contadores exibidos no topo da listagem. São calculados sobre TODAS as OS
  * (não apenas a página atual nem o filtro ativo), preservando o comportamento

@@ -1,6 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresa, obterLinkAvaliacaoGoogle } from "@/lib/configuracoes";
+import {
+  obterDadosEmpresaComCache as obterDadosEmpresa,
+  obterLinkAvaliacaoGoogleComCache as obterLinkAvaliacaoGoogle,
+} from "@/lib/dados-cache";
 import { ConfiguracoesClient } from "./configuracoes-client";
 import { DadosEmpresaForm } from "./dados-empresa-form";
 
@@ -21,6 +24,7 @@ export default async function ConfiguracoesPage() {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Administração"
       title="Configurações"
       description="Gerencie os parâmetros operacionais e integrações da sapataria."

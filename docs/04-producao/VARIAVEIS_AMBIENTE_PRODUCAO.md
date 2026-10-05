@@ -12,6 +12,7 @@ Referência: `.env.production.example` (já existe no repositório, versionado, 
 | `RECAPTCHA_SITE_KEY` | Recomendada | Chave pública do reCAPTCHA v3 do login | Entregue ao formulário como prop da página, não como `NEXT_PUBLIC_*`. Sem ela (ou sem a secret) o captcha fica **desligado** — ver [RUNBOOK_RECAPTCHA_LOGIN.md](RUNBOOK_RECAPTCHA_LOGIN.md) |
 | `RECAPTCHA_SECRET_KEY` | Recomendada | Chave secreta usada no `siteverify` | Nunca chega ao cliente. Um par por escopo (Production ≠ Preview) |
 | `RECAPTCHA_SCORE_MINIMO` | Não | Score mínimo do v3 em `[0, 1]` | Padrão `0.5`; valor inválido cai no padrão |
+| `CACHE_DADOS_ENABLED` | Não | Habilita o Data Cache seletivo do servidor somente com `true` | Ausente/`false`: desligado. Ativar em Preview após homologação local e em Production apenas após aceite. Revalidação em 300s; rollback com `false`, mantendo invalidação nas escritas |
 
 Não existem variáveis `NEXT_PUBLIC_*` no projeto atualmente (`grep -r "NEXT_PUBLIC_" src` não retorna resultados). Nenhum segredo é ou deve ser exposto ao cliente. Caso uma variável `NEXT_PUBLIC_*` seja introduzida no futuro, ela é embutida no bundle do navegador — **nunca** usar para segredos.
 
@@ -51,6 +52,7 @@ Escopos e regras da [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_
 | `AUTH_SESSION_SECRET` | hex de 32 bytes exclusivo | hex de 32 bytes **diferente** | não definir | — | — |
 | `RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY` | par do domínio de produção | par **diferente**, domínio `vercel.app` | não definir | — | — |
 | `RECAPTCHA_SCORE_MINIMO` | opcional | opcional | não definir | — | — |
+| `CACHE_DADOS_ENABLED` | `false` até aceite | `true` somente para homologação | não definir | — | — |
 | `BOOTSTRAP_ADMIN_NOME` / `_EMAIL` / `_SENHA` | **nunca** | **nunca** | **nunca** | **nunca** | **nunca** |
 
 `NODE_ENV` não é configurado manualmente na Vercel — a plataforma define `production` inclusive nos deployments de **Preview**.

@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
-import { listarFormasPagamento } from "@/lib/formas-pagamento";
+import {
+  listarFormasPagamentoComCache as listarFormasPagamento,
+  listarServicosComCache as listarServicos,
+} from "@/lib/dados-cache";
 import { listarInsumos } from "@/lib/insumos";
-import { listarServicos } from "@/lib/servicos";
 
 import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
 

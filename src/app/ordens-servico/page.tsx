@@ -12,7 +12,7 @@ import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 export const dynamic = "force-dynamic";
 import { listarClientes } from "@/lib/clientes";
-import { listarServicos } from "@/lib/servicos";
+import { listarServicosComCache as listarServicos } from "@/lib/dados-cache";
 
 import { exigirSessao } from "@/lib/auth-server";
 

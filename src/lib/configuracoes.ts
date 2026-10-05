@@ -58,18 +58,17 @@ export async function salvarLinkAvaliacaoGoogle(link: string | null): Promise<vo
  */
 export async function obterDadosEmpresa(): Promise<DadosEmpresa> {
   try {
-    const valor = await obterConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA);
-    if (!valor) return clonarDadosEmpresa(DADOS_EMPRESA_PADRAO);
-
-    const resultado = dadosEmpresaSchema.safeParse(JSON.parse(valor));
-    if (resultado.success) return resultado.data;
-
-    console.error("Configuração dadosEmpresa inválida; usando fallback seguro.");
+    return interpretarDadosEmpresa(await obterConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA));
   } catch {
     console.error("Falha ao carregar dadosEmpresa; usando fallback seguro.");
+    return interpretarDadosEmpresa(null);
   }
+}
 
-  return clonarDadosEmpresa(DADOS_EMPRESA_PADRAO);
+/** Conversão pura; o consumidor aplica o fallback quando a leitura ou validação falhar. */
+export function interpretarDadosEmpresa(valor: string | null): DadosEmpresa {
+  if (!valor) return clonarDadosEmpresa(DADOS_EMPRESA_PADRAO);
+  return dadosEmpresaSchema.parse(JSON.parse(valor));
 }
 
 export async function salvarDadosEmpresa(entrada: unknown): Promise<DadosEmpresa> {

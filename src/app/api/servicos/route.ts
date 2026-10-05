@@ -1,21 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { servicoFormSchema } from "@/lib/servicos-schema";
-import { listarServicos } from "@/lib/servicos";
+import { invalidarCacheServicos, listarServicosComCache } from "@/lib/dados-cache";
 import { prisma } from "@/lib/prisma";
+
+const SEM_CACHE_HTTP = { "Cache-Control": "private, no-store" };
 
 export async function GET(req: NextRequest) {
   try {
     const naoAutenticado = await exigirSessaoApi(req);
-    if (naoAutenticado) return naoAutenticado;
+    if (naoAutenticado) {
+      naoAutenticado.headers.set("Cache-Control", "private, no-store");
+      return naoAutenticado;
+    }
 
-    const servicos = await listarServicos();
-    return NextResponse.json(servicos, { status: 200 });
+    const servicos = await listarServicosComCache();
+    return NextResponse.json(servicos, { status: 200, headers: SEM_CACHE_HTTP });
   } catch (error) {
     console.error("Erro ao listar serviços:", error);
     return NextResponse.json(
       { message: "Ocorreu um erro interno ao listar os serviços." },
-      { status: 500 }
+      { status: 500, headers: SEM_CACHE_HTTP }
     );
   }
 }
@@ -46,6 +51,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    invalidarCacheServicos();
     return NextResponse.json(novoServico, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar serviço:", error);

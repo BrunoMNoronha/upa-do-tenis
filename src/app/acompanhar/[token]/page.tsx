@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { obterAcompanhamentoPublico } from "@/lib/os-acompanhamento";
-import { obterDadosEmpresa } from "@/lib/configuracoes";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
 import { AcompanhamentoView } from "./acompanhamento-view";

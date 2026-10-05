@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { formaPagamentoAtualizarSchema } from "@/lib/formas-pagamento-schema";
 import { prisma } from "@/lib/prisma";
+import { invalidarCacheFormasPagamento } from "@/lib/dados-cache";
 
 /**
  * Conta o movimento financeiro já vinculado a uma forma de pagamento.
@@ -76,6 +77,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       data,
     });
 
+    invalidarCacheFormasPagamento();
     return NextResponse.json(formaAtualizada, { status: 200 });
   } catch (error) {
     if ((error as { code?: string })?.code === "P2025") {
@@ -110,6 +112,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       where: { id },
     });
 
+    invalidarCacheFormasPagamento();
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if ((error as { code?: string })?.code === "P2025") {

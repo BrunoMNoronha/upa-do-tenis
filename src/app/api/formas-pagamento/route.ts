@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { formaPagamentoFormSchema } from "@/lib/formas-pagamento-schema";
 import { prisma } from "@/lib/prisma";
+import { invalidarCacheFormasPagamento } from "@/lib/dados-cache";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    invalidarCacheFormasPagamento();
     return NextResponse.json(novaForma, { status: 201 });
   } catch (error) {
     console.error("Erro ao criar forma de pagamento:", error);

@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui";
 import { navGroups } from "@/config/navigation";
-import { DADOS_EMPRESA_PADRAO, nomeExibicaoEmpresa } from "@/lib/dados-empresa";
+import { DADOS_EMPRESA_PADRAO, nomeExibicaoEmpresa, type DadosEmpresa } from "@/lib/dados-empresa";
 
 const SIDEBAR_COLLAPSED_KEY = "upa:sidebar-collapsed";
 
 type AppShellProps = {
+  dadosEmpresa?: DadosEmpresa;
   title: string;
   description: string;
   eyebrow?: string;
@@ -27,7 +28,7 @@ type AppShellProps = {
   children: React.ReactNode;
 };
 
-export function AppShell({ title, description, eyebrow, action, header, children }: AppShellProps) {
+export function AppShell({ title, description, eyebrow, action, header, children, dadosEmpresa }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -35,7 +36,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
   // Inicia expandido no servidor e no primeiro render do cliente para evitar
   // divergência de hidratação; a preferência salva é aplicada após montar.
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [identidade, setIdentidade] = useState(DADOS_EMPRESA_PADRAO);
+  const [identidade, setIdentidade] = useState(dadosEmpresa ?? DADOS_EMPRESA_PADRAO);
 
   useEffect(() => {
     try {
@@ -46,6 +47,10 @@ export function AppShell({ title, description, eyebrow, action, header, children
   }, []);
 
   useEffect(() => {
+    if (dadosEmpresa) {
+      setIdentidade(dadosEmpresa);
+      return;
+    }
     let ativo = true;
     fetch("/api/configuracoes/dados-empresa")
       .then((resposta) => (resposta.ok ? resposta.json() : null))
@@ -54,7 +59,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
       })
       .catch(() => undefined);
     return () => { ativo = false; };
-  }, []);
+  }, [dadosEmpresa]);
 
   const toggleCollapsed = () => {
     setIsCollapsed((current) => {

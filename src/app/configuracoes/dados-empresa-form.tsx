@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button, Card, Input, PanelHeader } from "@/components/ui";
 import {
@@ -119,6 +120,7 @@ function Campo({ id, label, value, onChange, error, description, required, type 
 }
 
 export function DadosEmpresaForm({ dadosIniciais }: { dadosIniciais: DadosEmpresa }) {
+  const router = useRouter();
   const inicial = useMemo(() => paraFormulario(dadosIniciais), [dadosIniciais]);
   const [formulario, setFormulario] = useState<Formulario>(inicial);
   const [salvo, setSalvo] = useState<Formulario>(inicial);
@@ -159,6 +161,7 @@ export function DadosEmpresaForm({ dadosIniciais }: { dadosIniciais: DadosEmpres
       setFormulario(proximo);
       setSalvo(proximo);
       setMensagem({ tipo: "sucesso", texto: "Dados da empresa atualizados com sucesso." });
+      router.refresh();
     } catch {
       setMensagem({ tipo: "erro", texto: "Falha de comunicação com o servidor. Tente novamente." });
     } finally {

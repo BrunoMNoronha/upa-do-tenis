@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { servicoAtualizarSchema } from "@/lib/servicos-schema";
 import { prisma } from "@/lib/prisma";
+import { invalidarCacheServicos } from "@/lib/dados-cache";
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -42,6 +43,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       data,
     });
 
+    invalidarCacheServicos();
     return NextResponse.json(servicoAtualizado, { status: 200 });
   } catch (error) {
     if ((error as { code?: string })?.code === "P2025") {
@@ -87,6 +89,7 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       where: { id: servicoId }
     });
 
+    invalidarCacheServicos();
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if ((error as { code?: string })?.code === "P2025") {
