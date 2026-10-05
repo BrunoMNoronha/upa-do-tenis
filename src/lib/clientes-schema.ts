@@ -12,7 +12,13 @@ const optionalTrimmedString = z.preprocess((value) => {
 }, z.string().optional());
 
 export const clienteFormSchema = z.object({
-  nome: z.preprocess((val) => typeof val === "string" ? sanitizeText(val) : val, z.string().min(1, "Informe o nome do cliente.")),
+  nome: z.preprocess(
+    (val) => typeof val === "string" ? sanitizeText(val) : val,
+    z.string().refine(
+      (nome) => nome.split(" ").length >= 2,
+      "Informe pelo menos nome e sobrenome.",
+    ),
+  ),
   telefone: z.preprocess((val) => typeof val === "string" ? sanitizePhone(val) : val, z.string().min(1, "Informe o telefone do cliente.")
     .refine(val => isValidPhone(val), "Telefone inválido.")),
   email: z.preprocess((val) => typeof val === "string" ? sanitizeEmail(val) || undefined : val, z.string().optional()
