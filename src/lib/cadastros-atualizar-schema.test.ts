@@ -75,7 +75,7 @@ describe("formaPagamentoAtualizarSchema", () => {
 
 describe("clienteAtualizarSchema", () => {
   it("aceita atualização só do nome", () => {
-    const result = clienteAtualizarSchema.safeParse({ nome: "Maria" });
+    const result = clienteAtualizarSchema.safeParse({ nome: "Maria Silva" });
 
     expect(result.success).toBe(true);
   });

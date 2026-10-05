@@ -620,10 +620,10 @@ function CampoObrigatorio() {
   );
 }
 
-function ErroCampo({ mensagem }: { mensagem?: string | null }) {
+function ErroCampo({ id, mensagem }: { id?: string; mensagem?: string | null }) {
   if (!mensagem) return null;
   return (
-    <p role="alert" className="text-sm text-red-600">
+    <p id={id} role="alert" className="text-sm text-red-600">
       {mensagem}
     </p>
   );
@@ -1085,13 +1085,15 @@ function OrdemServicoForm({
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="novoClienteNome">Nome</Label>
+                    <Label htmlFor="novoClienteNome">Nome e sobrenome</Label>
                     <Input
                       id="novoClienteNome"
                       {...registerCliente("nome")}
-                      placeholder="Nome do cliente"
+                      placeholder="Ex.: Maria Silva"
+                      aria-invalid={Boolean(clienteErrors.nome)}
+                      aria-describedby={clienteErrors.nome ? "novoClienteNome-error" : undefined}
                     />
-                    <ErroCampo mensagem={clienteErrors.nome?.message} />
+                    <ErroCampo id="novoClienteNome-error" mensagem={clienteErrors.nome?.message} />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="novoClienteTelefone">Telefone</Label>

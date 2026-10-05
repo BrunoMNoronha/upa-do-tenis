@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { listarClientes, criarCliente } from "./clientes";
+import { listarClientes, criarCliente, atualizarCliente } from "./clientes";
 import { prisma } from "@/lib/prisma";
 
 vi.mock("@/lib/prisma", () => ({
@@ -7,6 +7,7 @@ vi.mock("@/lib/prisma", () => ({
     cliente: {
       findMany: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -65,6 +66,17 @@ describe("listarClientes", () => {
 
     await expect(listarClientes()).rejects.toThrow("Erro de conexão");
   });
+
+  it("mantém cliente legado com nome isolado disponível para seleção", async () => {
+    const legado = { id: "legado", nome: "Maria", telefone: "11987654321", ativo: true };
+    vi.mocked(prisma.cliente.findMany).mockResolvedValue([legado] as any);
+
+    expect(await listarClientes(undefined, { apenasAtivos: true })).toEqual([legado]);
+    expect(prisma.cliente.findMany).toHaveBeenCalledWith({
+      where: { ativo: true },
+      orderBy: clienteOrderBy,
+    });
+  });
 });
 
 describe("criarCliente", () => {
@@ -103,5 +115,41 @@ describe("criarCliente", () => {
 
     await expect(criarCliente(input as any)).rejects.toThrow();
     expect(prisma.cliente.create).not.toHaveBeenCalled();
+  });
+
+  it("rejeita nome isolado antes de criar no banco", async () => {
+    await expect(criarCliente({ nome: "Maria", telefone: "11987654321" })).rejects.toThrow(
+      "Informe pelo menos nome e sobrenome.",
+    );
+    expect(prisma.cliente.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("atualizarCliente", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("rejeita nome isolado antes de atualizar no banco", async () => {
+    await expect(atualizarCliente("cli-1", { nome: "Maria" })).rejects.toThrow(
+      "Informe pelo menos nome e sobrenome.",
+    );
+    expect(prisma.cliente.update).not.toHaveBeenCalled();
+  });
+
+  it("normaliza nome válido ao atualizar", async () => {
+    await atualizarCliente("cli-1", { nome: "  Maria   Silva  " });
+
+    expect(prisma.cliente.update).toHaveBeenCalledWith({
+      where: { id: "cli-1" },
+      data: { nome: "Maria Silva" },
+    });
+  });
+
+  it("atualiza telefone sem reenviar nem reescrever o nome legado", async () => {
+    await atualizarCliente("legado", { telefone: "(11) 98765-4321" });
+
+    expect(prisma.cliente.update).toHaveBeenCalledWith({
+      where: { id: "legado" },
+      data: { telefone: "11987654321" },
+    });
   });
 });

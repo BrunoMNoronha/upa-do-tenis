@@ -133,9 +133,9 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
 
         <form className="grid gap-4" onSubmit={onSubmit}>
           <div className="grid gap-2">
-            <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" {...register("nome")} placeholder="Nome do cliente" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
-            {errors.nome ? <p id="nome-error" className="text-sm text-red-600">{errors.nome.message}</p> : null}
+            <Label htmlFor="nome">Nome e sobrenome</Label>
+            <Input id="nome" {...register("nome")} placeholder="Ex.: Maria Silva" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
+            {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
