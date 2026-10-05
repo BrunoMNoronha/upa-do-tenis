@@ -74,7 +74,7 @@ export function ProdutoImagem({ produto, onAtualizada }: Props) {
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Catálogo público</p>
       <SectionTitle className="mt-2 text-xl">Imagem de {produto.nome}</SectionTitle>
       <p className="mt-2 text-sm text-slate-600">
-        Situação: <strong>{ROTULO_SITUACAO_CATALOGO[situacao]}</strong>. Use &quot;Publicar no catálogo&quot; na lista para mudar.
+        Situação: <strong>{ROTULO_SITUACAO_CATALOGO[situacao]}</strong>. Para publicar ou retirar, use o botão de catálogo na lista.
       </p>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
