@@ -96,13 +96,32 @@ export function listarFormasPagamentoComCache(): Promise<FormaPagamentoComCache[
   return lerComCache("formas-pagamento", consultarFormasPagamento);
 }
 
+function consultarConfiguracaoDadosEmpresa(): Promise<string | null> {
+  return obterConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA);
+}
+
+function lerDadosEmpresaComCache(): Promise<string | null> {
+  return lerComCache("dados-empresa", consultarConfiguracaoDadosEmpresa);
+}
+
 export async function obterDadosEmpresaComCache(): Promise<DadosEmpresa> {
   try {
-    const valor = await lerComCache("dados-empresa", () => obterConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA));
+    const valor = await lerDadosEmpresaComCache();
     return interpretarDadosEmpresa(valor);
   } catch {
     console.error("Falha ao carregar dadosEmpresa; usando fallback seguro.");
     return interpretarDadosEmpresa(null);
+  }
+}
+
+/** O destino do catálogo exige configuração salva e válida; nunca usa fallback. */
+export async function obterDadosEmpresaPersistidosComCache(): Promise<DadosEmpresa | null> {
+  try {
+    const valor = await lerDadosEmpresaComCache();
+    return valor ? interpretarDadosEmpresa(valor) : null;
+  } catch {
+    console.error("Falha ao carregar dadosEmpresa persistidos.");
+    return null;
   }
 }
 

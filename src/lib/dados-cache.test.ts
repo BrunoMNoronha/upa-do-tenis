@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => {
       configuracaoSistema: { findUnique: vi.fn() },
     },
     unstable_cache: vi.fn((consultar: () => Promise<unknown>, keyParts?: string[], opcoes?: { tags?: string[]; revalidate?: number | false }) => async () => {
-      const chave = JSON.stringify(keyParts);
+      const chave = JSON.stringify([consultar.toString(), keyParts]);
       const entrada = entradas.get(chave);
       if (entrada) return JSON.parse(entrada.valor);
       const resultado = await consultar();
@@ -39,6 +39,7 @@ import {
   listarOpcoesCadastroOSComCache,
   listarServicosComCache,
   obterDadosEmpresaComCache,
+  obterDadosEmpresaPersistidosComCache,
   obterLinkAvaliacaoGoogleComCache,
 } from "./dados-cache";
 import { DADOS_EMPRESA_PADRAO } from "./dados-empresa";
@@ -184,6 +185,67 @@ describe("cache de dados operacionais", () => {
     expect((await obterDadosEmpresaComCache()).nomeFantasia).toBe("Recuperada");
     expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(2);
     expect(console.error).toHaveBeenCalledWith("Falha ao carregar dadosEmpresa; usando fallback seguro.");
+  });
+
+  it("compartilha callback, chave e tag RAW entre empresa com fallback e persistida", async () => {
+    const dadosSalvos = { ...DADOS_EMPRESA_PADRAO, nomeFantasia: "Loja configurada", whatsapp: "11987654321" };
+    const valor = JSON.stringify(dadosSalvos);
+    mocks.prisma.configuracaoSistema.findUnique.mockResolvedValue({ valor });
+    expect(await obterDadosEmpresaComCache()).toEqual(dadosSalvos);
+    expect(await obterDadosEmpresaPersistidosComCache()).toEqual(dadosSalvos);
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(1);
+    const [comFallback, persistida] = mocks.unstable_cache.mock.calls;
+    expect(persistida?.[0]).toBe(comFallback?.[0]);
+    expect(persistida?.[1]).toEqual(comFallback?.[1]);
+    expect(persistida?.[2]).toEqual(comFallback?.[2]);
+    expect(persistida?.[2]?.tags?.[0]).toMatch(/:dados-empresa$/);
+    expect(JSON.parse([...mocks.entradas.values()][0]!.valor)).toBe(valor);
+  });
+
+  it("empresa persistida ausente retorna null sem herdar o WhatsApp do fallback", async () => {
+    expect(await obterDadosEmpresaPersistidosComCache()).toBeNull();
+    expect((await obterDadosEmpresaComCache()).whatsapp).toBe(DADOS_EMPRESA_PADRAO.whatsapp);
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(1);
+    expect(JSON.parse([...mocks.entradas.values()][0]!.valor)).toBeNull();
+  });
+
+  it.each([
+    "{JSON malformado",
+    JSON.stringify({ versao: 2 }),
+    JSON.stringify({ ...DADOS_EMPRESA_PADRAO, whatsapp: "123" }),
+  ])("empresa persistida inválida retorna null com validação fora do cache: %s", async (valor) => {
+    mocks.prisma.configuracaoSistema.findUnique.mockResolvedValue({ valor });
+    expect(await obterDadosEmpresaPersistidosComCache()).toBeNull();
+    expect(await obterDadosEmpresaComCache()).toEqual(DADOS_EMPRESA_PADRAO);
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(1);
+    expect(JSON.parse([...mocks.entradas.values()][0]!.valor)).toBe(valor);
+
+    invalidarCacheDadosEmpresa();
+    const dadosSalvos = { ...DADOS_EMPRESA_PADRAO, whatsapp: "11987654321" };
+    mocks.prisma.configuracaoSistema.findUnique.mockResolvedValue({ valor: JSON.stringify(dadosSalvos) });
+    expect(await obterDadosEmpresaPersistidosComCache()).toEqual(dadosSalvos);
+    expect(await obterDadosEmpresaComCache()).toEqual(dadosSalvos);
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(2);
+  });
+
+  it("falha temporária da leitura persistida retorna null sem impedir recuperação", async () => {
+    mocks.prisma.configuracaoSistema.findUnique.mockRejectedValueOnce(new Error("postgresql://password@db.example"));
+    expect(await obterDadosEmpresaPersistidosComCache()).toBeNull();
+    expect(mocks.entradas.size).toBe(0);
+    const dadosSalvos = { ...DADOS_EMPRESA_PADRAO, whatsapp: "11987654321" };
+    mocks.prisma.configuracaoSistema.findUnique.mockResolvedValue({ valor: JSON.stringify(dadosSalvos) });
+    expect(await obterDadosEmpresaPersistidosComCache()).toEqual(dadosSalvos);
+    expect(await obterDadosEmpresaComCache()).toEqual(dadosSalvos);
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(2);
+    expect(console.error).toHaveBeenCalledWith("Falha ao carregar dadosEmpresa persistidos.");
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).not.toMatch(/password|db\.example/);
+  });
+
+  it("empresa persistida válida sem WhatsApp continua sem destino", async () => {
+    mocks.prisma.configuracaoSistema.findUnique.mockResolvedValue({ valor: JSON.stringify({ ...DADOS_EMPRESA_PADRAO, whatsapp: null }) });
+    expect((await obterDadosEmpresaPersistidosComCache())?.whatsapp).toBeNull();
+    expect((await obterDadosEmpresaComCache()).whatsapp).toBeNull();
+    expect(mocks.prisma.configuracaoSistema.findUnique).toHaveBeenCalledTimes(1);
   });
 
   it.each(["{JSON malformado", '{"versao":1,"nomeFantasia":""}'])("aplica fallback fora do cache para configuração inválida: %s", async (valor) => {

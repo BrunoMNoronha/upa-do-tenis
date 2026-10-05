@@ -255,6 +255,21 @@ async function main() {
       privado(medicao); consulta(medicao, "Cliente.findMany", 1);
       consulta(medicao, "Servico.findMany", 0); consulta(medicao, "Usuario.findUnique", 1);
     }
+    // Simula escrita externa ao catálogo: o cache segue quente, mas a validação
+    // de negócio deve ler o registro atual e rejeitar o serviço agora inativo.
+    await prisma.servico.update({ where: { id: servicoId }, data: { ativo: false } });
+    quente = await request("servicos_catalogo_temporal", "/api/servicos");
+    consulta(quente, "Servico.findMany", 0);
+    assert.equal(quente.dados.some((item) => item.id === servicoId && item.ativo), true);
+    const rejeitada = await request("os_validador_banco_atual", "/api/ordens-servico", {
+      metodo: "POST", status: 400, body: {
+        clienteId: `${marca}-cliente-inexistente`, numeroOS: Date.now().toString(),
+        prazoPrevisto: new Date().toISOString().slice(0, 10),
+        itens: [{ descricao: "Fixture validador cache", servicos: [{ servicoId, valor: 22.35 }] }],
+      },
+    });
+    consulta(rejeitada, "Servico.findMany", 1); consulta(rejeitada, "OrdemServico.create", 0);
+    assert.equal(rejeitada.dados.message, "Serviços inativos não podem ser adicionados a uma nova OS.");
     await request("servico_delete", `/api/servicos/${servicoId}`, { metodo: "DELETE", status: 204 });
     idsServicos.delete(servicoId);
     frio = await request("servicos_apos_delete", "/api/servicos");
