@@ -753,6 +753,8 @@ export function OrdensServicoClient({
     }
     const controller = new AbortController();
     setErroOpcoes(null);
+    // Baixa o formulário em paralelo com as opções, em vez de só depois delas.
+    void import("./ordem-servico-form").catch(() => {});
     fetch("/api/ordens-servico/opcoes-cadastro", { cache: "no-store", signal: controller.signal })
       .then(async (resposta) => {
         if (resposta.status === 401) {

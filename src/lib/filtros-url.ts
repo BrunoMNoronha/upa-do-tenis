@@ -77,3 +77,16 @@ export function criarControladorFiltrosUrl({
     cancelar,
   };
 }
+
+/**
+ * Para um link que só acrescenta parâmetros à página atual (ex.: `?nova=1`),
+ * devolve a URL vigente com esses parâmetros somados, preservando os filtros.
+ * Devolve `null` quando o destino é outra página e a navegação comum se aplica.
+ */
+export function acrescentarParametrosNaPaginaAtual(href: string, urlAtual: string): string | null {
+  const atual = new URL(urlAtual);
+  const destino = new URL(href, atual);
+  if (destino.origin !== atual.origin || destino.pathname !== atual.pathname) return null;
+  destino.searchParams.forEach((valor, chave) => atual.searchParams.set(chave, valor));
+  return atual.pathname + atual.search;
+}

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 
 import { Badge } from "@/components/ui";
 import { navGroups } from "@/config/navigation";
 import { DADOS_EMPRESA_PADRAO, nomeExibicaoEmpresa, type DadosEmpresa } from "@/lib/dados-empresa";
+import { acrescentarParametrosNaPaginaAtual } from "@/lib/filtros-url";
 
 const SIDEBAR_COLLAPSED_KEY = "upa:sidebar-collapsed";
 
@@ -37,6 +38,17 @@ export function AppShell({ title, description, eyebrow, action, header, children
   // divergência de hidratação; a preferência salva é aplicada após montar.
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [identidade, setIdentidade] = useState(dadosEmpresa ?? DADOS_EMPRESA_PADRAO);
+
+  // Ação que só acrescenta parâmetros à página atual (ex.: "Nova ordem"):
+  // aplica na URL vigente com pushState, integrado ao App Router. Os filtros
+  // ficam preservados e a página não é consultada de novo no servidor.
+  const aoClicarAcao = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!action || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const destino = acrescentarParametrosNaPaginaAtual(action.href, window.location.href);
+    if (!destino) return;
+    event.preventDefault();
+    window.history.pushState(null, "", destino);
+  };
 
   useEffect(() => {
     try {
@@ -240,7 +252,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
             <span className="font-semibold text-slate-800">{nomeExibicaoEmpresa(identidade)}</span>
           </div>
           {action && !header ? (
-            <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color:var(--accent-strong)]" href={action.href}>
+            <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color:var(--accent-strong)]" href={action.href} onClick={aoClicarAcao}>
               {action.label}
             </Link>
           ) : null}
@@ -261,7 +273,7 @@ export function AppShell({ title, description, eyebrow, action, header, children
 
                 <div className="hidden lg:block">
                   {action ? (
-                    <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--accent-strong)] hover:shadow" href={action.href}>
+                    <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--accent-strong)] hover:shadow" href={action.href} onClick={aoClicarAcao}>
                       {action.label}
                     </Link>
                   ) : null}

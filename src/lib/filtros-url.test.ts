@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { criarControladorFiltrosUrl } from "@/lib/filtros-url";
+import { acrescentarParametrosNaPaginaAtual, criarControladorFiltrosUrl } from "@/lib/filtros-url";
 
 const DEBOUNCE_MS = 350;
 const FILTROS_OS = ["statusOp", "statusFin", "busca", "atrasadas"];
@@ -88,5 +88,27 @@ describe("criarControladorFiltrosUrl", () => {
     vi.advanceTimersByTime(DEBOUNCE_MS * 2);
 
     expect(navegar).not.toHaveBeenCalled();
+  });
+});
+
+describe("acrescentarParametrosNaPaginaAtual", () => {
+  const ATUAL = "https://app.local/ordens-servico?statusOp=ABERTA&busca=joao&page=2";
+
+  it("soma os parâmetros do link à URL vigente, preservando filtros e página", () => {
+    expect(acrescentarParametrosNaPaginaAtual("/ordens-servico?nova=1", ATUAL)).toBe(
+      "/ordens-servico?statusOp=ABERTA&busca=joao&page=2&nova=1",
+    );
+  });
+
+  it("funciona sem filtros ativos", () => {
+    expect(acrescentarParametrosNaPaginaAtual("/ordens-servico?nova=1", "https://app.local/ordens-servico")).toBe(
+      "/ordens-servico?nova=1",
+    );
+  });
+
+  it("devolve null quando o link leva a outra página ou origem", () => {
+    expect(acrescentarParametrosNaPaginaAtual("/clientes", ATUAL)).toBeNull();
+    expect(acrescentarParametrosNaPaginaAtual("/ordens-servico/abc?nova=1", ATUAL)).toBeNull();
+    expect(acrescentarParametrosNaPaginaAtual("https://outro.local/ordens-servico?nova=1", ATUAL)).toBeNull();
   });
 });
