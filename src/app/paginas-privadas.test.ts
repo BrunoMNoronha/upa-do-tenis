@@ -64,7 +64,12 @@ describe("enforcement de sessão nas páginas privadas", () => {
     const conteudo = readFileSync(path.join(RAIZ_APP, relativo), "utf8");
 
     expect(conteudo).toMatch(/from "@\/lib\/auth-server"/);
-    expect(conteudo).toMatch(/await exigirSessao\(\)/);
+    if (relativo === path.join("caixa", "page.tsx")) {
+      expect(conteudo).toMatch(/await exigirSessao\(\{ permitirFechamento: true \}\)/);
+    } else {
+      expect(conteudo).toMatch(/await exigirSessao\(\)/);
+      expect(conteudo).not.toContain("permitirFechamento");
+    }
   });
 
   it.each(paginas)("%s não é renderizada estaticamente", (relativo) => {

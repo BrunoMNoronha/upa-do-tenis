@@ -1,8 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Badge, Button, Card, SectionTitle, LoadingState, ErrorState } from "@/components/ui";
 import { sanitizeCurrency } from "@/lib/sanitizers";
+import type { AlertaCaixa } from "@/lib/caixa-alerta";
+import { FUSO_OPERACIONAL } from "@/lib/date-range";
+import { enviarFechamentoCaixa } from "@/lib/caixa-fechamento-client";
 
 import { NenhumCaixaAberto } from "./components/nenhum-caixa-aberto";
 import { MovimentacoesCaixa } from "./components/movimentacoes-caixa";
@@ -52,14 +56,19 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
 });
 
 const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: FUSO_OPERACIONAL,
   dateStyle: "short",
   timeStyle: "short",
 });
 
 export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamento[] }) {
+  const router = useRouter();
   const [estado, setEstado] = useState<"carregando" | "erro" | "sucesso">("carregando");
   const [erro, setErro] = useState<string | null>(null);
   const [caixa, setCaixa] = useState<Caixa | null>(null);
+  const [alertaCaixa, setAlertaCaixa] = useState<AlertaCaixa | null>(null);
+  const caixaExibidoId = useRef<string | null>(null);
+  const leituraVersao = useRef(0);
 
   // Forms state
   const [saldoInicial, setSaldoInicial] = useState("");
@@ -82,15 +91,32 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
   const [fecharFormVisible, setFecharFormVisible] = useState(false);
 
   const carregarCaixa = useCallback(async () => {
+    const versao = ++leituraVersao.current;
+    setEstado("carregando");
     try {
-      const response = await fetch("/api/caixa/atual");
+      const response = await fetch("/api/caixa/atual", { cache: "no-store" });
       if (!response.ok) {
         throw new Error("Falha ao carregar caixa atual.");
       }
       const data = await response.json();
+      if (versao !== leituraVersao.current) return;
+      if (caixaExibidoId.current !== (data.caixa?.id ?? null)) {
+        // Uma conferência pertence ao caixa exibido, não ao próximo aberto.
+        setFecharForm({ saldoFinalInformado: "", observacao: "" });
+        setFecharFormVisible(false);
+        setMovimentacaoForm({ tipo: "SAIDA", valor: "", descricao: "", formaPagamentoId: "" });
+        setMovFormVisible(false);
+      }
+      caixaExibidoId.current = data.caixa?.id ?? null;
       setCaixa(data.caixa);
+      setAlertaCaixa(data.alerta);
+      if (data.alerta.estado === "FECHAMENTO_PENDENTE") {
+        setFecharFormVisible(true);
+      }
+      setErro(null);
       setEstado("sucesso");
     } catch (e: any) {
+      if (versao !== leituraVersao.current) return;
       setErro(e.message);
       setEstado("erro");
     }
@@ -98,6 +124,15 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
 
   useEffect(() => {
     void carregarCaixa();
+    // Reconsulta ao retornar à aba, inclusive se outra sessão fechou o caixa.
+    const aoRetornar = () => {
+      if (document.visibilityState === "visible") void carregarCaixa();
+    };
+    document.addEventListener("visibilitychange", aoRetornar);
+    return () => {
+      leituraVersao.current += 1;
+      document.removeEventListener("visibilitychange", aoRetornar);
+    };
   }, [carregarCaixa]);
 
   const handleAbrirCaixa = async (e: React.FormEvent) => {
@@ -159,23 +194,17 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
     setFecharLoading(true);
     try {
       const valor = sanitizeCurrency(fecharForm.saldoFinalInformado);
-      const res = await fetch(`/api/caixa/${caixa.id}/fechar`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          saldoFinalInformado: valor,
-          observacao: fecharForm.observacao,
-        }),
+      await enviarFechamentoCaixa(caixa.id, {
+        saldoFinalInformado: valor,
+        observacao: fecharForm.observacao,
       });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Erro ao fechar caixa");
-      }
       setFecharForm({ saldoFinalInformado: "", observacao: "" });
       setFecharFormVisible(false);
       await carregarCaixa();
+      router.refresh();
     } catch (e: any) {
       alert(e.message);
+      await carregarCaixa();
     } finally {
       setFecharLoading(false);
     }
@@ -195,9 +224,20 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
     );
   }
 
+  const fechamentoPendente = alertaCaixa?.estado === "FECHAMENTO_PENDENTE";
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_350px]">
-      <div className="space-y-6">
+    <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_350px]">
+      {fechamentoPendente ? (
+        <div role="alert" className="order-first rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-900 lg:col-span-2">
+          <h2 className="font-semibold">Fechamento de caixa pendente</h2>
+          <p className="mt-1 text-sm">
+            Há um caixa aberto desde {alertaCaixa.dataAbertura} às {alertaCaixa.horaAbertura}.
+            {" "}Confira os valores e confirme o fechamento para continuar.
+          </p>
+        </div>
+      ) : null}
+      <div className="min-w-0 space-y-6">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <SectionTitle>Caixa Aberto</SectionTitle>
@@ -231,8 +271,10 @@ export function CaixaClient({ formasPagamento }: { formasPagamento: FormaPagamen
         />
       </div>
 
-      <aside className="space-y-6">
-        <ResumoCaixa caixa={caixa} />
+      <aside className={fechamentoPendente ? "order-first flex flex-col gap-6 lg:order-none" : "flex flex-col gap-6"}>
+        <div className={fechamentoPendente ? "order-last" : ""}>
+          <ResumoCaixa caixa={caixa} />
+        </div>
 
         <FecharCaixa
           caixa={caixa}
