@@ -2,6 +2,7 @@ import { AppShell } from "@/components/app-shell";
 import { listarMovimentacoesProduto } from "@/lib/movimentacao-estoque-produto-service";
 import { ProdutoMovimentacoesClient } from "./movimentacoes-client";
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const metadata = {
   title: "Extrato de Produto",
@@ -15,10 +16,11 @@ export default async function MovimentacoesProdutoPage(props: {
   await exigirSessao();
   const { id } = await props.params;
 
-  const data = await listarMovimentacoesProduto(id);
+  const [data, dadosEmpresa] = await Promise.all([listarMovimentacoesProduto(id), obterDadosEmpresa()]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Estoque de Produtos"
       title={`Extrato: ${data.produto.nome}`}
       description="Consulte o histórico rastreável de entradas e saídas de estoque deste produto."

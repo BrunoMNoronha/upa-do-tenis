@@ -6,6 +6,7 @@ import { listarClientesPaginado } from "@/lib/clientes";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -21,13 +22,17 @@ export default async function ClientesPage(props: {
 
   const searchParams = await props.searchParams;
   const busca = typeof searchParams.busca === "string" ? searchParams.busca : "";
-  const { data: clientes, pagination } = await listarClientesPaginado({
-    search: busca || undefined,
-    paginacao: lerPaginacaoDeSearchParams(searchParams),
-  });
+  const [{ data: clientes, pagination }, dadosEmpresa] = await Promise.all([
+    listarClientesPaginado({
+      search: busca || undefined,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    obterDadosEmpresa(),
+  ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Cadastro e consulta"
       title="Clientes"
       description="Cadastre e consulte clientes com persistência local em banco relacional, mantendo o fluxo simples e consistente para a primeira entrega do MVP."

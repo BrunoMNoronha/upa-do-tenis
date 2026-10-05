@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   DashboardAlertCard,
   DashboardAlertCardSkeleton,
@@ -85,31 +85,4 @@ export function DashboardAlertasEstoqueView({ situacao }: { situacao: SituacaoAl
       role="alert"
     />
   );
-}
-
-export function DashboardAlertasEstoque() {
-  const [situacao, setSituacao] = useState<SituacaoAlertasEstoque>({ tipo: "carregando" });
-
-  useEffect(() => {
-    let ativo = true;
-
-    const buscar = async () => {
-      try {
-        const response = await fetch("/api/relatorios/estoque/alertas");
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const alertas: AlertasEstoque = await response.json();
-        if (ativo) setSituacao({ tipo: "pronto", alertas });
-      } catch (error) {
-        console.error("Erro ao buscar alertas de estoque:", error);
-        if (ativo) setSituacao({ tipo: "erro" });
-      }
-    };
-
-    buscar();
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  return <DashboardAlertasEstoqueView situacao={situacao} />;
 }

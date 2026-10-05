@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { Input } from "@/components/ui";
-import { resetarPagina } from "@/lib/paginacao";
+import { criarControladorFiltrosUrl } from "@/lib/filtros-url";
 
 export const BUSCA_LISTAGEM_DEBOUNCE_MS = 350;
 
@@ -27,7 +27,19 @@ export function BuscaListagem({ id, label, placeholder, busca }: BuscaListagemPr
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [termo, setTermo] = useState(busca);
-  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // A navegação parte do último estado pedido, não da URL capturada quando o
+  // debounce foi agendado; assim a busca não desfaz um filtro aplicado depois.
+  const [filtrosUrl] = useState(() =>
+    criarControladorFiltrosUrl({
+      inicial: searchParams.toString(),
+      debounceMs: BUSCA_LISTAGEM_DEBOUNCE_MS,
+      navegar: (qs) => {
+        startTransition(() => {
+          router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+        });
+      },
+    }),
+  );
 
   useEffect(() => {
     // Sincroniza o input quando a URL muda por fora (voltar/avançar, limpar).
@@ -35,35 +47,19 @@ export function BuscaListagem({ id, label, placeholder, busca }: BuscaListagemPr
   }, [busca]);
 
   useEffect(() => {
-    return () => {
-      if (timeout.current) clearTimeout(timeout.current);
-    };
-  }, []);
+    filtrosUrl.sincronizar(searchParams.toString());
+  }, [filtrosUrl, searchParams]);
 
-  const navegar = (valor: string) => {
-    const params = resetarPagina(searchParams.toString());
-    const limpo = valor.trim();
-    if (limpo) {
-      params.set("busca", limpo);
-    } else {
-      params.delete("busca");
-    }
-    const qs = params.toString();
-    startTransition(() => {
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    });
-  };
+  useEffect(() => filtrosUrl.cancelar, [filtrosUrl]);
 
   const aoDigitar = (valor: string) => {
     setTermo(valor);
-    if (timeout.current) clearTimeout(timeout.current);
-    timeout.current = setTimeout(() => navegar(valor), BUSCA_LISTAGEM_DEBOUNCE_MS);
+    filtrosUrl.agendar("busca", valor.trim());
   };
 
   const limpar = () => {
-    if (timeout.current) clearTimeout(timeout.current);
     setTermo("");
-    navegar("");
+    filtrosUrl.limpar(["busca"]);
   };
 
   return (

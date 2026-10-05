@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { LoadingState } from "@/components/ui";
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 import { listarAtendimentosRapidosPaginado } from "@/lib/atendimento-rapido";
 import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
@@ -25,13 +26,17 @@ export default async function AtendimentosRapidosPage(props: {
   const dataInicial = typeof searchParams.dataInicial === "string" ? searchParams.dataInicial : undefined;
   const dataFinal = typeof searchParams.dataFinal === "string" ? searchParams.dataFinal : undefined;
 
-  const { data, pagination } = await listarAtendimentosRapidosPaginado({
-    filtros: { busca, dataInicial, dataFinal },
-    paginacao: lerPaginacaoDeSearchParams(searchParams),
-  });
+  const [{ data, pagination }, dadosEmpresa] = await Promise.all([
+    listarAtendimentosRapidosPaginado({
+      filtros: { busca, dataInicial, dataFinal },
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    obterDadosEmpresa(),
+  ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Operação e Atendimento"
       title="Histórico de Atendimentos Rápidos"
       description="Consulte os atendimentos rápidos por código AR ou período."

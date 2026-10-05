@@ -3,6 +3,7 @@ import { exigirSessao } from "@/lib/auth-server";
 import {
   listarFormasPagamentoComCache as listarFormasPagamento,
   listarServicosComCache as listarServicos,
+  obterDadosEmpresaComCache as obterDadosEmpresa,
 } from "@/lib/dados-cache";
 import { AtendimentoRapidoClient } from "./atendimento-rapido-client";
 
@@ -16,10 +17,15 @@ export const dynamic = "force-dynamic";
 export default async function AtendimentoRapidoPage() {
   await exigirSessao();
 
-  const [servicos, formasPagamento] = await Promise.all([listarServicos(), listarFormasPagamento()]);
+  const [servicos, formasPagamento, dadosEmpresa] = await Promise.all([
+    listarServicos(),
+    listarFormasPagamento(),
+    obterDadosEmpresa(),
+  ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Atendimento"
       title="Atendimento Rápido"
       description="Para serviços feitos na hora e pagos na entrega, sem cliente e sem ordem de serviço. O pagamento entra no caixa aberto."

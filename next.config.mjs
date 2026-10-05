@@ -6,6 +6,7 @@ import { listarMigrationsDoDiretorio } from "./src/lib/migrations-esperadas.mjs"
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  allowedDevOrigins: ["172.23.32.1"],
   // Migrations versionadas, resolvidas no build (sem banco) e embutidas no
   // bundle para /api/saude/migrations. Ver issue #224.
   env: {

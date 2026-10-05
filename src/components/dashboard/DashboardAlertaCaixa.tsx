@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import type { AlertaCaixa } from "@/lib/caixa-alerta";
 import {
   DashboardAlertCard,
@@ -72,35 +72,4 @@ export function DashboardAlertaCaixaView({ situacao }: { situacao: SituacaoAlert
       role="alert"
     />
   );
-}
-
-/**
- * Alerta operacional de abertura/fechamento do caixa. Busca independente dos
- * filtros de período do Dashboard; apenas informa e leva ao fluxo de /caixa.
- */
-export function DashboardAlertaCaixa() {
-  const [situacao, setSituacao] = useState<SituacaoAlertaCaixa>({ tipo: "carregando" });
-
-  useEffect(() => {
-    let ativo = true;
-
-    const buscar = async () => {
-      try {
-        const response = await fetch("/api/caixa/alerta");
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const alerta: AlertaCaixa = await response.json();
-        if (ativo) setSituacao({ tipo: "pronto", alerta });
-      } catch (error) {
-        console.error("Erro ao buscar alerta de caixa:", error);
-        if (ativo) setSituacao({ tipo: "erro" });
-      }
-    };
-
-    buscar();
-    return () => {
-      ativo = false;
-    };
-  }, []);
-
-  return <DashboardAlertaCaixaView situacao={situacao} />;
 }

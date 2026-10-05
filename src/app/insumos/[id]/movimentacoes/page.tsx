@@ -3,6 +3,7 @@ import { listarMovimentacoesInsumo } from "@/lib/insumos-movimentacoes";
 import MovimentacoesClient from "./movimentacoes-client";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const metadata = {
   title: "Extrato de Insumo",
@@ -16,10 +17,11 @@ export default async function MovimentacoesInsumoPage(props: {
   await exigirSessao();
   const { id } = await props.params;
 
-  const data = await listarMovimentacoesInsumo(id);
+  const [data, dadosEmpresa] = await Promise.all([listarMovimentacoesInsumo(id), obterDadosEmpresa()]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Estoque"
       title={`Extrato: ${data.insumo.nome}`}
       description="Consulte o histórico imutável e registre entradas, saídas ou ajustes."

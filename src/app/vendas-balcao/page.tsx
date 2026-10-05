@@ -1,6 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { listarProdutos } from "@/lib/produtos";
-import { listarFormasPagamentoComCache as listarFormasPagamento } from "@/lib/dados-cache";
+import {
+  listarFormasPagamentoComCache as listarFormasPagamento,
+  obterDadosEmpresaComCache as obterDadosEmpresa,
+} from "@/lib/dados-cache";
 import { VendaBalcaoClient } from "./venda-balcao-client";
 
 import { exigirSessao } from "@/lib/auth-server";
@@ -15,13 +18,15 @@ export const dynamic = "force-dynamic";
 export default async function VendaBalcaoPage() {
   await exigirSessao();
 
-  const [produtos, formasPagamento] = await Promise.all([
+  const [produtos, formasPagamento, dadosEmpresa] = await Promise.all([
     listarProdutos(),
     listarFormasPagamento(),
+    obterDadosEmpresa(),
   ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Atendimento"
       title="Venda de Balcão"
       description="Selecione produtos, ajuste as quantidades, escolha a forma de pagamento e finalize a venda. O estoque e o caixa são atualizados automaticamente."

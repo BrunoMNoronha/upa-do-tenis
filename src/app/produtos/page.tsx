@@ -6,6 +6,7 @@ import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 import { ProdutosClient } from "./produtos-client";
 
 import { exigirSessao } from "@/lib/auth-server";
+import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 
 export const metadata = {
   title: "Produtos",
@@ -21,13 +22,17 @@ export default async function ProdutosPage(props: {
 
   const searchParams = await props.searchParams;
   const busca = lerBuscaDeSearchParams(searchParams);
-  const { data: produtos, pagination } = await listarProdutosPaginado({
-    busca,
-    paginacao: lerPaginacaoDeSearchParams(searchParams),
-  });
+  const [{ data: produtos, pagination }, dadosEmpresa] = await Promise.all([
+    listarProdutosPaginado({
+      busca,
+      paginacao: lerPaginacaoDeSearchParams(searchParams),
+    }),
+    obterDadosEmpresa(),
+  ]);
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Catálogo"
       title="Produtos"
       description="Gerencie os produtos vendáveis da sapataria. A venda e a baixa de estoque serão habilitadas nas próximas fatias da Fase 12."

@@ -42,6 +42,7 @@ export default async function VendaDetalhePage(props: {
 
   return (
     <AppShell
+      dadosEmpresa={dadosEmpresa}
       eyebrow="Operação e Atendimento / Vendas"
       title={`Venda ${venda.numero}`}
       description={`Detalhes da venda registrada em ${date}.`}
