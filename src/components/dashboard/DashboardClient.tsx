@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import { DashboardMetrics } from '@/lib/dashboard-service';
 import { formatCurrency } from '@/lib/formatters';
 import { Button, EmptyState, ErrorState } from '@/components/ui';
@@ -12,9 +12,7 @@ import { DashboardPanelSkeleton } from './DashboardPanel';
 import { DashboardSituacaoFinanceira } from './DashboardSituacaoFinanceira';
 import { DashboardServicosMaisExecutados } from './DashboardServicosMaisExecutados';
 import { DashboardInsumosMaisUtilizados } from './DashboardInsumosMaisUtilizados';
-import { DashboardAlertasEstoque } from './DashboardAlertasEstoque';
-import { DashboardAlertaCaixa } from './DashboardAlertaCaixa';
-import { calcularPeriodoPreset, type Periodo } from './dashboard-period-presets';
+import type { Periodo } from './dashboard-period-presets';
 import { montarDashboardViewModel } from './dashboard-view-model';
 
 const LINHA_PRINCIPAL = 'grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]';
@@ -24,11 +22,26 @@ function descreverOrdensComSaldo(quantidade: number): string | undefined {
   return quantidade === 1 ? '1 OS' : `${quantidade} OS`;
 }
 
-export function DashboardClient() {
-  const [periodo, setPeriodo] = useState<Periodo>({ inicio: '', fim: '' });
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+type DashboardClientProps = {
+  /** Período da primeira renderização, calculado no servidor no fuso da operação. */
+  periodoInicial: Periodo;
+  /** Métricas do período inicial, já consultadas no servidor. */
+  metricasIniciais?: DashboardMetrics;
+  erroInicial?: string;
+  /** Fallback do Suspense: exibe os skeletons enquanto o servidor consulta, sem chamar a API. */
+  aguardandoServidor?: boolean;
+};
+
+export function DashboardClient({
+  periodoInicial,
+  metricasIniciais,
+  erroInicial,
+  aguardandoServidor = false,
+}: DashboardClientProps) {
+  const [periodo, setPeriodo] = useState<Periodo>(periodoInicial);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(metricasIniciais ?? null);
+  const [loading, setLoading] = useState(aguardandoServidor);
+  const [error, setError] = useState<string | null>(erroInicial ?? null);
   // Sequência da última requisição disparada: respostas antigas são ignoradas.
   const requisicaoAtual = useRef(0);
 
@@ -56,9 +69,10 @@ export function DashboardClient() {
   }, []);
 
   /**
-   * Único ponto que altera o período E consulta a API. Presets, botão
-   * "Filtrar" e carga inicial passam por aqui, garantindo uma chamada por
-   * aplicação (a edição manual das datas só atualiza o estado).
+   * Único ponto que altera o período E consulta a API. Presets e botão
+   * "Filtrar" passam por aqui, garantindo uma chamada por aplicação (a
+   * edição manual das datas só atualiza o estado). A carga inicial vem
+   * pronta do servidor.
    */
   const aplicarPeriodo = useCallback(
     (inicio: string, fim: string) => {
@@ -72,22 +86,11 @@ export function DashboardClient() {
     setPeriodo({ inicio, fim });
   }, []);
 
-  // Carga inicial: mês atual, calculado no cliente em dias locais.
-  useEffect(() => {
-    const inicial = calcularPeriodoPreset('esteMes');
-    aplicarPeriodo(inicial.inicio, inicial.fim);
-  }, [aplicarPeriodo]);
-
   const viewModel = useMemo(() => (metrics ? montarDashboardViewModel(metrics) : null), [metrics]);
   const atualizando = loading && metrics !== null;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <DashboardAlertaCaixa />
-        <DashboardAlertasEstoque />
-      </div>
-
       <DashboardFiltros
         inicio={periodo.inicio}
         fim={periodo.fim}
