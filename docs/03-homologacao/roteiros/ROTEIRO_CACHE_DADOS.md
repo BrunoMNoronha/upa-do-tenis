@@ -47,3 +47,20 @@ Os testes unitários cobrem isolamento de namespace/ambiente, serialização, fa
 Manter Production desligado até aceite de Preview. Para recuperação, definir `CACHE_DADOS_ENABLED=false` e reiniciar/publicar conforme o provedor: as leituras voltam ao banco e as invalidações permanecem. A flag não representa sincronização entre abas nem atualização de formulários já abertos; nova leitura/refresh consulta os dados correspondentes.
 
 Após gravações externas, aceitar convergência pela revalidação temporal escolhida. Se houver erro de atualização, consultar os logs e desligar a flag para exigir leitura direta. Não presumir que um novo deploy elimina entradas persistidas do Data Cache. O cache nativo cobre Vercel e uma instância standalone; infraestrutura própria com múltiplas instâncias não é homologada por este roteiro.
+
+## Evidência local — 2026-10-05
+
+Na revisão atualizada com a `main` de `bc72287`, `pnpm run lint`, `pnpm run typecheck`, `pnpm run test` e `pnpm run build` passaram: 1.737 testes em 153 arquivos. A verificação final do middleware também passou nos seus 16 testes. O build utilizou Next.js 15.5.25, com limite local de memória e um worker (`NODE_OPTIONS`/`CIRCLE_NODE_TOTAL`), sem mudar a configuração versionada.
+
+Após o build, `pnpm exec node scripts/verificar-cache-dados.mjs` iniciou `pnpm run start` e passou nos 50 cenários HTTP, com cache habilitado somente nesse processo e banco local isolado. As contagens abaixo observam apenas a consulta do recurso indicado:
+
+| Recurso | Leitura fria | Leitura quente |
+|---|---:|---:|
+| Serviços ativos | 1 | 0 |
+| Formas operacionais | 1 | 0 |
+| Dados da empresa | 1 | 0 |
+| Link Google, incluindo `null` | 1 | 0 |
+
+Autenticação continuou consultando o usuário nas requisições autenticadas e clientes foram consultados em ambas as leituras das opções de OS. Gravações confirmadas atualizaram a próxima leitura; ausência de sessão e usuário desativado retornaram 401 com cache aquecido. Um serviço inativado diretamente no banco permaneceu no catálogo temporal, mas a criação de OS o rejeitou com consulta atual do validador, sem gravar uma OS. O runner restaurou as configurações e removeu suas fixtures.
+
+Esta evidência é de execução local e HTTP. A interação visual de Configurações, a entrega real de OS e o aceite em Preview continuam pendentes do roteiro acima. Production permanece sem ativação nesta entrega.

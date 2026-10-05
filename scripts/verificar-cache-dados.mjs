@@ -169,7 +169,9 @@ async function main() {
         cwd: projeto, windowsHide: true, detached: process.platform !== "win32", stdio: "ignore",
         env: { ...process.env, ...ambiente, DATABASE_URL: ambiente.DATABASE_URL,
           NODE_ENV: "production", AUTH_SESSION_SECRET: segredo, CACHE_DADOS_ENABLED: "true",
-          NODE_OPTIONS: `--require="${caminhoPreload}"`, CACHE_PROBE_CONTADORES: caminhoContadores },
+          // NODE_OPTIONS interpreta escapes entre aspas; / funciona no Windows
+          // e preserva caminhos absolutos com espaços sem consumir as barras.
+          NODE_OPTIONS: `--require="${caminhoPreload.replaceAll("\\", "/")}"`, CACHE_PROBE_CONTADORES: caminhoContadores },
       });
     let erroServidor = false;
     servidor.on("error", () => { erroServidor = true; });
