@@ -119,7 +119,7 @@ export function FilterChip({
     </span>
   );
 
-  return onClick ? <button type="button" onClick={onClick}>{content}</button> : content;
+  return onClick ? <button type="button" onClick={onClick} aria-pressed={active} className="rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">{content}</button> : content;
 }
 
 export function StatCard({ label, value, hint, active = false, onClick }: {
@@ -140,7 +140,7 @@ export function StatCard({ label, value, hint, active = false, onClick }: {
     </div>
   );
 
-  return onClick ? <button type="button" onClick={onClick} className="text-left">{content}</button> : content;
+  return onClick ? <button type="button" onClick={onClick} aria-pressed={active} className="text-left rounded-[var(--r-card)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]">{content}</button> : content;
 }
 
 export function Label({ className, children, ...props }: LabelProps) {
