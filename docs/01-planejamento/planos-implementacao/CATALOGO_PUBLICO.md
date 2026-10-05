@@ -40,10 +40,12 @@ O painel de Produtos mostra a situação de cada produto e tem o botão "Publica
 - `/catalogo` é uma página pública. Não importa `auth-server`, não exige sessão e não é afetada pelo caixa com fechamento pendente.
 - A página é adicionada explicitamente ao middleware. A política geográfica continua valendo.
 - A projeção pública contém apenas id, nome, descrição, preço e indicação de imagem. Ficam de fora estoque, datas, movimentações e configurações.
-- O carrinho é anônimo e fica no `localStorage`, guardando só `{produtoId, quantidade}`. Dados corrompidos são descartados sem quebrar a página.
+- O carrinho é anônimo e fica no `localStorage` (`upa-do-tenis:catalogo:carrinho:v1`). Guarda `{produtoId, nome, precoCentavos, quantidade}`, sem dados pessoais; o preço é o que o visitante viu e serve para detectar mudança na revisão. Dados corrompidos são descartados com aviso, sem quebrar a página. Sem armazenamento disponível, o carrinho funciona só em memória.
+- Limites: até 50 produtos distintos e 99 unidades por item.
+- As rotas públicas são `/catalogo`, `GET /api/catalogo/produtos?ids=` (revalidação, sem cache) e `GET /api/catalogo/produtos/[id]/imagem` (só para produto visível, `Cache-Control: public, no-cache` com ETag). Rotas administrativas, como `/api/produtos`, continuam exigindo sessão.
 - Antes de abrir o WhatsApp, o carrinho é revalidado por leitura pública limitada. Se o preço mudou ou o produto foi retirado, isso é exibido para revisão; não há substituição silenciosa.
 - Os valores são calculados em centavos inteiros.
-- O link `wa.me` tem o texto codificado. Para resumos longos, há a opção de copiar o texto.
+- O link `wa.me` tem o texto codificado. Acima de 2000 caracteres, o link abre a conversa com uma mensagem curta e o visitante cola o resumo, que sempre fica visível e pode ser copiado.
 - O clique não apaga o carrinho e não mostra "pedido recebido".
 - O fluxo não cria venda, OS, reserva, pagamento nem movimento de caixa ou estoque.
 
