@@ -33,6 +33,7 @@ Só depois disso roda `autenticarUsuario` (scrypt), que é o custo mais alto da 
 - `/login` (a página redireciona para `/dashboard` se já houver sessão);
 - `POST /api/auth/login`;
 - `POST /api/auth/logout`;
+- `/catalogo`, `GET /api/catalogo/produtos` e `GET /api/catalogo/produtos/[id]/imagem`: o catálogo público (#273). Expõem só a projeção comercial de produtos visíveis e não leem a sessão, por isso a trava de caixa pendente não se aplica a eles. Contrato em [`CATALOGO_PUBLICO.md`](../01-planejamento/planos-implementacao/CATALOGO_PUBLICO.md);
 - assets estáticos do Next.
 
 Qualquer rota nova é **privada por padrão** (o middleware bloqueia tudo que não estiver na lista acima). Para expor uma rota pública nova, inclua-a explicitamente em `PAGINAS_PUBLICAS`/`APIS_PUBLICAS` no `src/middleware.ts` — e justifique.
