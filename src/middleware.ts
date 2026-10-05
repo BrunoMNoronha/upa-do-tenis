@@ -57,7 +57,10 @@ export async function middleware(req: NextRequest) {
   }
 
   if (pathname.startsWith("/api/")) {
-    return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    return NextResponse.json(
+      { message: "Não autenticado." },
+      { status: 401, headers: { "Cache-Control": "private, no-store" } },
+    );
   }
 
   return NextResponse.redirect(new URL("/login", req.url));

@@ -112,10 +112,15 @@ async function encerrarServidor(servidor) {
 
 async function main() {
   const ambiente = parseEnv(await readFile(path.join(projeto, ".env.test"), "utf8"));
-  validarBancoLocal(ambiente.DATABASE_URL);
+  const destinoBanco = validarBancoLocal(ambiente.DATABASE_URL);
   await readFile(path.join(projeto, ".next", "BUILD_ID"), "utf8");
   // Um lock exclusivo entre execuções deste harness; nenhum arquivo do repo.
-  const identificacaoBanco = createHash("sha256").update(ambiente.DATABASE_URL).digest("hex");
+  // URL equivalente (credenciais, protocolo, loopback ou pool diferentes) deve
+  // compartilhar a trava: configurações pertencem ao mesmo banco/schema.
+  const identificacaoBanco = createHash("sha256").update(JSON.stringify([
+    "loopback", destinoBanco.port || "5432", decodeURIComponent(destinoBanco.pathname.slice(1)),
+    destinoBanco.searchParams.get("schema") || "public",
+  ])).digest("hex");
   const trava = path.join(tmpdir(), `upa-cache-dados-${identificacaoBanco}.lock`);
   await writeFile(trava, "verificacao-cache-dados", { flag: "wx" });
   let temporario;
@@ -341,6 +346,7 @@ async function main() {
     for (const rota of ["/api/servicos", "/api/ordens-servico/opcoes-cadastro",
       "/api/configuracoes", "/api/configuracoes/dados-empresa"]) {
       const negada = await request("sem_sessao_cache_aquecido", rota, { sessao: false, status: 401 });
+      privado(negada);
       assert.deepEqual(negada.consultas, {}, "Negação no middleware não consulta catálogo");
     }
     await prisma.usuario.update({ where: { id: usuarioId }, data: { ativo: false } });
@@ -351,6 +357,7 @@ async function main() {
       consulta(negada, "Servico.findMany", 0); consulta(negada, "ConfiguracaoSistema.findUnique", 0);
     }
   } finally {
+    const cenarioAntesLimpeza = cenarioAtual;
     // Reativa só a fixture para invalidar antes de restaurar os valores originais.
     if (prisma && usuarioId) {
       try {
@@ -406,6 +413,7 @@ async function main() {
       await rm(destinoRemocao, { recursive: true, force: true });
     }
     await rm(trava, { force: true });
+    cenarioAtual = falhasLimpeza.length ? "limpeza" : cenarioAntesLimpeza;
     if (falhasLimpeza.length) throw new Error(`Falha na limpeza local: ${falhasLimpeza.join(", ")}.`);
   }
 }
