@@ -245,14 +245,14 @@ export function OrdemServicoDetalheClient({
                     type="button"
                     variant="secondary"
                     className="!text-rose-700"
-                    disabled={cancelando}
+                    isLoading={cancelando}
                     onClick={() => {
                       setCancelamentoErro(null);
                       setCancelamentoSucesso(null);
                       setConfirmandoCancelamento(true);
                     }}
                   >
-                    {cancelando ? "Cancelando..." : "Cancelar OS"}
+                    Cancelar OS
                   </Button>
                 ) : null}
               </div>
@@ -509,11 +509,12 @@ export function OrdemServicoDetalheClient({
         aberto={confirmandoCancelamento}
         titulo="Cancelar Ordem de Serviço?"
         descricao="Esta ação marcará a ordem como cancelada. A ordem continuará registrada no sistema."
-        textoConfirmar={cancelando ? "Cancelando..." : "Cancelar OS"}
+        textoConfirmar="Cancelar OS"
         textoCancelar="Voltar"
         tone="danger"
         onConfirmar={() => void cancelarOrdemServico()}
         onCancelar={fecharConfirmacaoCancelamento}
+        isConfirmando={cancelando}
       />
       <CompartilharAcompanhamentoDialog
         titulo="Compartilhar acompanhamento"
