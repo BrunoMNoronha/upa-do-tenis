@@ -76,3 +76,20 @@ export async function salvarDadosEmpresa(entrada: unknown): Promise<DadosEmpresa
   await salvarConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA, JSON.stringify(dados));
   return dados;
 }
+
+/**
+ * Dados institucionais efetivamente salvos e válidos, SEM fallback. O catálogo
+ * público (#273) só encaminha pedidos ao WhatsApp configurado pela loja:
+ * ausência, JSON inválido ou falha de leitura voltam `null`.
+ */
+export async function obterDadosEmpresaPersistidos(): Promise<DadosEmpresa | null> {
+  try {
+    const valor = await obterConfiguracao(CHAVE_CONFIG_DADOS_EMPRESA);
+    if (!valor) return null;
+    const resultado = dadosEmpresaSchema.safeParse(JSON.parse(valor));
+    return resultado.success ? resultado.data : null;
+  } catch {
+    console.error("Falha ao carregar dadosEmpresa persistidos.");
+    return null;
+  }
+}

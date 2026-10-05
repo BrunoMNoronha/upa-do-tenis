@@ -44,17 +44,17 @@ describe("PATCH /api/clientes/[id]", () => {
   });
 
   it("atualiza os campos informados, sanitizando o telefone (200)", async () => {
-    prismaMock.cliente.update.mockResolvedValueOnce({ id: "cli-1", nome: "Maria" });
+    prismaMock.cliente.update.mockResolvedValueOnce({ id: "cli-1", nome: "Maria Silva" });
 
     const response = await PATCH(
-      criarRequest("cli-1", "PATCH", { nome: "Maria", telefone: "(11) 98888-7777" }),
+      criarRequest("cli-1", "PATCH", { nome: "  Maria   Silva  ", telefone: "(11) 98888-7777" }),
       wrapParams("cli-1")
     );
 
     expect(response.status).toBe(200);
     expect(prismaMock.cliente.update).toHaveBeenCalledWith({
       where: { id: "cli-1" },
-      data: { nome: "Maria", telefone: "11988887777" },
+      data: { nome: "Maria Silva", telefone: "11988887777" },
     });
   });
 
@@ -70,6 +70,30 @@ describe("PATCH /api/clientes/[id]", () => {
     });
   });
 
+  it.each(["Maria", " Maria ", "", "   "])("recusa nome incompleto %j sem atualizar (400)", async (nome) => {
+    const response = await PATCH(criarRequest("cli-1", "PATCH", { nome }), wrapParams("cli-1"));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).errors.fieldErrors.nome).toEqual(["Informe pelo menos nome e sobrenome."]);
+    expect(prismaMock.cliente.update).not.toHaveBeenCalled();
+  });
+
+  it("altera telefone de cliente legado sem exigir ou sobrescrever seu nome (200)", async () => {
+    prismaMock.cliente.update.mockResolvedValueOnce({ id: "legado", nome: "Maria", telefone: "11988887777" });
+
+    const response = await PATCH(
+      criarRequest("legado", "PATCH", { telefone: "(11) 98888-7777" }),
+      wrapParams("legado"),
+    );
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).nome).toBe("Maria");
+    expect(prismaMock.cliente.update).toHaveBeenCalledWith({
+      where: { id: "legado" },
+      data: { telefone: "11988887777" },
+    });
+  });
+
   it("rejeita telefone inválido (400)", async () => {
     const response = await PATCH(criarRequest("cli-1", "PATCH", { telefone: "123" }), wrapParams("cli-1"));
 
@@ -80,7 +104,7 @@ describe("PATCH /api/clientes/[id]", () => {
   it("retorna 404 quando o cliente não existe", async () => {
     prismaMock.cliente.update.mockRejectedValueOnce({ code: "P2025" });
 
-    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Maria" }), wrapParams("inexistente"));
+    const response = await PATCH(criarRequest("inexistente", "PATCH", { nome: "Maria Silva" }), wrapParams("inexistente"));
 
     expect(response.status).toBe(404);
   });

@@ -48,7 +48,11 @@ export default async function ProdutosPage(props: {
           precoVenda: Number(produto.precoVenda),
           quantidadeEstoque: Number(produto.quantidadeEstoque),
           ativo: produto.ativo,
+          publicadoNoCatalogo: produto.publicadoNoCatalogo,
+          // O pathname do storage não vai ao navegador; a imagem sai pelo proxy.
+          possuiImagem: Boolean(produto.imagemPathname),
           criadoEm: produto.criadoEm.toISOString(),
+          atualizadoEm: produto.atualizadoEm.toISOString(),
         }))}
       />
     </AppShell>

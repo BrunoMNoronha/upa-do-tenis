@@ -18,7 +18,9 @@ const RAIZ_APP = path.resolve(__dirname);
 // /acompanhar/[token] é a página pública do cliente: autoriza pela assinatura
 // do token (coberto em os-acompanhamento*.test.ts), nunca pela sessão.
 const PAGINA_ACOMPANHAMENTO = path.join("acompanhar", "[token]", "page.tsx");
-const PAGINAS_PUBLICAS = new Set([path.join("login", "page.tsx"), PAGINA_ACOMPANHAMENTO]);
+// /catalogo é a vitrine pública (#273): só a projeção comercial, sem sessão.
+const PAGINA_CATALOGO = path.join("catalogo", "page.tsx");
+const PAGINAS_PUBLICAS = new Set([path.join("login", "page.tsx"), PAGINA_ACOMPANHAMENTO, PAGINA_CATALOGO]);
 
 function listarPaginas(diretorio: string): string[] {
   const encontradas: string[] = [];
@@ -52,6 +54,24 @@ describe("página pública de acompanhamento da OS", () => {
 
   it("não depende da sessão administrativa nem consulta o Prisma diretamente", () => {
     expect(conteudo()).not.toMatch(/auth-server|@\/lib\/prisma/);
+  });
+});
+
+describe("página pública do catálogo", () => {
+  const conteudo = () => readFileSync(path.join(RAIZ_APP, PAGINA_CATALOGO), "utf8");
+
+  it("usa só a projeção pública e não é renderizada estaticamente", () => {
+    expect(conteudo()).toMatch(/from "@\/lib\/catalogo-publico"/);
+    expect(conteudo()).toMatch(/export const dynamic\s*=\s*"force-dynamic"/);
+  });
+
+  it("não depende da sessão administrativa nem consulta o Prisma diretamente", () => {
+    expect(conteudo()).not.toMatch(/auth-server|@\/lib\/prisma|exigirSessao/);
+  });
+
+  it("usa só o WhatsApp persistido, sem o fallback institucional", () => {
+    expect(conteudo()).toContain("whatsapp={dadosPersistidos?.whatsapp ?? null}");
+    expect(conteudo()).not.toMatch(/dadosEmpresa\.whatsapp|DADOS_EMPRESA_PADRAO/);
   });
 });
 

@@ -180,6 +180,21 @@ describe("produtoAtualizarSchema", () => {
     }
   });
 
+  it("aceita publicar ou retirar do catálogo isoladamente", () => {
+    const result = produtoAtualizarSchema.safeParse({ publicadoNoCatalogo: true });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.publicadoNoCatalogo).toBe(true);
+      expect(result.data.ativo).toBeUndefined();
+    }
+  });
+
+  it("rejeita publicação em formato não booleano", () => {
+    expect(produtoAtualizarSchema.safeParse({ publicadoNoCatalogo: "true" }).success).toBe(false);
+    expect(produtoAtualizarSchema.safeParse({ publicadoNoCatalogo: 1 }).success).toBe(false);
+  });
+
   it("sanitiza preço mascarado na atualização", () => {
     const result = produtoAtualizarSchema.safeParse({ precoVenda: "R$ 89,90" });
 

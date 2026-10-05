@@ -120,6 +120,48 @@ describe("middleware de autenticação", () => {
     }
   });
 
+  it("abre o catálogo público, a revalidação e a imagem do catálogo sem sessão", async () => {
+    for (const rota of ["/catalogo", "/api/catalogo/produtos?ids=a,b", "/api/catalogo/produtos/prod-1/imagem"]) {
+      const response = await middleware(criarRequest(rota));
+
+      expect(response.status, `rota ${rota}`).toBe(200);
+      expect(response.headers.get("location")).toBeNull();
+    }
+  });
+
+  it("catálogo continua público com sessão administrativa", async () => {
+    const token = criarTokenSessao("usr-1");
+    const response = await middleware(criarRequest("/catalogo", token));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("não abre subrotas do catálogo nem APIs administrativas de produto", async () => {
+    for (const rota of ["/catalogo/", "/catalogo/admin", "/catalogo/x/../../caixa"]) {
+      const response = await middleware(criarRequest(rota));
+      expect(response.status, `rota ${rota}`).toBe(307);
+    }
+
+    for (const rota of [
+      "/api/catalogo",
+      "/api/catalogo/produtos/prod-1",
+      "/api/catalogo/produtos/prod-1/imagem/x",
+      "/api/produtos",
+      "/api/produtos/prod-1/imagem",
+      "/api/configuracoes/dados-empresa",
+    ]) {
+      const response = await middleware(criarRequest(rota));
+      expect(response.status, `rota ${rota}`).toBe(401);
+    }
+  });
+
+  it("política geográfica também vale para o catálogo", async () => {
+    const req = criarRequest("/catalogo");
+    req.headers.set("x-vercel-ip-country", "US");
+
+    expect((await middleware(req)).status).toBe(403);
+  });
+
   it("token de acompanhamento não vale como sessão administrativa", async () => {
     const token = montarCaminhoAcompanhamento("os-1").split("/").pop();
 

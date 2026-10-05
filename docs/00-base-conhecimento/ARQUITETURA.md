@@ -20,7 +20,7 @@ As leituras e operações de negócio ficam em `src/lib/`. Route Handlers em `sr
 - O formulário de nova OS é um módulo cliente carregado quando o drawer abre. Suas opções vêm de `GET /api/ordens-servico/opcoes-cadastro`, que exige sessão, retorna clientes ativos e serviços em formato mínimo e envia `Cache-Control: private, no-store`.
 - A identidade institucional das páginas de OS é lida no servidor e passada ao shell e à lista. Outras páginas mantêm o carregamento já existente no shell.
 
-## Política de frescor e evolução
+## Cache seletivo de dados
 
 `src/lib/dados-cache.ts` usa `unstable_cache` do Next.js 15, com proteção `server-only`, para serviços ativos, formas de pagamento operacionais, dados da empresa e link de avaliação Google. `CACHE_DADOS_ENABLED` precisa ser exatamente `true` para habilitar as leituras cacheadas; a ausência da variável ou `false` mantém consultas diretas. As funções Prisma originais continuam disponíveis para scripts, testes e regras de negócio.
 

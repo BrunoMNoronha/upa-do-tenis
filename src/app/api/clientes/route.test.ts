@@ -38,6 +38,23 @@ describe("contrato e erros da API de clientes", () => {
     expect((await POST(request({}))).status).toBe(400);
     expect(mocks.criar).not.toHaveBeenCalled();
   });
+
+  it.each(["Maria", " Maria ", "", "   "])("recusa nome incompleto %j sem criar (400)", async (nome) => {
+    const response = await POST(request({ ...payload, nome }));
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).errors.fieldErrors.nome).toEqual(["Informe pelo menos nome e sobrenome."]);
+    expect(mocks.criar).not.toHaveBeenCalled();
+  });
+
+  it("normaliza nome completo antes de repassar ao serviço (201)", async () => {
+    mocks.criar.mockResolvedValue({ id: "teste", nome: "Maria Silva", telefone: payload.telefone });
+
+    const response = await POST(request({ ...payload, nome: "  Maria   Silva  " }));
+
+    expect(response.status).toBe(201);
+    expect(mocks.criar).toHaveBeenCalledWith({ nome: "Maria Silva", telefone: payload.telefone });
+  });
   it("retorna 409 para duplicidade sem expor detalhes", async () => {
     mocks.criar.mockRejectedValue({ code: "P2002", message: "detalhe-interno" });
     const response = await POST(request());

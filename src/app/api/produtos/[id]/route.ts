@@ -1,7 +1,9 @@
+import { del } from "@vercel/blob";
 import { NextRequest, NextResponse } from "next/server";
 import { exigirSessaoApi } from "@/lib/auth-server";
 import { produtoAtualizarSchema } from "@/lib/produtos-schema";
 import { prisma } from "@/lib/prisma";
+import { pathnamePertenceAoProduto } from "@/lib/produtos-imagem";
 
 export async function PATCH(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -24,6 +26,7 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       descricao?: string;
       precoVenda?: number;
       ativo?: boolean;
+      publicadoNoCatalogo?: boolean;
     } = {};
 
     if (result.data.nome !== undefined) {
@@ -40,6 +43,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     if (result.data.ativo !== undefined) {
       data.ativo = result.data.ativo;
+    }
+
+    if (result.data.publicadoNoCatalogo !== undefined) {
+      data.publicadoNoCatalogo = result.data.publicadoNoCatalogo;
     }
 
     const produtoAtualizado = await prisma.produto.update({
@@ -87,9 +94,17 @@ export async function DELETE(req: NextRequest, props: { params: Promise<{ id: st
       );
     }
 
-    await prisma.produto.delete({
+    const removido = await prisma.produto.delete({
       where: { id },
+      select: { imagemPathname: true },
     });
+
+    // A linha já saiu; falha no storage só deixa um arquivo órfão, sem 500.
+    if (removido.imagemPathname && pathnamePertenceAoProduto(removido.imagemPathname, id)) {
+      await del(removido.imagemPathname).catch((error) =>
+        console.error("Produto excluído, mas a imagem não foi removida do storage.", error)
+      );
+    }
 
     return new NextResponse(null, { status: 204 });
   } catch (error: any) {
