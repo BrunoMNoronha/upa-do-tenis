@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 type ItemCadastro = {
@@ -26,6 +26,8 @@ export function useCadastroAcoes<T extends ItemCadastro>({ endpoint, rotulo }: U
   const [listaError, setListaError] = useState<string | null>(null);
   const [itemParaExcluir, setItemParaExcluir] = useState<T | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isExcluindo, setIsExcluindo] = useState(false);
+  const exclusaoEmCurso = useRef(false);
 
   const alternarStatus = useCallback(
     async (item: T) => {
@@ -53,11 +55,13 @@ export function useCadastroAcoes<T extends ItemCadastro>({ endpoint, rotulo }: U
   );
 
   const pedirExclusao = useCallback((item: T) => {
+    if (exclusaoEmCurso.current) return;
     setListaError(null);
     setItemParaExcluir(item);
   }, []);
 
   const cancelarExclusao = useCallback(() => {
+    if (exclusaoEmCurso.current) return;
     setItemParaExcluir(null);
   }, []);
 
@@ -67,28 +71,42 @@ export function useCadastroAcoes<T extends ItemCadastro>({ endpoint, rotulo }: U
    */
   const confirmarExclusao = useCallback(
     async (aoExcluir?: (item: T) => void) => {
-      if (!itemParaExcluir) {
+      if (!itemParaExcluir || exclusaoEmCurso.current) {
         return;
       }
 
       const item = itemParaExcluir;
-      setItemParaExcluir(null);
+      // O ref bloqueia duas confirmações no mesmo evento, antes do próximo
+      // render. A transição do refresh não acompanha a requisição de rede.
+      exclusaoEmCurso.current = true;
+      setIsExcluindo(true);
+      setListaError(null);
 
-      const response = await fetch(`${endpoint}/${item.id}`, {
-        method: "DELETE",
-      });
+      try {
+        const response = await fetch(`${endpoint}/${item.id}`, {
+          method: "DELETE",
+        });
 
-      if (!response.ok) {
-        const payload = (await response.json()) as { message?: string };
-        setListaError(payload.message ?? `Não foi possível excluir ${rotulo}.`);
-        return;
+        if (!response.ok) {
+          const payload = (await response.json()) as { message?: string };
+          setListaError(payload.message ?? `Não foi possível excluir ${rotulo}.`);
+          return;
+        }
+
+        aoExcluir?.(item);
+
+        startTransition(() => {
+          router.refresh();
+        });
+      } catch {
+        setListaError(`Não foi possível excluir ${rotulo}. Tente novamente.`);
+      } finally {
+        // Mantém a confirmação visível durante a rede e, em caso de erro,
+        // fecha somente após a resposta para exibir a mensagem na lista.
+        setItemParaExcluir(null);
+        setIsExcluindo(false);
+        exclusaoEmCurso.current = false;
       }
-
-      aoExcluir?.(item);
-
-      startTransition(() => {
-        router.refresh();
-      });
     },
     [endpoint, itemParaExcluir, rotulo, router],
   );
@@ -96,7 +114,8 @@ export function useCadastroAcoes<T extends ItemCadastro>({ endpoint, rotulo }: U
   return {
     listaError,
     setListaError,
-    isPending,
+    isPending: isPending || isExcluindo,
+    isExcluindo,
     startTransition,
     alternarStatus,
     itemParaExcluir,

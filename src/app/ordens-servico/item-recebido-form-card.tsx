@@ -128,8 +128,10 @@ export function ItemRecebidoFormCard({
             {...descricaoField}
             placeholder="Ex.: tênis preto"
             disabled={bloqueado}
+            aria-invalid={Boolean(erroDescricao)}
+            aria-describedby={erroDescricao ? `${idBase}-erro-descricao` : undefined}
           />
-          {erroDescricao ? <p role="alert" className="text-sm text-red-600">{erroDescricao}</p> : null}
+          {erroDescricao ? <p id={`${idBase}-erro-descricao`} role="alert" className="text-sm text-red-600">{erroDescricao}</p> : null}
         </div>
 
         <div className="grid content-start gap-2">
@@ -200,9 +202,11 @@ export function ItemRecebidoFormCard({
             onChange={onAdicionarServico}
             placeholder="Adicionar serviço..."
             emptyText="Serviço não encontrado"
+            aria-invalid={Boolean(erroServicos)}
+            aria-describedby={erroServicos ? `${idBase}-erro-servicos` : undefined}
           />
         )}
-        {erroServicos ? <p role="alert" className="text-sm text-red-600">{erroServicos}</p> : null}
+        {erroServicos ? <p id={`${idBase}-erro-servicos`} role="alert" className="text-sm text-red-600">{erroServicos}</p> : null}
         {servicos.length > 0 ? (
           <div className="space-y-2">
             {servicos.map((item) => {

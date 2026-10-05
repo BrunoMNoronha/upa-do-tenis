@@ -21,3 +21,8 @@
 ## 2024-05-20 - Contexto em botões de remoção
 **Learning:** Screen readers anunciam o texto do botão (ex: "Remover item"). Em listas repetitivas, isso não oferece contexto sobre QUAL item será removido, prejudicando a acessibilidade.
 **Action:** Sempre que houver botões repetidos de ação (ex: remover, editar) em listas/grids, adicione um `aria-label` que inclua o nome ou o índice do item alvo.
+**Ação:** Usar sempre `isLoading` do design system; manter `disabled` apenas para regras de negócio adicionais (ex.: carrinho vazio), pois `isLoading` já desabilita o botão.
+
+## 2026-09-16 - Estado de carregamento no ConfirmDialog
+**Aprendizado:** Componentes modais genéricos, como o ConfirmDialog, frequentemente deixam de implementar feedback visual nativo (`isLoading`) em suas ações primárias de submissão, forçando as telas consumidoras a realizar overrides manuais inconsistentes (ex: mudando o texto de "Confirmar" para "Cancelando...").
+**Ação:** Expandir componentes genéricos modais (`ConfirmDialog`) para receber um estado de carregamento explícito (ex: `isConfirmando`), vinculando-o ao `<Button isLoading={...}>` subjacente para centralizar e garantir um feedback visual robusto de submissão assíncrona, eliminando overrides de texto nas telas filhas.

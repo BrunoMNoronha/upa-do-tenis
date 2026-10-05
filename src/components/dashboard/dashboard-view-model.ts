@@ -128,8 +128,14 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
   // Respostas sem o campo (API anterior) são tratadas como indisponíveis.
   if (!Array.isArray(serie)) return { disponivel: false };
 
-  const maior = serie.reduce((acc, item) => Math.max(acc, item.valor), 0);
-  const maiorNegativo = serie.reduce((acc, item) => Math.max(acc, -item.valor), 0);
+  let maior = 0;
+  let maiorNegativo = 0;
+  let diasComRecebimento = 0;
+  for (const item of serie) {
+    if (item.valor > maior) maior = item.valor;
+    if (-item.valor > maiorNegativo) maiorNegativo = -item.valor;
+    if (item.valor > 0) diasComRecebimento++;
+  }
   const escala = maior + maiorNegativo;
   let melhorDia: ItemRecebimentoDia | null = null;
 
@@ -151,7 +157,7 @@ function montarRecebimentosPorDia(serie: DashboardMetrics["recebimentosPorDia"])
     disponivel: true,
     dias,
     melhorDia,
-    diasComRecebimento: dias.filter((item) => item.valor > 0).length,
+    diasComRecebimento,
     alturaAreaPositiva: calcularAlturaAreaPositiva(maior, maiorNegativo),
   };
 }

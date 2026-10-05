@@ -271,6 +271,7 @@ export function FormasPagamentoClient({ formas }: FormasPagamentoClientProps) {
           })
         }
         onCancelar={cancelarExclusao}
+        isConfirmando={isPending}
       />
     </section>
   );

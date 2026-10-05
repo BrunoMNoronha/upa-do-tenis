@@ -19,3 +19,13 @@
 ## 2026-09-15 - Paralelização de I/O em Server Components
 **Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
 **Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+## 2025-01-20 — Prisma `$transaction` com consultas independentes de leitura não é otimização (Anti-pattern)
+
+**Learning:** Embora possa parecer intuitivo agrupar múltiplas consultas independentes (como `count` ou `findMany`) em um único `prisma.$transaction([...])` para reduzir viagens de rede, o Prisma executa as queries de um array de `$transaction` sequencialmente. Ao substituir `Promise.all` (que executa concorrentemente) por `$transaction`, o tempo total da operação passa a ser a soma dos tempos individuais mais o overhead transacional, degradando a performance em vez de melhorá-la.
+
+**Action:** Nunca substituir `Promise.all` por `prisma.$transaction` para requisições de leitura independentes. O `$transaction` deve ser reservado exclusivamente para casos que requerem garantias ACID (tudo ou nada) ou onde as operações dependem sequencialmente do resultado anterior, geralmente envolvendo escritas.
+**Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+
+## 2026-10-04 - Agregação independente no dashboard
+**Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
+**Ação:** Preservar período, exclusão de estornos e ranking; medir latência no ambiente alvo antes de afirmar percentuais de ganho.
