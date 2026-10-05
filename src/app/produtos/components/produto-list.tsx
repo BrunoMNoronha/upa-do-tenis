@@ -1,22 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Badge, Card } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { BuscaListagem } from "@/components/busca-listagem";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import type { PaginacaoInfo } from "@/lib/paginacao";
+import { ROTULO_SITUACAO_CATALOGO, situacaoNoCatalogo } from "@/lib/catalogo-regras";
 import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
-
-type ProdutoListado = {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  precoVenda: number;
-  quantidadeEstoque: number;
-  ativo: boolean;
-  criadoEm: string;
-};
+import type { ProdutoListado } from "../types";
 
 type ProdutoListProps = {
   produtos: ProdutoListado[];
@@ -46,6 +40,33 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
     cancelarExclusao,
     confirmarExclusao,
   } = useCadastroAcoes<ProdutoListado>({ endpoint: "/api/produtos", rotulo: "o produto" });
+  const router = useRouter();
+  const [publicacaoPendente, startPublicacao] = useTransition();
+  const [alterandoPublicacao, setAlterandoPublicacao] = useState<string | null>(null);
+  const [erroPublicacao, setErroPublicacao] = useState<string | null>(null);
+
+  const alternarPublicacao = async (produto: ProdutoListado) => {
+    if (alterandoPublicacao) return;
+    setErroPublicacao(null);
+    setAlterandoPublicacao(produto.id);
+    try {
+      const response = await fetch(`/api/produtos/${produto.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ publicadoNoCatalogo: !produto.publicadoNoCatalogo }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { message?: string };
+        setErroPublicacao(payload.message ?? "Não foi possível alterar a publicação do produto.");
+        return;
+      }
+      startPublicacao(() => router.refresh());
+    } catch {
+      setErroPublicacao("Falha de comunicação ao alterar a publicação do produto.");
+    } finally {
+      setAlterandoPublicacao(null);
+    }
+  };
 
   return (
     <Card className="bg-[color:var(--text)] p-6 text-white">
@@ -59,9 +80,9 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
 
       <BuscaListagem id="busca-produtos" label="Buscar produto" placeholder="Buscar produto..." busca={busca} />
 
-      {listaError ? (
+      {listaError || erroPublicacao ? (
         <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
-          {listaError}
+          {listaError ?? erroPublicacao}
         </p>
       ) : null}
 
@@ -73,7 +94,9 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
         </div>
       ) : (
         <div className="space-y-4">
-          {produtos.map((produto) => (
+          {produtos.map((produto) => {
+            const situacao = situacaoNoCatalogo(produto);
+            return (
             <article
               key={produto.id}
               className={`rounded-3xl border p-5 ${
@@ -97,9 +120,14 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
                       Estoque: {produto.quantidadeEstoque} un
                     </Badge>
                   </div>
-                  <Badge tone={produto.ativo ? "success" : "danger"}>
-                    {produto.ativo ? "Ativo" : "Inativo"}
-                  </Badge>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Badge tone={produto.ativo ? "success" : "danger"}>
+                      {produto.ativo ? "Ativo" : "Inativo"}
+                    </Badge>
+                    <Badge tone={situacao === "VISIVEL" ? "accent" : "neutral"}>
+                      {ROTULO_SITUACAO_CATALOGO[situacao]}
+                    </Badge>
+                  </div>
                 </div>
               </div>
 
@@ -131,6 +159,15 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
                 </button>
                 <button
                   type="button"
+                  onClick={() => void alternarPublicacao(produto)}
+                  disabled={alterandoPublicacao !== null || publicacaoPendente}
+                  aria-label={`${produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}: ${produto.nome}`}
+                  className="rounded-full border border-violet-400/40 px-4 py-1.5 text-xs font-semibold text-violet-200 transition hover:bg-violet-950/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}
+                </button>
+                <button
+                  type="button"
                   onClick={() => pedirExclusao(produto)}
                   disabled={isPending}
                   className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
@@ -139,7 +176,8 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
                 </button>
               </div>
             </article>
-          ))}
+            );
+          })}
         </div>
       )}
 

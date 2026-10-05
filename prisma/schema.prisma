@@ -151,16 +151,18 @@ model ServicoItemOrdem {
 }
 
 model Produto {
-  id                String                       @id @default(cuid())
-  nome              String
-  descricao         String?
-  precoVenda        Decimal                      @default(0)
-  quantidadeEstoque Decimal                      @default(0)
-  ativo             Boolean                      @default(true)
-  criadoEm          DateTime                     @default(now())
-  atualizadoEm      DateTime                     @updatedAt
-  itensVenda        ItemVenda[]
-  movimentacoes     MovimentacaoEstoqueProduto[]
+  id                  String                       @id @default(cuid())
+  nome                String
+  descricao           String?
+  precoVenda          Decimal                      @default(0)
+  quantidadeEstoque   Decimal                      @default(0)
+  ativo               Boolean                      @default(true)
+  publicadoNoCatalogo Boolean                      @default(false)
+  imagemPathname      String?
+  criadoEm            DateTime                     @default(now())
+  atualizadoEm        DateTime                     @updatedAt
+  itensVenda          ItemVenda[]
+  movimentacoes       MovimentacaoEstoqueProduto[]
 
   @@index([nome])
   @@index([ativo])

@@ -3,7 +3,8 @@ import { NextRequest } from "next/server";
 
 import { DELETE } from "./route";
 
-const { prismaMock } = vi.hoisted(() => ({
+const { prismaMock, delMock } = vi.hoisted(() => ({
+  delMock: vi.fn(),
   prismaMock: {
     itemVenda: {
       count: vi.fn(),
@@ -20,6 +21,8 @@ const { prismaMock } = vi.hoisted(() => ({
 vi.mock("@/lib/prisma", () => ({
   prisma: prismaMock,
 }));
+
+vi.mock("@vercel/blob", () => ({ del: delMock }));
 
 // Estes testes cobrem as regras de exclusão; simulam requisição já
 // autenticada. O enforcement de sessão é coberto em api-auth-enforcement.test.ts.
@@ -61,12 +64,48 @@ describe("DELETE /api/produtos/[id]", () => {
   it("permite exclusão de produto sem histórico de venda (204)", async () => {
     prismaMock.itemVenda.count.mockResolvedValueOnce(0);
     prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
-    prismaMock.produto.delete.mockResolvedValueOnce({ id: "prod-1" });
+    prismaMock.produto.delete.mockResolvedValueOnce({ imagemPathname: null });
 
     const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
 
     expect(response.status).toBe(204);
-    expect(prismaMock.produto.delete).toHaveBeenCalledWith({ where: { id: "prod-1" } });
+    expect(prismaMock.produto.delete).toHaveBeenCalledWith({ where: { id: "prod-1" }, select: { imagemPathname: true } });
+    expect(delMock).not.toHaveBeenCalled();
+  });
+
+  it("remove do storage a imagem do produto excluído", async () => {
+    prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
+    prismaMock.produto.delete.mockResolvedValueOnce({ imagemPathname: "catalogo/produtos/prod-1/a.webp" });
+    delMock.mockResolvedValueOnce(undefined);
+
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
+
+    expect(response.status).toBe(204);
+    expect(delMock).toHaveBeenCalledWith("catalogo/produtos/prod-1/a.webp");
+  });
+
+  it("mantém 204 quando a remoção da imagem no storage falha", async () => {
+    prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
+    prismaMock.produto.delete.mockResolvedValueOnce({ imagemPathname: "catalogo/produtos/prod-1/a.webp" });
+    delMock.mockRejectedValueOnce(new Error("storage fora"));
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
+
+    expect(response.status).toBe(204);
+  });
+
+  it("não remove do storage arquivo fora da pasta do produto", async () => {
+    prismaMock.itemVenda.count.mockResolvedValueOnce(0);
+    prismaMock.movimentacaoEstoqueProduto.count.mockResolvedValueOnce(0);
+    prismaMock.produto.delete.mockResolvedValueOnce({ imagemPathname: "ordens-servico/os-1/itens/i/a.jpg" });
+
+    const response = await DELETE(criarRequest("prod-1"), wrapParams("prod-1"));
+
+    expect(response.status).toBe(204);
+    expect(delMock).not.toHaveBeenCalled();
   });
 
   it("retorna 404 quando o produto não existe", async () => {
