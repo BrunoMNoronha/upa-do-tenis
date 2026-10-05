@@ -11,6 +11,15 @@
 - Estorno de pagamentos de OS (#230), decidido pelo usuário em 2026-09-17: correção por **estorno** (registro `EstornoPagamento` ligado ao pagamento, sem apagar nem editar), só do **pagamento inteiro** e **uma vez** por pagamento; **SAÍDA no caixa aberto** no momento do estorno, na mesma forma de pagamento; **bloqueado sem caixa aberto**; OS com pagamento só é cancelada **depois de estornar** (bloqueio do #229); dashboard e relatórios mostram o **recebido líquido, descontado no dia do estorno**; qualquer usuário autenticado, com **motivo obrigatório**; sem prazo. Sinal legado (`valorSinal`) segue bloqueando o cancelamento, sem estorno pelo sistema.
 - Cálculo do valor pago com estorno (#230): soma só pagamentos não estornados. Enquanto a OS não tem estorno, a regra de compatibilidade com `valorPago` legado continua (a coluna prevalece se for maior); com qualquer estorno, vale apenas pagamentos ativos + sinal, para a coluna antiga não impedir o saldo de voltar.
 
+- Catálogo público com carrinho e pedido via WhatsApp (#273), decidido pelo usuário em 2026-10-05. Contrato completo em `docs/01-planejamento/planos-implementacao/CATALOGO_PUBLICO.md`.
+  - **Publicação** é opt-in no painel: `Produto.publicadoNoCatalogo` nasce `false`.
+  - Aparece no catálogo só o que está **publicado, ativo e com estoque > 0**. Sem estoque, o produto fica oculto, e o estoque exato nunca é exposto.
+  - A **imagem** é enviada no cadastro do produto pelo mesmo fluxo das fotos de OS, gravada em `catalogo/produtos/{id}/`, pasta separada de `ordens-servico/`. É servida apenas por proxy.
+  - **Sem banners/propagandas no MVP.**
+  - Quantidade só **inteira ≥ 1**.
+  - O WhatsApp de destino é **apenas o número configurado e validado** em Dados da empresa. Sem configuração, não há fallback.
+  - O clique abre a conversa e não registra venda, reserva, pagamento ou movimento de caixa/estoque.
+
 ## Decisões de negócio já consolidadas
 
 - Toda OS deve estar vinculada a um cliente.

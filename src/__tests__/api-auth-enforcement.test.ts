@@ -80,6 +80,11 @@ import {
   DELETE as produtosDelete,
 } from "@/app/api/produtos/[id]/route";
 import { GET as produtosMovimentacoesGet } from "@/app/api/produtos/[id]/movimentacoes/route";
+import {
+  GET as produtosImagemGet,
+  POST as produtosImagemPost,
+  DELETE as produtosImagemDelete,
+} from "@/app/api/produtos/[id]/imagem/route";
 import { GET as vendasGet, POST as vendasPost } from "@/app/api/vendas/route";
 import {
   GET as atendimentosRapidosGet,
@@ -265,6 +270,18 @@ const casos: Array<[string, () => Promise<Response>]> = [
   [
     "GET /api/produtos/[id]/movimentacoes",
     () => produtosMovimentacoesGet(criarRequest("/api/produtos/abc/movimentacoes"), params),
+  ],
+  [
+    "GET /api/produtos/[id]/imagem",
+    () => produtosImagemGet(criarRequest("/api/produtos/abc/imagem"), params),
+  ],
+  [
+    "POST /api/produtos/[id]/imagem",
+    () => produtosImagemPost(criarRequest("/api/produtos/abc/imagem", "POST"), params),
+  ],
+  [
+    "DELETE /api/produtos/[id]/imagem",
+    () => produtosImagemDelete(criarRequest("/api/produtos/abc/imagem", "DELETE"), params),
   ],
   ["GET /api/vendas", () => vendasGet(criarRequest("/api/vendas"))],
   ["POST /api/vendas", () => vendasPost(criarRequest("/api/vendas", "POST"))],

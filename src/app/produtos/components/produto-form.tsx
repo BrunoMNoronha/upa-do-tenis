@@ -8,16 +8,7 @@ import { useForm } from "react-hook-form";
 import { Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
 import { produtoFormSchema, type ProdutoFormValues } from "@/lib/produtos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
-
-type ProdutoListado = {
-  id: string;
-  nome: string;
-  descricao: string | null;
-  precoVenda: number;
-  quantidadeEstoque: number;
-  ativo: boolean;
-  criadoEm: string;
-};
+import type { ProdutoListado } from "../types";
 
 type ProdutoFormProps = {
   editando: ProdutoListado | null;

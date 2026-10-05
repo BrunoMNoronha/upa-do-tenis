@@ -31,6 +31,7 @@ export const produtoFormSchema = produtoBaseSchema.extend({
 
 export const produtoAtualizarSchema = produtoBaseSchema.partial().extend({
   ativo: z.boolean().optional(),
+  publicadoNoCatalogo: z.boolean().optional(),
 });
 
 export type ProdutoFormValues = z.infer<typeof produtoFormSchema>;
