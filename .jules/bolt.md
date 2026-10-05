@@ -19,3 +19,7 @@
 ## 2026-09-15 - Paralelização de I/O em Server Components
 **Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
 **Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+
+## 2026-10-04 - Agregação independente no dashboard
+**Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
+**Ação:** Preservar período, exclusão de estornos e ranking; medir latência no ambiente alvo antes de afirmar percentuais de ganho.
