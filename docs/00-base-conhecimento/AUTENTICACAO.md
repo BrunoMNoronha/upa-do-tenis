@@ -37,6 +37,25 @@ Só depois disso roda `autenticarUsuario` (scrypt), que é o custo mais alto da 
 
 Qualquer rota nova é **privada por padrão** (o middleware bloqueia tudo que não estiver na lista acima). Para expor uma rota pública nova, inclua-a explicitamente em `PAGINAS_PUBLICAS`/`APIS_PUBLICAS` no `src/middleware.ts` — e justifique.
 
+### Encaminhamento de caixa pendente — issue #271
+
+Depois de validar a sessão, `exigirSessao()` consulta somente o id e a data de
+abertura do caixa aberto. Se a classificação existente indicar
+`FECHAMENTO_PENDENTE`, a página privada encaminha para `/caixa`. A comparação
+usa a data civil de `America/Sao_Paulo`, inclusive para caixas de vários dias.
+
+Somente `src/app/caixa/page.tsx` usa
+`exigirSessao({ permitirFechamento: true })`, para possibilitar a conferência
+sem redirecionamento circular. A tela reconsulta o caixa e recebe a
+classificação do servidor, abrindo o formulário de fechamento quando há
+pendência. Uma falha de consulta é apresentada com nova tentativa, sem
+presumir estado financeiro. O estado de erro mantém a ação de sair.
+
+`exigirSessaoApi()` continua validando apenas a sessão e respondendo com JSON;
+o encaminhamento não cria proibição financeira para APIs. Login, logout e
+acompanhamento público mantêm seus fluxos. Nenhum caixa é aberto ou fechado
+pelo redirecionamento: o operador precisa informar o saldo e confirmar.
+
 ## Regras para novas APIs
 
 1. Aceitar `req: NextRequest` como primeiro parâmetro.

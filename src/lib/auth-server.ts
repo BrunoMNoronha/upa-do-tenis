@@ -4,6 +4,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSAO_COOKIE_NOME, verificarTokenSessao } from "@/lib/auth-session";
 import { buscarUsuarioSessao, type UsuarioAutenticado } from "@/lib/auth-service";
+import { obterResumoCaixaAberto } from "@/lib/caixa";
+import { classificarEstadoCaixa } from "@/lib/caixa-alerta";
 
 async function resolverSessao(token: string | undefined): Promise<UsuarioAutenticado | null> {
   if (!token) {
@@ -24,11 +26,22 @@ export async function obterUsuarioSessao(): Promise<UsuarioAutenticado | null> {
   return resolverSessao(cookieStore.get(SESSAO_COOKIE_NOME)?.value);
 }
 
-export async function exigirSessao(): Promise<UsuarioAutenticado> {
+// Exceção exclusiva da página /caixa: permite conferir e fechar o caixa
+// pendente. APIs usam exigirSessaoApi e preservam seus contratos JSON.
+export async function exigirSessao(
+  opcoes: { permitirFechamento?: boolean } = {}
+): Promise<UsuarioAutenticado> {
   const usuario = await obterUsuarioSessao();
 
   if (!usuario) {
     redirect("/login");
+  }
+
+  if (!opcoes.permitirFechamento) {
+    const caixa = await obterResumoCaixaAberto();
+    if (classificarEstadoCaixa(caixa).estado === "FECHAMENTO_PENDENTE") {
+      redirect("/caixa");
+    }
   }
 
   return usuario;
