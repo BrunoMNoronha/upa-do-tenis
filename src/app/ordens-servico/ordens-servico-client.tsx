@@ -434,6 +434,8 @@ function OrdemServicoCard({
           <button
             type="button"
             onClick={() => setShowHistory(!showHistory)}
+            aria-expanded={showHistory}
+            aria-controls={`history-${ordem.id}`}
             className="text-sm font-semibold text-[color:var(--accent-strong)] hover:underline"
           >
             {showHistory ? "Ocultar Histórico" : "Ver Histórico"}
@@ -442,7 +444,7 @@ function OrdemServicoCard({
       </div>
 
       {showHistory && ordem.historicosStatus && (
-        <div className="mt-4 space-y-3 border-t border-black/5 pt-4">
+        <div id={`history-${ordem.id}`} className="mt-4 space-y-3 border-t border-black/5 pt-4">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
             Histórico de Status
           </p>
