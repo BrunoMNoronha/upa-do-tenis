@@ -52,41 +52,35 @@ export interface ResumoPorTipo {
 }
 
 export async function getEstatisticasGlobaisEstoque(): Promise<RelatorioEstoqueEstatisticas> {
-  // Contagens agregadas no banco; o valor estimado exige multiplicacao linha a linha
-  // e permanece em memoria, mas so para insumos com saldo (saldo 0 contribui 0).
-  // Saldo negativo e bloqueado em criarMovimentacaoEstoque, entao qtd >= 0 sempre.
-  const [
-    totalInsumosAtivos,
-    totalInsumosZerados,
-    totalInsumosAbaixoMinimo,
-    insumosComSaldo,
-  ] = await Promise.all([
-    prisma.insumo.count(),
-    prisma.insumo.count({
-      where: { quantidadeEstoque: 0 }
-    }),
-    prisma.insumo.count({
-      where: {
-        quantidadeEstoque: {
-          gt: 0,
-          lt: prisma.insumo.fields.estoqueMinimo
-        }
-      }
-    }),
-    prisma.insumo.findMany({
-      where: { quantidadeEstoque: { gt: 0 } },
-      select: {
-        quantidadeEstoque: true,
-        custoUnitario: true,
-      }
-    }),
-  ]);
+  // Otimização: Consolidação das consultas para evitar 3 counts independentes.
+  // Busca todos os insumos (ativo é tudo o que não foi soft-deleted).
+  const insumos = await prisma.insumo.findMany({
+    select: {
+      quantidadeEstoque: true,
+      custoUnitario: true,
+      estoqueMinimo: true,
+    }
+  });
 
+  let totalInsumosAtivos = 0;
+  let totalInsumosZerados = 0;
+  let totalInsumosAbaixoMinimo = 0;
   let valorTotalEstimadoDecimal = new Prisma.Decimal(0);
 
-  for (const insumo of insumosComSaldo) {
-    const valorEstimadoItem = insumo.quantidadeEstoque.mul(insumo.custoUnitario);
-    valorTotalEstimadoDecimal = valorTotalEstimadoDecimal.add(valorEstimadoItem);
+  // Otimização: Um único loop for...of sobre o array de resultados em memória (O(N)).
+  for (const insumo of insumos) {
+    totalInsumosAtivos++;
+
+    if (insumo.quantidadeEstoque.toNumber() === 0) {
+      totalInsumosZerados++;
+    } else {
+      if (insumo.quantidadeEstoque.toNumber() < Number(insumo.estoqueMinimo)) {
+        totalInsumosAbaixoMinimo++;
+      }
+
+      const valorEstimadoItem = insumo.quantidadeEstoque.toNumber() * insumo.custoUnitario.toNumber();
+      valorTotalEstimadoDecimal = valorTotalEstimadoDecimal.add(new Prisma.Decimal(valorEstimadoItem));
+    }
   }
 
   return {
@@ -230,19 +224,25 @@ export async function getResumoPorTipo(filtros?: FiltrosMovimentacao): Promise<R
 }
 
 export async function getResumoAlertasEstoque() {
-  const [totalInsumosZerados, totalInsumosAbaixoMinimo] = await Promise.all([
-    prisma.insumo.count({
-      where: { quantidadeEstoque: 0 }
-    }),
-    prisma.insumo.count({
-      where: {
-        quantidadeEstoque: {
-          gt: 0,
-          lt: prisma.insumo.fields.estoqueMinimo
-        }
-      }
-    }),
-  ]);
+  // Otimização: Consolidação das consultas para evitar 2 counts independentes.
+  const insumos = await prisma.insumo.findMany({
+    select: {
+      quantidadeEstoque: true,
+      estoqueMinimo: true,
+    }
+  });
+
+  let totalInsumosZerados = 0;
+  let totalInsumosAbaixoMinimo = 0;
+
+  // Otimização: Contagem em memória via loop O(N).
+  for (const insumo of insumos) {
+    if (insumo.quantidadeEstoque.toNumber() === 0) {
+      totalInsumosZerados++;
+    } else if (insumo.quantidadeEstoque.toNumber() < Number(insumo.estoqueMinimo)) {
+      totalInsumosAbaixoMinimo++;
+    }
+  }
 
   return {
     totalInsumosZerados,

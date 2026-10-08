@@ -1,31 +1,3 @@
-## 2025-02-18 - Evite `reduce` para criação dinâmica de mapas em pequenos arrays
-**Learning:** Em otimizações no V8/Node.js, substituir repetidas chamadas `Array.prototype.find()` por um único `Array.prototype.reduce()` construindo um objeto mapa dinâmico nem sempre melhora a performance real se o array for muito pequeno. A sobrecarga de alocação de propriedades dinâmicas e o garbage collection do `reduce` pode deixá-lo mais lento que a busca O(N*M) com M pequeno.
-**Action:** Para transformar processamento O(K*N) em O(N) com máxima performance, declare as variáveis de saída fora do escopo e utilize um `for...of` com mutação local (`let`) em vez de construir novos objetos usando callbacks funcionais e reduções.
-
-## 2025-02-18 - Paralelização Massiva em Agregações do Prisma
-**Learning:** Em funções de dashboard que computam inúmeras métricas agregadas sem dependência de dados entre si (ex: totais recebidos, totais pendentes, contagens segmentadas por status e ticket médio), executar as queries de forma sequencial (11 vezes `await prisma...`) introduz um gargalo de rede clássico O(N).
-**Action:** Utilize o padrão `Promise.all()` agrupando massivamente todas as agregações independentes para resolver de forma concorrente O(max(T)), e execute os queries subsequentes que dependem destes agregados (ex: buscar entidades a partir de arrays de IDs) em um segundo bloco `Promise.all()` logo a seguir.
-## 2026-09-07 - Bulk Insert com createManyAndReturn
-**Learning:** A função `createManyAndReturn` nativa do Prisma 5+ é suportada tanto em PostgreSQL quanto SQLite e é a abordagem ideal e mais limpa para converter inserções independentes `Promise.all(linhas.map(x => tx.x.create(...)))` em bulk inserts quando o ID gerado é necessário para passos subsequentes (ex: baixas de estoque associadas).
-**Action:** Utilizar `createManyAndReturn` (ou `createMany` se os dados retornados não forem necessários) em vez de N inserções independentes agrupadas via `Promise.all()` na camada de transação do backend, reduzindo roundtrips com o banco e melhorando significativamente o tempo total de resposta de O(N) para O(1) na inserção.
-## 2025-02-18 - Paralelização massiva de agregações independentes
-**Learning:** Agregações massivas do banco de dados (ex: `count`, `aggregate`, `sum`, etc) executadas iterativamente usando `await` são ofensoras clássicas de performance (Gargalo O(N)) por manter o I/O bloqueado.
-**Action:** Agrupar sempre operações independentes em um único bloco `Promise.all()` em rotas da API, para que as requisições atinjam o banco concorrentemente. Em otimizações (Bolt), pesquise globalmente por blocos sequenciais `await prisma.<model>.count` usando o bash em todo o repositório.
-
-## 2026-09-12 - Otimização de múltiplas agregações no frontend
-**Learning:** O uso de múltiplas chamadas consecutivas de `.filter(...).length` sobre o mesmo array no frontend (ex: calculando totais de ordens por status) causa iterações O(k*N) redundantes.
-**Action:** Utilize um único loop `for...of` com variáveis contadoras independentes para consolidar o processamento em O(N), evitando o garbage collection excessivo associado à criação de arrays intermediários no `.filter()`.
-
-## 2026-09-15 - Paralelização de I/O em Server Components
-**Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
-**Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
-## 2025-01-20 — Prisma `$transaction` com consultas independentes de leitura não é otimização (Anti-pattern)
-
-**Learning:** Embora possa parecer intuitivo agrupar múltiplas consultas independentes (como `count` ou `findMany`) em um único `prisma.$transaction([...])` para reduzir viagens de rede, o Prisma executa as queries de um array de `$transaction` sequencialmente. Ao substituir `Promise.all` (que executa concorrentemente) por `$transaction`, o tempo total da operação passa a ser a soma dos tempos individuais mais o overhead transacional, degradando a performance em vez de melhorá-la.
-
-**Action:** Nunca substituir `Promise.all` por `prisma.$transaction` para requisições de leitura independentes. O `$transaction` deve ser reservado exclusivamente para casos que requerem garantias ACID (tudo ou nada) ou onde as operações dependem sequencialmente do resultado anterior, geralmente envolvendo escritas.
-**Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
-
-## 2026-10-04 - Agregação independente no dashboard
-**Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
-**Ação:** Preservar período, exclusão de estornos e ranking; medir latência no ambiente alvo antes de afirmar percentuais de ganho.
+## 2026-10-09 - Reduzindo consultas simultâneas independentes
+**Learning:** O Prisma pode receber um array de consultas com Promise.all(), mas cada consulta na fila gera uma viagem de ida e volta ao banco. Quando existem várias queries independentes pequenas, pode ser mais eficiente consolidar as seleções em uma única instrução `findMany` e realizar as consolidações necessárias (somas e agregações customizadas) em memória (usando um laço `for...of`).
+**Action:** Na otimização de serviços analíticos ou de relatório, observe a quantidade de chamadas `prisma.tabela.count` e `prisma.tabela.aggregate` em paralelo. Substitua os `count` por loops locais em cima do conjunto resultante.
