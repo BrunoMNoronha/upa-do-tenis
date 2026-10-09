@@ -79,11 +79,20 @@ function mapearOrdem(ordem: OrdemApi): OrdemParaFoto {
 export function priorizarNumeroExato(ordens: OrdemParaFoto[], termo: string) {
   const alvo = termo.trim().toLowerCase();
   if (!alvo) return ordens;
-  const exato = (ordem: OrdemParaFoto) => {
+
+  const exatos: OrdemParaFoto[] = [];
+  const outros: OrdemParaFoto[] = [];
+
+  for (const ordem of ordens) {
     const numero = ordem.numero.toLowerCase();
-    return numero === alvo || numero.endsWith(`-${alvo}`);
-  };
-  return [...ordens.filter(exato), ...ordens.filter((ordem) => !exato(ordem))];
+    if (numero === alvo || numero.endsWith(`-${alvo}`)) {
+      exatos.push(ordem);
+    } else {
+      outros.push(ordem);
+    }
+  }
+
+  return [...exatos, ...outros];
 }
 
 async function lerMensagem(response: Response, padrao: string) {

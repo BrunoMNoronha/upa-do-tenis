@@ -29,3 +29,7 @@
 ## 2026-10-04 - Agregação independente no dashboard
 **Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
 **Ação:** Preservar período, exclusão de estornos e ranking; medir latência no ambiente alvo antes de afirmar percentuais de ganho.
+
+## 2026-10-04 - Avoid unnecessary array iteration via consecutive array method chains
+**Learning:** Chaining array methods like multiple `.filter()` over the same source array causes iterations of time complexity O(k*N) and creates intermediate array structures which increase memory usage and garbage collection overhead.
+**Action:** When filtering or mapping data into different categorizations (e.g., separating exact matches from partial matches), use a single `for...of` loop with a constant complexity of O(N).
