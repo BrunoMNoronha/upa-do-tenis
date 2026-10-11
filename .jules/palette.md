@@ -29,3 +29,7 @@
 ## 2026-09-16 - Estado de carregamento no ConfirmDialog
 **Aprendizado:** Componentes modais genéricos, como o ConfirmDialog, frequentemente deixam de implementar feedback visual nativo (`isLoading`) em suas ações primárias de submissão, forçando as telas consumidoras a realizar overrides manuais inconsistentes (ex: mudando o texto de "Confirmar" para "Cancelando...").
 **Ação:** Expandir componentes genéricos modais (`ConfirmDialog`) para receber um estado de carregamento explícito (ex: `isConfirmando`), vinculando-o ao `<Button isLoading={...}>` subjacente para centralizar e garantir um feedback visual robusto de submissão assíncrona, eliminando overrides de texto nas telas filhas.
+
+## 2026-10-11 - Dynamic Text in Loading Buttons Causes Jumpy Feedback
+**Learning:** Altering a button's primary text (e.g., from "Registrar atendimento" to "Registrando...") simultaneously with setting an internal loading state (`isLoading`) causes inconsistent visual feedback. The length of the text changing can cause jarring layout shifts, while relying purely on `isLoading` (which displays a spinner within the `<Button>`) is a cleaner UX pattern.
+**Action:** When working on form submit buttons, preserve the static call-to-action text and pass the boolean loading state strictly through the `<Button>` component's `isLoading` prop instead of creating ternary dynamic text.

@@ -404,7 +404,7 @@ export function AtendimentoRapidoClient({
         ) : null}
 
         <Button type="submit" className="mt-4 w-full" isLoading={enviando}>
-          {enviando ? "Registrando..." : "Registrar atendimento"}
+          Registrar atendimento
         </Button>
       </Card>
     </form>
