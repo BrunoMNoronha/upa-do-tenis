@@ -29,3 +29,9 @@
 ## 2026-10-04 - Agregação independente no dashboard
 **Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
 **Ação:** Preservar período, exclusão de estornos e ranking; medir latência no ambiente alvo antes de afirmar percentuais de ganho.
+
+## 2026-10-07 — Optimize map and filter chain in gerarRelatorioFinanceiroOS
+
+**Learning:** Em funções de agregação e relatórios, o uso encadeado de `map` seguido de múltiplos `filter` em arrays grandes gera overhead devido a iterações O(N) redundantes e à alocação de arrays intermediários na memória (garbage collection).
+
+**Action:** Sempre que houver a necessidade de derivar (map) propriedades e filtrar com base nessas derivações, consolide o processamento em um único loop (`for...of`) para que o cálculo, validação das condições de filtro (com `continue`) e montagem do array resultante aconteçam de forma iterativa, em uma única passagem (single-pass).
