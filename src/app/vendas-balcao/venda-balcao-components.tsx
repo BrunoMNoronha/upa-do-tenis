@@ -378,7 +378,7 @@ export function CarrinhoItem({
           <button
             type="button"
             onClick={() => produto && onAjustarQuantidade(produto, item.quantidade - 1)}
-            aria-label="Diminuir quantidade"
+            aria-label={`Diminuir quantidade de ${item.nome}`}
             disabled={item.quantidade <= 1}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-[color:var(--border)] text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -390,7 +390,7 @@ export function CarrinhoItem({
           <button
             type="button"
             onClick={() => produto && onAjustarQuantidade(produto, item.quantidade + 1)}
-            aria-label="Aumentar quantidade"
+            aria-label={`Aumentar quantidade de ${item.nome}`}
             disabled={noLimite}
             title={noLimite ? `Estoque máximo: ${estoqueMax} un` : undefined}
             className="flex h-7 w-7 items-center justify-center rounded-full border border-[color:var(--border)] text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
