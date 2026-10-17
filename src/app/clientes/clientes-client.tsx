@@ -151,14 +151,14 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
               aria-invalid={Boolean(errors.telefone)}
               aria-describedby={errors.telefone ? "telefone-error" : undefined}
             />
-            {errors.telefone ? <p id="telefone-error" className="text-sm text-red-600">{errors.telefone.message}</p> : null}
+            {errors.telefone ? <p id="telefone-error" role="alert" className="text-sm text-red-600">{errors.telefone.message}</p> : null}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="email">E-mail</Label>
               <Input id="email" {...register("email")} placeholder="cliente@exemplo.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
-              {errors.email ? <p id="email-error" className="text-sm text-red-600">{errors.email.message}</p> : null}
+              {errors.email ? <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p> : null}
             </div>
 
             <div className="grid gap-2">
@@ -174,7 +174,7 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
                 aria-invalid={Boolean(errors.cpfCnpj)}
                 aria-describedby={errors.cpfCnpj ? "cpfCnpj-error" : undefined}
               />
-              {errors.cpfCnpj ? <p id="cpfCnpj-error" className="text-sm text-red-600">{errors.cpfCnpj.message}</p> : null}
+              {errors.cpfCnpj ? <p id="cpfCnpj-error" role="alert" className="text-sm text-red-600">{errors.cpfCnpj.message}</p> : null}
             </div>
           </div>
 
