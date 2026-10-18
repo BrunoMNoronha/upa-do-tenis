@@ -504,6 +504,8 @@ export function OrdemServicoForm({
                 <div className="min-w-0 flex-1">
                   <Combobox
                     id="clienteId"
+                    aria-invalid={Boolean(errors.clienteId)}
+                    aria-describedby={errors.clienteId ? "clienteId-error" : undefined}
                     options={clientesDisponiveis.map((c) => ({
                       value: c.id,
                       label: c.nome,
@@ -564,7 +566,7 @@ export function OrdemServicoForm({
                   </svg>
                 </button>
               </div>
-              <ErroCampo mensagem={errors.clienteId?.message} />
+              <ErroCampo id="clienteId-error" mensagem={errors.clienteId?.message} />
             </div>
 
             {mostrarNovoCliente ? (
@@ -598,22 +600,26 @@ export function OrdemServicoForm({
                     <Input
                       id="novoClienteTelefone"
                       {...registerCliente("telefone")}
+                      aria-invalid={Boolean(clienteErrors.telefone)}
+                      aria-describedby={clienteErrors.telefone ? "novoClienteTelefone-error" : undefined}
                       onChange={(e) => {
                         e.target.value = maskPhone(e.target.value);
                         registerCliente("telefone").onChange(e);
                       }}
                       placeholder="(11) 99999-9999"
                     />
-                    <ErroCampo mensagem={clienteErrors.telefone?.message} />
+                    <ErroCampo id="novoClienteTelefone-error" mensagem={clienteErrors.telefone?.message} />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="novoClienteEmail">E-mail (opcional)</Label>
                     <Input
                       id="novoClienteEmail"
                       {...registerCliente("email")}
+                      aria-invalid={Boolean(clienteErrors.email)}
+                      aria-describedby={clienteErrors.email ? "novoClienteEmail-error" : undefined}
                       placeholder="cliente@exemplo.com"
                     />
-                    <ErroCampo mensagem={clienteErrors.email?.message} />
+                    <ErroCampo id="novoClienteEmail-error" mensagem={clienteErrors.email?.message} />
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="novoClienteCpfCnpj">
@@ -622,17 +628,19 @@ export function OrdemServicoForm({
                     <Input
                       id="novoClienteCpfCnpj"
                       {...registerCliente("cpfCnpj")}
+                      aria-invalid={Boolean(clienteErrors.cpfCnpj)}
+                      aria-describedby={clienteErrors.cpfCnpj ? "novoClienteCpfCnpj-error" : undefined}
                       onChange={(e) => {
                         e.target.value = maskCPFCNPJ(e.target.value);
                         registerCliente("cpfCnpj").onChange(e);
                       }}
                       placeholder="Opcional"
                     />
-                    <ErroCampo mensagem={clienteErrors.cpfCnpj?.message} />
+                    <ErroCampo id="novoClienteCpfCnpj-error" mensagem={clienteErrors.cpfCnpj?.message} />
                   </div>
                 </div>
 
-                <ErroCampo mensagem={clienteError} />
+                <ErroCampo id="cliente-error" mensagem={clienteError} />
 
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <Button
@@ -664,11 +672,13 @@ export function OrdemServicoForm({
                 <Input
                   id="dataEntrada"
                   type="date"
+                  aria-invalid={Boolean(errors.dataEntrada)}
+                  aria-describedby={errors.dataEntrada ? "dataEntrada-error" : undefined}
                   defaultValue={hojeOperacional}
                   max={hojeOperacional}
                   {...register("dataEntrada")}
                 />
-                <ErroCampo mensagem={errors.dataEntrada?.message} />
+                <ErroCampo id="dataEntrada-error" mensagem={errors.dataEntrada?.message} />
                 {exigeJustificativaDataEntrada ? (
                   <p className="text-xs text-slate-500">
                     Registro retroativo — o número da OS usa a data de entrada
@@ -684,12 +694,14 @@ export function OrdemServicoForm({
                 <Input
                   id="numeroOS"
                   type="text"
+                  aria-invalid={Boolean(errors.numeroOS)}
+                  aria-describedby={errors.numeroOS ? "numeroOS-error" : undefined}
                   inputMode="numeric"
                   autoComplete="off"
                   placeholder="Ex.: 0124"
                   {...register("numeroOS")}
                 />
-                <ErroCampo mensagem={errors.numeroOS?.message} />
+                <ErroCampo id="numeroOS-error" mensagem={errors.numeroOS?.message} />
                 {previaNumero ? (
                   <p className="text-xs text-slate-500">
                     Identificador: <span className="font-semibold text-[color:var(--text)]">{previaNumero}</span>
@@ -704,10 +716,12 @@ export function OrdemServicoForm({
                 <Input
                   id="prazoPrevisto"
                   type="date"
+                  aria-invalid={Boolean(errors.prazoPrevisto)}
+                  aria-describedby={errors.prazoPrevisto ? "prazoPrevisto-error" : undefined}
                   defaultValue={calcularPrazoPrevistoPadrao(hojeOperacional)}
                   {...register("prazoPrevisto")}
                 />
-                <ErroCampo mensagem={errors.prazoPrevisto?.message} />
+                <ErroCampo id="prazoPrevisto-error" mensagem={errors.prazoPrevisto?.message} />
               </div>
 
               {exigeJustificativaDataEntrada ? (
@@ -718,9 +732,11 @@ export function OrdemServicoForm({
                   <Textarea
                     id="justificativaDataEntrada"
                     rows={2}
+                    aria-invalid={Boolean(errors.justificativaDataEntrada)}
+                    aria-describedby={errors.justificativaDataEntrada ? "justificativaDataEntrada-error" : undefined}
                     {...register("justificativaDataEntrada")}
                   />
-                  <ErroCampo mensagem={errors.justificativaDataEntrada?.message} />
+                  <ErroCampo id="justificativaDataEntrada-error" mensagem={errors.justificativaDataEntrada?.message} />
                 </div>
               ) : null}
             </div>
@@ -757,7 +773,7 @@ export function OrdemServicoForm({
                   />
                 );
               })}
-              <ErroCampo mensagem={errors.itens?.message ?? errors.itens?.root?.message} />
+              <ErroCampo id="itens-error" mensagem={errors.itens?.message ?? errors.itens?.root?.message} />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button
                   type="button"
