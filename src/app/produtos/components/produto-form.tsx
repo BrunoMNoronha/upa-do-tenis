@@ -98,15 +98,17 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
         </SectionTitle>
       </div>
 
-      <form className="grid gap-4" onSubmit={onSubmit}>
+      <form className="grid gap-4" onSubmit={onSubmit} noValidate>
         <div className="grid gap-2">
           <Label htmlFor="nome">Nome do Produto</Label>
           <Input
             id="nome"
             {...register("nome")}
             placeholder="Ex: Cadarço 120cm"
+            aria-invalid={Boolean(errors.nome)}
+            aria-describedby={errors.nome ? "nome-error" : undefined}
           />
-          {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
+          {errors.nome ? <p id="nome-error" className="text-sm text-red-600">{errors.nome.message}</p> : null}
         </div>
 
         <div className="grid gap-2">
@@ -114,6 +116,8 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
           <Input
             id="precoVenda"
             type="text"
+            aria-invalid={Boolean(errors.precoVenda)}
+            aria-describedby={errors.precoVenda ? "precoVenda-error" : undefined}
             {...register("precoVenda")}
             onChange={(e) => {
               e.target.value = maskCurrency(e.target.value);
@@ -128,7 +132,7 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             }}
             placeholder="R$ 0,00"
           />
-          {errors.precoVenda ? <p className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
+          {errors.precoVenda ? <p id="precoVenda-error" className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
         </div>
 
         {!editando ? (
@@ -141,12 +145,14 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
               step="1"
               {...register("quantidadeInicial")}
               placeholder="0 (opcional)"
+              aria-invalid={Boolean(errors.quantidadeInicial)}
+              aria-describedby={errors.quantidadeInicial ? "quantidadeInicial-error quantidadeInicial-hint" : "quantidadeInicial-hint"}
             />
-            <p className="text-xs text-slate-400">
+            <p id="quantidadeInicial-hint" className="text-xs text-slate-400">
               Opcional. Se informado, registrará uma entrada manual rastreável no estoque.
             </p>
             {errors.quantidadeInicial ? (
-              <p className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
+              <p id="quantidadeInicial-error" className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
             ) : null}
           </div>
         ) : null}
@@ -158,10 +164,13 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             {...register("descricao")}
             rows={3}
             placeholder="Detalhes adicionais sobre o produto"
+            aria-invalid={Boolean(errors.descricao)}
+            aria-describedby={errors.descricao ? "descricao-error" : undefined}
           />
+        {errors.descricao ? <p id="descricao-error" className="text-sm text-red-600">{errors.descricao.message}</p> : null}
         </div>
 
-        {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+        {submitError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{submitError}</p> : null}
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" isLoading={isSubmitting || isPending}>
