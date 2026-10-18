@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardFiltros } from "@/components/dashboard/DashboardFiltros";
+import { AssistenteClient } from "./assistente-client";
 import { Badge, Button, Card, EmptyState, ErrorState, LoadingState, PanelHeader } from "@/components/ui";
 import type { AnaliseInsightSalva, ResumoAnaliseInsight } from "@/lib/insights-historico";
 import {
@@ -53,7 +54,51 @@ async function lerJson(response: Response) {
   return response.json().catch(() => null);
 }
 
-export function InsightsClient({ periodoInicial, chaveConfigurada }: InsightsClientProps) {
+const ABAS = [
+  { id: "analises", rotulo: "Análises" },
+  { id: "assistente", rotulo: "Assistente" },
+] as const;
+
+export function InsightsClient(props: InsightsClientProps) {
+  const [aba, setAba] = useState<(typeof ABAS)[number]["id"]>("analises");
+
+  return (
+    <div className="space-y-6">
+      <div role="tablist" aria-label="Seções de Insights" className="flex gap-2">
+        {ABAS.map((item) => {
+          const ativa = aba === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              id={`aba-${item.id}`}
+              aria-selected={ativa}
+              aria-controls={`painel-${item.id}`}
+              onClick={() => setAba(item.id)}
+              className={`inline-flex min-h-[44px] items-center rounded-full border px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] ${
+                ativa
+                  ? "border-[color:var(--ink)] bg-[color:var(--ink)] text-white"
+                  : "border-[color:var(--border)] bg-white text-[color:var(--text)] hover:bg-black/5"
+              }`}
+            >
+              {item.rotulo}
+            </button>
+          );
+        })}
+      </div>
+
+      <div role="tabpanel" id="painel-analises" aria-labelledby="aba-analises" hidden={aba !== "analises"}>
+        <AnalisesPainel {...props} />
+      </div>
+      <div role="tabpanel" id="painel-assistente" aria-labelledby="aba-assistente" hidden={aba !== "assistente"}>
+        <AssistenteClient chaveConfigurada={props.chaveConfigurada} />
+      </div>
+    </div>
+  );
+}
+
+function AnalisesPainel({ periodoInicial, chaveConfigurada }: InsightsClientProps) {
   const [inicio, setInicio] = useState(periodoInicial.inicio);
   const [fim, setFim] = useState(periodoInicial.fim);
   const [modelo, setModelo] = useState<OpcaoModeloInsights>("economico");
