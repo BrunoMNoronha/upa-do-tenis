@@ -33,3 +33,7 @@
 ## 2026-10-09 - Iteração única com early return em filtros no servidor
 **Learning:** Processar filtros derivativos em memória e mapeamentos em várias passadas (ex: usando `.map()` seguido de múltiplos `.filter()`) sobre um grande array em memória gera sobrecarga O(k*N) de iterações e cria de arrays intermediários desnecessários no garbage collector.
 **Action:** Otimizar processamentos de conjuntos de dados grandes (como listagens e relatórios) consolidando o mapeamento inicial e os múltiplos filtros aplicáveis em um único laço `for...of`. No laço, o uso de `continue` assim que uma condição do filtro for não atendida ("early return") impede que cálculos caros para o item inteiro ou alocações de objeto sejam executados se o item for logo a seguir descartado.
+
+## 2026-10-04 - Avoid unnecessary array iteration via consecutive array method chains
+**Learning:** Chaining array methods like multiple `.filter()` over the same source array causes iterations of time complexity O(k*N) and creates intermediate array structures which increase memory usage and garbage collection overhead.
+**Action:** When filtering or mapping data into different categorizations (e.g., separating exact matches from partial matches), use a single `for...of` loop with a constant complexity of O(N).
