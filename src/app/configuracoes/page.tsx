@@ -4,6 +4,8 @@ import {
   obterDadosEmpresaComCache as obterDadosEmpresa,
   obterLinkAvaliacaoGoogleComCache as obterLinkAvaliacaoGoogle,
 } from "@/lib/dados-cache";
+import { obterStatusChaveClaude } from "@/lib/insights-config";
+import { ConfiguracaoClaudeClient } from "./configuracao-claude-client";
 import { ConfiguracoesClient } from "./configuracoes-client";
 import { DadosEmpresaForm } from "./dados-empresa-form";
 
@@ -17,9 +19,10 @@ export const metadata = {
 export default async function ConfiguracoesPage() {
   await exigirSessao();
 
-  const [linkAvaliacaoGoogle, dadosEmpresa] = await Promise.all([
+  const [linkAvaliacaoGoogle, dadosEmpresa, statusChaveClaude] = await Promise.all([
     obterLinkAvaliacaoGoogle(),
     obterDadosEmpresa(),
+    obterStatusChaveClaude(),
   ]);
 
   return (
@@ -32,6 +35,7 @@ export default async function ConfiguracoesPage() {
       <div className="space-y-6">
         <DadosEmpresaForm dadosIniciais={dadosEmpresa} />
         <ConfiguracoesClient linkInicial={linkAvaliacaoGoogle} nomeEmpresa={dadosEmpresa.nomeFantasia} />
+        <ConfiguracaoClaudeClient statusInicial={statusChaveClaude} />
       </div>
     </AppShell>
   );

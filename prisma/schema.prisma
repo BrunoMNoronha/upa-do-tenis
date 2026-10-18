@@ -19,6 +19,7 @@ model Usuario {
   estornosPagamento   EstornoPagamento[]
   atendimentosRapidos AtendimentoRapido[]
   vendasCanceladas    Venda[]             @relation("VendaCanceladaPor")
+  analisesInsight     AnaliseInsight[]
 
   @@index([nome])
   @@index([ativo])
@@ -468,4 +469,26 @@ model ConfiguracaoSistema {
   chave        String   @id
   valor        String
   atualizadoEm DateTime @updatedAt
+}
+
+/// Análise de negócio gerada pela Claude API na tela de Insights.
+/// Registro imutável (sem atualizadoEm). `resultado` guarda o JSON já
+/// validado pelo schema da análise; o período usa dias do fuso da operação.
+model AnaliseInsight {
+  id            String   @id @default(cuid())
+  /// Id do modelo Claude usado (ex.: claude-haiku-5-5).
+  modelo        String
+  /// Dia inicial "YYYY-MM-DD" (fuso da operação).
+  periodoInicio String
+  /// Dia final "YYYY-MM-DD" (fuso da operação, inclusive).
+  periodoFim    String
+  resultado     String
+  tokensEntrada Int      @default(0)
+  tokensSaida   Int      @default(0)
+  usuarioId     String
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  criadoEm      DateTime @default(now())
+
+  @@index([criadoEm])
+  @@index([usuarioId])
 }
