@@ -136,7 +136,7 @@ export function montarIndicadoresPeriodo(
   };
 }
 
-async function lerSituacaoAtual(agora: Date): Promise<PayloadInsights["situacaoAtual"]> {
+export async function lerSituacaoAtual(agora: Date = new Date()): Promise<PayloadInsights["situacaoAtual"]> {
   const [atrasadas, aguardandoRetirada, caixa, estatisticas, criticos, produtosSemEstoque] = await Promise.all([
     prisma.ordemServico.aggregate({
       _count: { id: true },
@@ -174,6 +174,27 @@ async function lerSituacaoAtual(agora: Date): Promise<PayloadInsights["situacaoA
       })),
     },
     produtosSemEstoque,
+  };
+}
+
+/** Indicadores e série diária de um período avulso (usado pelas ferramentas do Assistente). */
+export async function lerIndicadoresPeriodo(
+  inicio: string,
+  fim: string,
+): Promise<{ indicadores: IndicadoresPeriodo; recebimentosPorDia: PayloadInsights["recebimentosPorDia"] }> {
+  const [metricas, complementares, formas] = await Promise.all([
+    getDashboardMetrics(inicio, fim),
+    lerIndicadoresComplementares(inicio, fim),
+    prisma.formaPagamento.findMany({ select: { id: true, nome: true } }),
+  ]);
+
+  return {
+    indicadores: montarIndicadoresPeriodo(
+      metricas,
+      complementares,
+      new Map(formas.map((forma) => [forma.id, forma.nome])),
+    ),
+    recebimentosPorDia: metricas.recebimentosPorDia?.map(({ dia, valor }) => ({ dia, valor })) ?? null,
   };
 }
 

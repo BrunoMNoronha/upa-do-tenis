@@ -70,11 +70,11 @@ Dados do sistema (JSON):
 ${JSON.stringify(payload)}`;
 }
 
-function criarCliente(apiKey: string): Anthropic {
+export function criarCliente(apiKey: string): Anthropic {
   return new Anthropic({ apiKey, timeout: TIMEOUT_MS, maxRetries: 1 });
 }
 
-function traduzirErroApi(error: unknown): never {
+export function traduzirErroApi(error: unknown): never {
   if (error instanceof ErroInsightsIA) throw error;
   if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
     throw new ErroInsightsIA("CHAVE_INVALIDA", "A chave da Claude API foi recusada. Verifique a chave em Configurações.");

@@ -20,6 +20,7 @@ model Usuario {
   atendimentosRapidos AtendimentoRapido[]
   vendasCanceladas    Venda[]             @relation("VendaCanceladaPor")
   analisesInsight     AnaliseInsight[]
+  conversasAssistente ConversaAssistente[]
 
   @@index([nome])
   @@index([ativo])
@@ -491,4 +492,42 @@ model AnaliseInsight {
 
   @@index([criadoEm])
   @@index([usuarioId])
+}
+
+/// Conversa do Assistente (chatbot) da tela de Insights. Pertence a um
+/// usuário; a personalidade é fixa por conversa.
+model ConversaAssistente {
+  id           String               @id @default(cuid())
+  /// Primeira pergunta, truncada, para identificar a conversa na lista.
+  titulo       String
+  /// RH | FINANCAS | ESTRATEGIA | MARKETING | OPERACOES
+  persona      String
+  usuarioId    String
+  usuario      Usuario              @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  criadoEm     DateTime             @default(now())
+  atualizadoEm DateTime             @updatedAt
+  mensagens    MensagemAssistente[]
+
+  @@index([usuarioId, atualizadoEm])
+}
+
+/// Mensagem trocada com a Claude API, na ordem do array `messages`.
+/// `conteudo` guarda os content blocks exatamente como enviados/recebidos
+/// (inclusive thinking, tool_use e tool_result): o histórico é reenviado à
+/// API sem edição, por isso as mensagens são apenas acrescentadas.
+model MensagemAssistente {
+  id            String             @id @default(cuid())
+  conversaId    String
+  conversa      ConversaAssistente @relation(fields: [conversaId], references: [id], onDelete: Cascade)
+  ordem         Int
+  /// user | assistant
+  papel         String
+  conteudo      String
+  /// Modelo que gerou a mensagem (só no papel assistant).
+  modelo        String?
+  tokensEntrada Int                @default(0)
+  tokensSaida   Int                @default(0)
+  criadoEm      DateTime           @default(now())
+
+  @@unique([conversaId, ordem])
 }
