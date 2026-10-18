@@ -112,7 +112,7 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
             {...register("email")}
             placeholder="usuario@exemplo.com"
           />
-          {errors.email ? <p id="email-error" className="text-sm text-red-600">{errors.email.message}</p> : null}
+          {errors.email ? <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p> : null}
         </div>
 
         <div className="grid gap-2">
@@ -126,7 +126,7 @@ export function LoginForm({ captchaSiteKey }: LoginFormProps) {
             {...register("senha")}
             placeholder="Sua senha"
           />
-          {errors.senha ? <p id="senha-error" className="text-sm text-red-600">{errors.senha.message}</p> : null}
+          {errors.senha ? <p id="senha-error" role="alert" className="text-sm text-red-600">{errors.senha.message}</p> : null}
         </div>
 
         {submitError ? (
