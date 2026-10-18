@@ -127,7 +127,9 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
   // "YYYY-MM-DD" no fuso da operação; compara corretamente como texto.
   const hoje = dataOperacional(new Date());
 
-  let itens: RelatorioOSItem[] = ordens.map((ordem) => {
+  const itens: RelatorioOSItem[] = [];
+
+  for (const ordem of ordens) {
     const resumoFinanceiro = calcularResumoFinanceiroOS({
       statusOperacional: ordem.status,
       valorTotal: ordem.valorTotal,
@@ -138,10 +140,21 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
       itens: ordem.itens,
     });
 
+    // Filtros em memória (derivados)
+    if (filtros.statusFinanceiro && filtros.statusFinanceiro !== 'TODOS') {
+      if (resumoFinanceiro.statusFinanceiro !== filtros.statusFinanceiro) continue;
+    }
+
+    if (filtros.saldoAberto === true) {
+      if (resumoFinanceiro.saldo <= 0) continue;
+    } else if (filtros.saldoAberto === false) {
+      if (resumoFinanceiro.saldo !== 0) continue;
+    }
+
     const previsaoDia = dataOperacional(new Date(ordem.dataPrevisao));
     const atrasada = ordem.status !== 'ENTREGUE' && ordem.status !== 'CONCLUIDA' && ordem.status !== 'CANCELADA' && previsaoDia < hoje;
 
-    return {
+    itens.push({
       id: ordem.id,
       numero: ordem.numero,
       clienteNome: ordem.cliente.nome,
@@ -153,18 +166,7 @@ export async function gerarRelatorioFinanceiroOS(filtros: RelatorioFiltros): Pro
       dataEntrada: ordem.dataEntrada.toISOString(),
       dataPrevisao: ordem.dataPrevisao.toISOString(),
       atrasada,
-    };
-  });
-
-  // Filtros em memória (derivados)
-  if (filtros.statusFinanceiro && filtros.statusFinanceiro !== 'TODOS') {
-    itens = itens.filter(item => item.statusFinanceiro === filtros.statusFinanceiro);
-  }
-
-  if (filtros.saldoAberto === true) {
-    itens = itens.filter(item => item.saldo > 0);
-  } else if (filtros.saldoAberto === false) {
-    itens = itens.filter(item => item.saldo === 0);
+    });
   }
 
   // Resumo e agregados sobre TODOS os itens filtrados computados em uma única pass O(N)
