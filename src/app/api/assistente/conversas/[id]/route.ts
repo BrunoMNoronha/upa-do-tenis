@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
 import {
   LIMITE_PERGUNTAS_POR_CONVERSA,
   excluirConversa,
@@ -13,9 +13,10 @@ const SEM_CACHE_HTTP = { "Cache-Control": "private, no-store" };
 export async function GET(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   try {
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
 
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
     const conversa = await obterConversaCompleta(id, usuario.id);
     if (!conversa) {
       return NextResponse.json({ message: "Conversa não encontrada." }, { status: 404, headers: SEM_CACHE_HTTP });
@@ -41,9 +42,10 @@ export async function GET(req: NextRequest, props: { params: Promise<{ id: strin
 export async function DELETE(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   try {
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
 
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
     if (!(await excluirConversa(id, usuario.id))) {
       return NextResponse.json({ message: "Conversa não encontrada." }, { status: 404 });
     }
