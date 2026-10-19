@@ -493,7 +493,7 @@ export function OrdemServicoForm({
           </div>
         </div>
 
-        <form className="grid gap-8" onSubmit={onSubmit}>
+        <form className="grid gap-8" onSubmit={onSubmit} noValidate>
           {/* 1. Cliente */}
           <FormSection titulo="Cliente" obrigatorio>
             <div className="grid gap-2">
