@@ -34,11 +34,25 @@ describe("middleware de autenticação", () => {
     expect(response.headers.get("location")).toBe("http://localhost/login");
   });
 
-  it("redireciona a raiz sem sessão para /login", async () => {
+  it("abre a landing na raiz sem sessão", async () => {
     const response = await middleware(criarRequest("/"));
 
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/login");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("landing continua acessível com sessão administrativa", async () => {
+    const token = criarTokenSessao("usr-1");
+    const response = await middleware(criarRequest("/", token));
+
+    expect(response.status).toBe(200);
+  });
+
+  it("política geográfica também vale para a landing", async () => {
+    const req = criarRequest("/");
+    req.headers.set("x-vercel-ip-country", "US");
+
+    expect((await middleware(req)).status).toBe(403);
   });
 
   it("responde 401 sem cache HTTP em API privada sem sessão", async () => {

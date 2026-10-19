@@ -30,6 +30,7 @@ Só depois disso roda `autenticarUsuario` (scrypt), que é o custo mais alto da 
 
 ## Rotas públicas
 
+- `/`: landing pública do produto TechLab+ Sapataria. Conteúdo estático (`src/config/landing.ts` e `src/lib/landing-precos.ts`), sem sessão, sem Prisma e sem dados da loja; a trava de caixa pendente não se aplica e quem já tem sessão também a vê (entra pelo botão "Entrar"). Plano em [`LANDING_PAGE.md`](../01-planejamento/planos-implementacao/LANDING_PAGE.md);
 - `/login` (a página redireciona para `/dashboard` se já houver sessão);
 - `POST /api/auth/login`;
 - `POST /api/auth/logout`;
