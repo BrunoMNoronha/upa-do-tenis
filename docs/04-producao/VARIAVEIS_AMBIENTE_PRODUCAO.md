@@ -14,6 +14,7 @@ Referência: `.env.production.example` (já existe no repositório, versionado, 
 | `RECAPTCHA_SCORE_MINIMO` | Não | Score mínimo do v3 em `[0, 1]` | Padrão `0.5`; valor inválido cai no padrão |
 | `INSIGHTS_CRYPTO_SECRET` | Recomendada | Segredo mestre da criptografia (AES-256-GCM) da chave da Claude API salva em Configurações | Mínimo 16 caracteres. Sem ela, usa o `AUTH_SESSION_SECRET`; nesse caso, rotacionar o segredo de sessão torna a chave salva ilegível e ela precisa ser cadastrada de novo na tela de Configurações |
 | `CACHE_DADOS_ENABLED` | Não | Habilita o Data Cache seletivo do servidor somente com `true` | Ausente/`false`: desligado. Ativar em Preview após homologação local e em Production apenas após aceite. Revalidação em 300s; rollback com `false`, mantendo invalidação nas escritas |
+| `LANDING_WHATSAPP` | Não | WhatsApp comercial da landing pública (`/`): telefone brasileiro com DDD, 10 ou 11 dígitos, com ou sem máscara/prefixo 55 | Lido no servidor a cada requisição (`src/lib/landing-contato.ts`), nunca `NEXT_PUBLIC_*`; alterar não exige redeploy. Ausente ou inválido: os botões "Agendar demonstração" somem e um aviso vai para o log. Não é segredo, mas é dado de contato do fornecedor do produto |
 
 Não existem variáveis `NEXT_PUBLIC_*` no projeto atualmente (`grep -r "NEXT_PUBLIC_" src` não retorna resultados). Nenhum segredo é ou deve ser exposto ao cliente. Caso uma variável `NEXT_PUBLIC_*` seja introduzida no futuro, ela é embutida no bundle do navegador — **nunca** usar para segredos.
 
@@ -37,6 +38,7 @@ Definir as variáveis diretamente no provedor de hospedagem (painel de variávei
 - [ ] Nenhum arquivo `.env`, `.env.local`, `.env.production` com valores reais foi commitado (`git ls-files | grep '^\.env'` deve listar apenas `.env.example` e `.env.production.example`).
 - [ ] Nenhuma variável `NEXT_PUBLIC_*` contém segredo.
 - [ ] `RECAPTCHA_SITE_KEY` e `RECAPTCHA_SECRET_KEY` configuradas para o domínio de produção (ou ausência registrada como aceitação de risco: login só com rate limiting).
+- [ ] `LANDING_WHATSAPP` definida se a landing (`/`, domínio `sapataria.dev2bless.tech`) deve exibir os botões de WhatsApp; sem ela a página publica sem chamada para ação.
 
 ---
 
@@ -54,6 +56,7 @@ Escopos e regras da [FATIA_PRODUCAO_04_VERCEL_NEON.md](FATIA_PRODUCAO_04_VERCEL_
 | `RECAPTCHA_SITE_KEY` / `RECAPTCHA_SECRET_KEY` | par do domínio de produção | par **diferente**, domínio `vercel.app` | não definir | — | — |
 | `RECAPTCHA_SCORE_MINIMO` | opcional | opcional | não definir | — | — |
 | `CACHE_DADOS_ENABLED` | `false` até aceite | `true` somente para homologação | não definir | — | — |
+| `LANDING_WHATSAPP` | telefone comercial com DDD | mesmo número (ou vazio para esconder os botões) | não definir | — | — |
 | `BOOTSTRAP_ADMIN_NOME` / `_EMAIL` / `_SENHA` | **nunca** | **nunca** | **nunca** | **nunca** | **nunca** |
 
 `NODE_ENV` não é configurado manualmente na Vercel — a plataforma define `production` inclusive nos deployments de **Preview**.

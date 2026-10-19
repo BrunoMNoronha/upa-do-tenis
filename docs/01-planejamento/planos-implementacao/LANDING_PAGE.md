@@ -96,8 +96,15 @@ Constantes em `src/lib/landing-precos.ts`, cobertas por `landing-precos.test.ts`
 
 Alterar qualquer premissa no módulo atualiza a landing e exige ajustar o teste.
 
+## Domínio e contato
+
+- Domínio público da landing: `https://sapataria.dev2bless.tech` (`PRODUTO.urlSite`), usado em `metadataBase`, URL canônica e Open Graph. A rota `/` já é pública no middleware; apontar o domínio para o deploy e cadastrá-lo na Vercel é configuração de infraestrutura, fora do código.
+- WhatsApp comercial: variável de ambiente `LANDING_WHATSAPP` (telefone com DDD, 10 ou 11 dígitos; máscara e prefixo 55 aceitos), lida no servidor por `obterContatoLanding()` em `src/lib/landing-contato.ts` e convertida com `whatsappLink`/`formatPhone` de `src/lib/formatters.ts`. A mensagem pré-preenchida vem de `PRODUTO.mensagemWhatsapp`. Sem a variável (ou com valor inválido), os botões "Agendar demonstração" não aparecem e um aviso é registrado uma vez por processo. Documentada em `.env.example`, `.env.production.example` e `docs/04-producao/VARIAVEIS_AMBIENTE_PRODUCAO.md`.
+
 ## Pendências
 
-- Preencher `whatsappUrl`, `email`, `razaoSocial` e `cnpj` em `src/config/landing.ts`. Enquanto vazios, os botões e textos correspondentes não aparecem.
+- Definir `LANDING_WHATSAPP` nos escopos Production e Preview da Vercel (valor combinado: 61 98530-7168). Alterar o valor não exige redeploy.
+- Preencher `email`, `razaoSocial` e `cnpj` em `src/config/landing.ts`. Enquanto vazios, os textos correspondentes não aparecem.
+- Apontar o DNS de `sapataria.dev2bless.tech` para o projeto na Vercel e cadastrar o domínio no projeto.
 - Logo, favicon, imagem Open Graph, `robots.txt` e `sitemap`: não existem assets; rotas sem extensão passariam pelo middleware e ficariam privadas, então exigem ajuste no matcher ou arquivos estáticos em `public/`.
 - Confirmar as estimativas de infraestrutura e suporte com os custos reais da operação.
