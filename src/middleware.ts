@@ -4,8 +4,9 @@ import { SESSAO_COOKIE_NOME } from "@/lib/auth-constants";
 import { verificarTokenSessaoEdge } from "@/lib/auth-edge";
 
 // Rotas acessíveis sem sessão. Tudo que não estiver aqui exige token válido.
+// `/` é a landing pública do produto: conteúdo estático, sem sessão nem banco.
 // `/catalogo` é a vitrine pública (#273): sem sessão e indiferente a ela.
-const PAGINAS_PUBLICAS = new Set(["/login", "/catalogo"]);
+const PAGINAS_PUBLICAS = new Set(["/", "/login", "/catalogo"]);
 // `/api/saude/migrations` é público para o smoke test pós-promoção; sem sessão
 // a própria rota devolve só `ok` e a contagem (#224). `/api/catalogo/produtos`
 // só revalida o carrinho com campos comerciais (#273).

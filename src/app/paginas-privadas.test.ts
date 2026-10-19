@@ -20,7 +20,14 @@ const RAIZ_APP = path.resolve(__dirname);
 const PAGINA_ACOMPANHAMENTO = path.join("acompanhar", "[token]", "page.tsx");
 // /catalogo é a vitrine pública (#273): só a projeção comercial, sem sessão.
 const PAGINA_CATALOGO = path.join("catalogo", "page.tsx");
-const PAGINAS_PUBLICAS = new Set([path.join("login", "page.tsx"), PAGINA_ACOMPANHAMENTO, PAGINA_CATALOGO]);
+// / é a landing pública do produto: conteúdo estático, sem sessão nem banco.
+const PAGINA_LANDING = "page.tsx";
+const PAGINAS_PUBLICAS = new Set([
+  path.join("login", "page.tsx"),
+  PAGINA_ACOMPANHAMENTO,
+  PAGINA_CATALOGO,
+  PAGINA_LANDING,
+]);
 
 function listarPaginas(diretorio: string): string[] {
   const encontradas: string[] = [];
@@ -72,6 +79,20 @@ describe("página pública do catálogo", () => {
   it("usa só o WhatsApp persistido, sem o fallback institucional", () => {
     expect(conteudo()).toContain("whatsapp={dadosPersistidos?.whatsapp ?? null}");
     expect(conteudo()).not.toMatch(/dadosEmpresa\.whatsapp|DADOS_EMPRESA_PADRAO/);
+  });
+});
+
+describe("landing pública do produto", () => {
+  const conteudo = () => readFileSync(path.join(RAIZ_APP, PAGINA_LANDING), "utf8");
+
+  it("não depende da sessão administrativa nem lê o banco ou os dados da loja", () => {
+    expect(conteudo()).not.toMatch(/auth-server|exigirSessao|@\/lib\/prisma|dados-cache|dados-empresa|app-shell/);
+  });
+
+  it("usa só o conteúdo estático do produto e o cálculo de preço puro", () => {
+    expect(conteudo()).toMatch(/from "@\/config\/landing"/);
+    expect(conteudo()).toMatch(/from "@\/lib\/landing-precos"/);
+    expect(conteudo()).toMatch(/export const dynamic\s*=\s*"force-dynamic"/);
   });
 });
 

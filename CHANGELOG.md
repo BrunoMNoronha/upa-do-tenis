@@ -17,6 +17,13 @@ Todas as alterações notáveis deste projeto serão documentadas neste arquivo.
   - Sem alteração de schema, valores, saldo ou cálculo de caixa. Testes de integração com banco real cobrem as duas ordens de corrida.
 
 ### Adicionado
+- **Landing pública do produto na raiz (`/`)**: página de apresentação do TechLab+ Sapataria para outras sapatarias, substituindo o painel inicial do MVP (sem links no app; a navegação usa `/dashboard`).
+  - Dez seções (herói com mock do painel, fluxo em 4 passos, funcionalidades, catálogo público, insights com IA, controle e segurança, preço, perguntas, chamada final e rodapé), só com funcionalidades existentes no sistema.
+  - Preço derivado da Análise de Pontos de Função (545 PF): implantação R$ 13.700 (R$ 500/PF amortizado em 20 lojas) e assinatura R$ 680/mês (infra + manutenção 15% a.a. + suporte, margem de 30%), com a tabela da contagem na própria página. Premissas e cálculo em `src/lib/landing-precos.ts`, cobertos por teste.
+  - `/` entra em `PAGINAS_PUBLICAS` do middleware; a página não lê sessão, banco nem dados da loja (`paginas-privadas.test.ts` passa a exigir isso). Geo-bloqueio continua valendo.
+  - Identidade visual própria (tokens `--lp-*` só na página) e fontes do Google por `<link>` com `display=swap`, sem `next/font`. Menu do celular e perguntas em `<details>` nativos, sem JavaScript.
+  - Contatos comerciais (WhatsApp, e-mail, razão social, CNPJ) em `src/config/landing.ts`, vazios até serem definidos: os botões correspondentes não aparecem.
+  - Sem alteração de schema, APIs, cálculos financeiros ou autenticação além da lista de rotas públicas.
 - **Cancelamento de venda de balcão — tela (fatia 2)**: botão "Cancelar venda" em cada venda concluída do histórico `/vendas` e no detalhe `/vendas/[id]`.
   - Diálogo com número, total, forma de pagamento, quantidade de itens, aviso de que os produtos voltam ao estoque e o total sai do caixa, e motivo obrigatório (5 a 500 caracteres, validado também na tela). Foco no motivo; Esc fecha; erros da API em `role="alert"`.
   - Depois do cancelamento, os dados são recarregados do servidor.

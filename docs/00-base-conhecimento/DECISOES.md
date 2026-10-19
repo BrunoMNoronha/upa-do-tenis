@@ -20,6 +20,8 @@
   - O WhatsApp de destino é **apenas o número configurado e validado** em Dados da empresa. Sem configuração, não há fallback.
   - O clique abre a conversa e não registra venda, reserva, pagamento ou movimento de caixa/estoque.
 
+- Landing pública do produto na raiz (`/`), decidida pelo usuário em 2026-10-19. Substitui o painel inicial do MVP (que nenhum link usava; a navegação entra por `/dashboard`). A página não lê sessão nem banco; o conteúdo vem de `src/config/landing.ts`. O preço é derivado da Análise de Pontos de Função (545 PF, IFPUG não ajustada, R$ 500/PF, amortizado em 20 lojas; assinatura = infra + manutenção 15% a.a. + suporte, com margem de 30%), com as premissas em `src/lib/landing-precos.ts`. Fontes do Google carregadas por `<link>` só nessa página, porque `next/font/google` foi removido no #259. Detalhes em `docs/01-planejamento/planos-implementacao/LANDING_PAGE.md`.
+
 ## Decisões de negócio já consolidadas
 
 - Toda OS deve estar vinculada a um cliente.

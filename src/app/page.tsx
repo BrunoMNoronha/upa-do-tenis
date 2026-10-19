@@ -1,95 +1,87 @@
-import { AppShell } from "@/components/app-shell";
-import { Badge, Button, Card, SectionTitle } from "@/components/ui";
+import type { CSSProperties } from "react";
+import type { Metadata } from "next";
 
-import { exigirSessao } from "@/lib/auth-server";
-import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
+import { LandingDestaques } from "@/components/landing/landing-destaques";
+import { LandingFaq } from "@/components/landing/landing-faq";
+import { LandingFluxo } from "@/components/landing/landing-fluxo";
+import { LandingFuncionalidades } from "@/components/landing/landing-funcionalidades";
+import { LandingHero } from "@/components/landing/landing-hero";
+import { LandingNav } from "@/components/landing/landing-nav";
+import { LandingPreco } from "@/components/landing/landing-preco";
+import { LandingRodape } from "@/components/landing/landing-rodape";
+import { LandingSeguranca } from "@/components/landing/landing-seguranca";
+import { PRODUTO } from "@/config/landing";
+import { calcularPrecos } from "@/lib/landing-precos";
 
-const highlights = [
-  "Clientes",
-  "Ordens de serviço",
-  "Itens e serviços",
-  "Pagamentos",
-  "Histórico de status",
-];
+/**
+ * Landing PÚBLICA do produto TechLab+ Sapataria, na raiz do site. Não usa
+ * sessão, não lê o banco nem os dados da loja: todo o conteúdo vem de
+ * `src/config/landing.ts` e de `src/lib/landing-precos.ts`. Por ser pública,
+ * a trava de caixa pendente não se aplica; quem já tem sessão também a vê
+ * (o acesso ao sistema é pelo botão "Entrar").
+ */
 
+export const metadata: Metadata = {
+  // `absolute` evita o template "%s | <nome da loja>" do layout raiz: a
+  // landing é do produto, não da loja que hospeda esta instância.
+  title: { absolute: `${PRODUTO.nome} — sistema de gestão para sapatarias` },
+  description: PRODUTO.descricaoCurta,
+  openGraph: {
+    title: PRODUTO.nome,
+    description: PRODUTO.descricaoCurta,
+    type: "website",
+    locale: "pt_BR",
+  },
+};
+
+// Mesmo regime das demais páginas: o layout raiz lê dados em tempo de
+// requisição, então a rota não é pré-renderizada no build.
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
-  await exigirSessao();
-  const dadosEmpresa = await obterDadosEmpresa();
+const GOOGLE_FONTS_HREF =
+  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap";
+
+// Identidade própria do produto (ver docs/01-planejamento/planos-implementacao/LANDING_PAGE.md).
+const TOKENS = {
+  "--lp-bg": "#F4F4F1",
+  "--lp-surface-muted": "#ECECEA",
+  "--lp-ink": "#17191C",
+  "--lp-muted": "#4B5057",
+  "--lp-accent": "#1E6B4E",
+  "--lp-accent-strong": "#154D38",
+  "--lp-accent-2": "#C9731B",
+  "--lp-border": "rgba(23,25,28,0.10)",
+  "--lp-border-strong": "rgba(23,25,28,0.18)",
+  "--lp-display": "'Bricolage Grotesque', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  "--lp-sans": "'IBM Plex Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+  "--lp-mono": "'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace",
+} as CSSProperties;
+
+export default function LandingPage() {
+  const precos = calcularPrecos();
+  const ctaHref = PRODUTO.whatsappUrl || null;
+  const emailHref = PRODUTO.email ? `mailto:${PRODUTO.email}` : null;
 
   return (
-    <AppShell
-      dadosEmpresa={dadosEmpresa}
-      eyebrow="Painel inicial"
-      title={`Base administrativa de ${dadosEmpresa.nomeFantasia}`}
-      description="Painel inicial do MVP v1 para clientes, ordens de serviço e operação da sapataria, já preparado para evoluir com navegação e layout consistentes."
-      action={{ href: "/clientes", label: "Abrir clientes" }}
-    >
-      <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card className="p-8">
-          <Badge tone="accent">MVP v1 em consolidação</Badge>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight text-[color:var(--text)] md:text-5xl">
-            Atendimento organizado para a rotina da sapataria.
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-700 md:text-lg">
-            A primeira etapa do sistema já cobre clientes e prepara a base para ordens de serviço,
-            pagamentos e histórico operacional, com foco em agilidade de balcão e clareza de uso.
-          </p>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            {highlights.map((item) => (
-              <Badge key={item}>{item}</Badge>
-            ))}
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button href="/clientes">Ir para Clientes</Button>
-            <Button href="/ordens-servico" variant="secondary">
-              Ver Ordens de Serviço
-            </Button>
-          </div>
-        </Card>
-
-        <Card className="bg-[color:var(--text)] p-8 text-white">
-          <p className="text-sm uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Escopo do núcleo</p>
-          <div className="mt-6 space-y-4 text-sm leading-6 text-slate-200">
-            <p>Cadastro e listagem de clientes com persistência local.</p>
-            <p>Estrutura pronta para ordens de serviço e seu fluxo principal.</p>
-            <p>Base para itens, serviços, pagamentos e histórico de status.</p>
-            <p>Layout administrativo simples para uso diário no balcão.</p>
-          </div>
-          <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5">
-            <p className="text-xs uppercase tracking-[0.16em] text-[color:var(--accent-soft)]">Base técnica</p>
-            <p className="mt-2 text-sm leading-6 text-slate-100">
-              Next.js 14, TypeScript, Prisma, PostgreSQL, Tailwind CSS, Zod e React Hook Form.
-            </p>
-          </div>
-        </Card>
-      </section>
-
-      <section className="mt-6 grid gap-6 md:grid-cols-4">
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Atalho</p>
-          <SectionTitle className="mt-3 text-xl">Clientes</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Cadastro e consulta rápida no balcão.</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Atalho</p>
-          <SectionTitle className="mt-3 text-xl">Ordens de Serviço</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Acompanhamento e registro de novas ordens.</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Catálogo</p>
-          <SectionTitle className="mt-3 text-xl">Serviços</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Serviços oferecidos e precificação base.</p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Estoque</p>
-          <SectionTitle className="mt-3 text-xl">Insumos</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">Controle de materiais e estoque mínimo.</p>
-        </Card>
-      </section>
-    </AppShell>
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      {/* eslint-disable-next-line @next/next/no-page-custom-font -- fonte só desta página; `next/font/google` foi removido do projeto por quebrar o build (#259). */}
+      <link rel="stylesheet" href={GOOGLE_FONTS_HREF} />
+      <main
+        style={TOKENS}
+        className="min-h-screen bg-[color:var(--lp-bg)] text-[17px] leading-[1.55] text-[color:var(--lp-ink)] antialiased [font-family:var(--lp-sans)] [font-size-adjust:from-font]"
+      >
+        <LandingNav ctaHref={ctaHref} />
+        <LandingHero ctaHref={ctaHref} />
+        <LandingFluxo />
+        <LandingFuncionalidades />
+        <LandingDestaques />
+        <LandingSeguranca />
+        <LandingPreco precos={precos} ctaHref={ctaHref} />
+        <LandingFaq />
+        <LandingRodape ctaHref={ctaHref} emailHref={emailHref} />
+      </main>
+    </>
   );
 }
