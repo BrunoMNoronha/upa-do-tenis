@@ -133,17 +133,17 @@ export function UsuariosClient({ usuarios }: UsuariosClientProps) {
           </SectionTitle>
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
+        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" {...register("nome")} placeholder="Nome do usuário" />
-            {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
+            <Input id="nome" {...register("nome")} placeholder="Nome do usuário" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
+            {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="email">E-mail</Label>
-            <Input id="email" {...register("email")} placeholder="usuario@exemplo.com" />
-            {errors.email ? <p className="text-sm text-red-600">{errors.email.message}</p> : null}
+            <Input id="email" {...register("email")} placeholder="usuario@exemplo.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
+            {errors.email ? <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
@@ -152,13 +152,15 @@ export function UsuariosClient({ usuarios }: UsuariosClientProps) {
               id="senha"
               type="password"
               autoComplete="new-password"
+              aria-invalid={Boolean(errors.senha)}
+              aria-describedby={errors.senha ? "senha-error" : undefined}
               {...register("senha")}
               placeholder={editando ? "Deixe em branco para manter a senha atual" : "Mínimo de 6 caracteres"}
             />
-            {errors.senha ? <p className="text-sm text-red-600">{errors.senha.message}</p> : null}
+            {errors.senha ? <p id="senha-error" role="alert" className="text-sm text-red-600">{errors.senha.message}</p> : null}
           </div>
 
-          {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {submitError ? <p role="alert" className="text-sm text-red-600">{submitError}</p> : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" isLoading={isSubmitting || isPending}>
@@ -185,7 +187,7 @@ export function UsuariosClient({ usuarios }: UsuariosClientProps) {
         </div>
 
         {statusError ? (
-          <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
+          <p role="alert" className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
             {statusError}
           </p>
         ) : null}
