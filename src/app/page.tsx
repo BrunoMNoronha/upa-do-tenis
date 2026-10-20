@@ -11,24 +11,31 @@ import { LandingPreco } from "@/components/landing/landing-preco";
 import { LandingRodape } from "@/components/landing/landing-rodape";
 import { LandingSeguranca } from "@/components/landing/landing-seguranca";
 import { PRODUTO } from "@/config/landing";
+import { obterContatoLanding } from "@/lib/landing-contato";
 import { calcularPrecos } from "@/lib/landing-precos";
 
 /**
- * Landing PÚBLICA do produto TechLab+ Sapataria, na raiz do site. Não usa
- * sessão, não lê o banco nem os dados da loja: todo o conteúdo vem de
- * `src/config/landing.ts` e de `src/lib/landing-precos.ts`. Por ser pública,
- * a trava de caixa pendente não se aplica; quem já tem sessão também a vê
- * (o acesso ao sistema é pelo botão "Entrar").
+ * Landing PÚBLICA do produto TechLab+ Sapataria, na raiz do site
+ * (sapataria.dev2bless.tech). Não usa sessão, não lê o banco nem os dados da
+ * loja: o conteúdo vem de `src/config/landing.ts` e de
+ * `src/lib/landing-precos.ts`; o WhatsApp comercial, da variável de ambiente
+ * `LANDING_WHATSAPP` (`src/lib/landing-contato.ts`). Por ser pública, a trava
+ * de caixa pendente não se aplica; quem já tem sessão também a vê (o acesso ao
+ * sistema é pelo botão "Entrar").
  */
 
 export const metadata: Metadata = {
+  metadataBase: new URL(PRODUTO.urlSite),
   // `absolute` evita o template "%s | <nome da loja>" do layout raiz: a
   // landing é do produto, não da loja que hospeda esta instância.
   title: { absolute: `${PRODUTO.nome} — sistema de gestão para sapatarias` },
   description: PRODUTO.descricaoCurta,
+  alternates: { canonical: "/" },
   openGraph: {
     title: PRODUTO.nome,
     description: PRODUTO.descricaoCurta,
+    url: "/",
+    siteName: PRODUTO.nome,
     type: "website",
     locale: "pt_BR",
   },
@@ -59,7 +66,8 @@ const TOKENS = {
 
 export default function LandingPage() {
   const precos = calcularPrecos();
-  const ctaHref = PRODUTO.whatsappUrl || null;
+  const contato = obterContatoLanding();
+  const ctaHref = contato.whatsappUrl;
   const emailHref = PRODUTO.email ? `mailto:${PRODUTO.email}` : null;
 
   return (
@@ -80,7 +88,7 @@ export default function LandingPage() {
         <LandingSeguranca />
         <LandingPreco precos={precos} ctaHref={ctaHref} />
         <LandingFaq />
-        <LandingRodape ctaHref={ctaHref} emailHref={emailHref} />
+        <LandingRodape ctaHref={ctaHref} whatsappExibicao={contato.whatsappExibicao} emailHref={emailHref} />
       </main>
     </>
   );

@@ -4,10 +4,12 @@ import { BOTAO_SECUNDARIO, CONTAINER } from "./landing-estilos";
 
 type Props = {
   ctaHref: string | null;
+  /** Telefone formatado para exibição ao lado do link de WhatsApp. */
+  whatsappExibicao: string | null;
   emailHref: string | null;
 };
 
-export function LandingRodape({ ctaHref, emailHref }: Props) {
+export function LandingRodape({ ctaHref, whatsappExibicao, emailHref }: Props) {
   const ano = new Date().getFullYear();
   const linhaLegal = [PRODUTO.razaoSocial, PRODUTO.cnpj].filter(Boolean).join(" · ");
 
@@ -53,7 +55,7 @@ export function LandingRodape({ ctaHref, emailHref }: Props) {
             {ctaHref ? (
               <li>
                 <a href={ctaHref} className="hover:text-[color:var(--lp-ink)]">
-                  WhatsApp
+                  WhatsApp{whatsappExibicao ? ` ${whatsappExibicao}` : ""}
                 </a>
               </li>
             ) : null}
