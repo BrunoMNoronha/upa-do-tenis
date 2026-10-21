@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
 import {
   LIMITE_PERGUNTAS_POR_CONVERSA,
   acrescentarMensagens,
@@ -16,8 +16,10 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   try {
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
 
     const body = await req.json().catch(() => null);
     const parsed = novaMensagemSchema.safeParse(body ?? {});

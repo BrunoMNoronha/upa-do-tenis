@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/auth-server", () => ({ obterUsuarioSessaoDaRequest: vi.fn() }));
+vi.mock("@/lib/auth-server", () => ({ obterUsuarioSessaoDaRequest: vi.fn(), exigirSessaoApi: vi.fn() }));
 vi.mock("@/lib/insights-config", () => ({ obterChaveClaude: vi.fn() }));
 vi.mock("@/lib/assistente-ia", () => ({ responderPergunta: vi.fn() }));
 vi.mock("@/lib/assistente-conversas", async (importOriginal) => {
@@ -16,7 +16,8 @@ vi.mock("@/lib/assistente-conversas", async (importOriginal) => {
   };
 });
 
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { obterUsuarioSessaoDaRequest, exigirSessaoApi } from "@/lib/auth-server";
+import { NextResponse } from "next/server";
 import { obterChaveClaude } from "@/lib/insights-config";
 import { responderPergunta } from "@/lib/assistente-ia";
 import {
@@ -51,6 +52,7 @@ function conversaCompleta(perguntas = 1) {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(USUARIO);
+  vi.mocked(exigirSessaoApi).mockResolvedValue(null);
   vi.mocked(obterChaveClaude).mockResolvedValue("sk-ant-chave");
   vi.mocked(responderPergunta).mockResolvedValue({ mensagens: MENSAGENS as never, resposta: "Resposta" });
   vi.mocked(criarConversaComMensagens).mockResolvedValue(RESUMO);
@@ -59,7 +61,7 @@ beforeEach(() => {
 
 describe("autenticação", () => {
   it("responde 401 sem sessão em todas as rotas", async () => {
-    vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(null);
+    vi.mocked(exigirSessaoApi).mockResolvedValue(NextResponse.json({ message: "Não autenticado." }, { status: 401 }));
 
     expect((await LISTAR(req("GET"))).status).toBe(401);
     expect((await CRIAR(req("POST", {}))).status).toBe(401);

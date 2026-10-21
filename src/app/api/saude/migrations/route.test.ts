@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const sessao = vi.hoisted(() => ({ usuario: null as null | { id: string } }));
 
 vi.mock("@/lib/auth-server", () => ({
+  exigirSessaoApi: vi.fn(async () => null),
   obterUsuarioSessaoDaRequest: vi.fn(async () => sessao.usuario),
 }));
 
