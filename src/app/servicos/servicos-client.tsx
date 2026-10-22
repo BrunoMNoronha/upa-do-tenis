@@ -130,11 +130,21 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
           </SectionTitle>
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
+        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome do Serviço</Label>
-            <Input id="nome" {...register("nome")} placeholder="Ex: Troca de Sola" />
-            {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
+            <Input
+              id="nome"
+              {...register("nome")}
+              placeholder="Ex: Troca de Sola"
+              aria-invalid={Boolean(errors.nome)}
+              aria-describedby={errors.nome ? "nome-error" : undefined}
+            />
+            {errors.nome ? (
+              <p id="nome-error" role="alert" className="text-sm text-red-600">
+                {errors.nome.message}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-2">
@@ -155,8 +165,14 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
                 precoBaseField.onBlur(e);
               }}
               placeholder="R$ 0,00"
+              aria-invalid={Boolean(errors.precoBase)}
+              aria-describedby={errors.precoBase ? "precoBase-error" : undefined}
             />
-            {errors.precoBase ? <p className="text-sm text-red-600">{errors.precoBase.message}</p> : null}
+            {errors.precoBase ? (
+              <p id="precoBase-error" role="alert" className="text-sm text-red-600">
+                {errors.precoBase.message}
+              </p>
+            ) : null}
           </div>
 
           <div className="grid gap-2">
@@ -166,7 +182,14 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
               {...register("descricao")}
               rows={3}
               placeholder="Detalhes adicionais sobre o serviço"
+              aria-invalid={Boolean(errors.descricao)}
+              aria-describedby={errors.descricao ? "descricao-error" : undefined}
             />
+            {errors.descricao ? (
+              <p id="descricao-error" role="alert" className="text-sm text-red-600">
+                {errors.descricao.message}
+              </p>
+            ) : null}
           </div>
 
           {editando ? (
@@ -176,7 +199,11 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
             </label>
           ) : null}
 
-          {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {submitError ? (
+            <p role="alert" className="text-sm text-red-600">
+              {submitError}
+            </p>
+          ) : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" isLoading={isSubmitting || isPending}>
