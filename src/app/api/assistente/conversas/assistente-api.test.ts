@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-vi.mock("@/lib/auth-server", () => ({ obterUsuarioSessaoDaRequest: vi.fn() }));
+vi.mock("@/lib/auth-server", () => ({ exigirSessaoApi: vi.fn(), obterUsuarioSessaoDaRequest: vi.fn() }));
 vi.mock("@/lib/insights-config", () => ({ obterChaveClaude: vi.fn() }));
 vi.mock("@/lib/assistente-ia", () => ({ responderPergunta: vi.fn() }));
 vi.mock("@/lib/assistente-conversas", async (importOriginal) => {
@@ -16,7 +16,7 @@ vi.mock("@/lib/assistente-conversas", async (importOriginal) => {
   };
 });
 
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { exigirSessaoApi, obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
 import { obterChaveClaude } from "@/lib/insights-config";
 import { responderPergunta } from "@/lib/assistente-ia";
 import {
@@ -50,6 +50,7 @@ function conversaCompleta(perguntas = 1) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(exigirSessaoApi).mockResolvedValue(null);
   vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(USUARIO);
   vi.mocked(obterChaveClaude).mockResolvedValue("sk-ant-chave");
   vi.mocked(responderPergunta).mockResolvedValue({ mensagens: MENSAGENS as never, resposta: "Resposta" });
@@ -59,7 +60,7 @@ beforeEach(() => {
 
 describe("autenticação", () => {
   it("responde 401 sem sessão em todas as rotas", async () => {
-    vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(null);
+    vi.mocked(exigirSessaoApi).mockResolvedValue(new NextResponse(null, { status: 401 }) as any);
 
     expect((await LISTAR(req("GET"))).status).toBe(401);
     expect((await CRIAR(req("POST", {}))).status).toBe(401);

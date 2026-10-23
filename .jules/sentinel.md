@@ -1,12 +1,7 @@
-## 2024-05-24 - Testing Intl.DateTimeFormat
-**Learning:** Using `Intl.DateTimeFormat` with Vitest can yield different formats across CI environments or local timezones, leading to flaky tests if strict string matching is used.
-**Action:** When testing locale-specific output like dates in unit tests without forcing timezone configs, use Regex to match the exact format structure (e.g. `^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2}$`) rather than specific values to ensure cross-environment reliability.
+## 2025-02-21 — Inconsistent authentication guard across assistant API routes
 
-## 2024-09-08 - Session Cookie Configuration Update
-**Vulnerability:** Weak `sameSite` configuration for authentication cookies
-**Learning:** The session cookie for Next.js was configured to use `sameSite: "lax"`, which is less restrictive and could potentially be a minor weakness in scenarios where cross-site requests are involved, though mitigated by other strategies.
-**Prevention:** Always enforce `sameSite: "strict"` on authentication and session cookies unless cross-site usage is strictly required for the feature (e.g. SSO).
+**Vulnerability:** Authorization implementation inconsistency. Certain private endpoints (`/api/assistente/conversas/*`) relied exclusively on `obterUsuarioSessaoDaRequest(req)` checking for a truthy user value, ignoring the standard central validation middleware `exigirSessaoApi(req)`.
 
-## 2026-09-12 - Respostas seguras na API de clientes
-**Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
-**Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+**Learning:** When API endpoints are developed rapidly, developers might bypass the standardized session guard if their immediate need is simply to extract the user object. This fragments authentication logic and creates drift, meaning future global security checks added to `exigirSessaoApi` will quietly fail to protect these rogue routes.
+
+**Prevention:** Enforce the usage pattern of invoking `exigirSessaoApi` for access enforcement *before* unwrapping the user data via `obterUsuarioSessaoDaRequest`, rather than using the latter as an enforcement mechanism.
