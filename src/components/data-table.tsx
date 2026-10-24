@@ -106,6 +106,6 @@ export function CelulaTitulo({ children, className }: { children: ReactNode; cla
 }
 
 /** Texto secundário de uma célula (12px, cinza). */
-export function CelulaSubtitulo({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={composeClasses("truncate text-xs text-[color:var(--text-soft)]", className)}>{children}</div>;
+export function CelulaSubtitulo({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
+  return <div title={title} className={composeClasses("truncate text-xs text-[color:var(--text-soft)]", className)}>{children}</div>;
 }

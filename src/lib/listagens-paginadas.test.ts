@@ -104,6 +104,63 @@ describe("listagens paginadas: count e findMany compartilham o mesmo where", () 
     expect(find.orderBy).toEqual([{ nome: "asc" }, { id: "asc" }]);
   });
 
+  it("clientes: chip de inativos entra no where junto com a busca", async () => {
+    prismaMock.cliente.count.mockResolvedValue(1);
+    prismaMock.cliente.findMany.mockResolvedValue([]);
+
+    await listarClientesPaginado({ search: "ana", paginacao: normalizarPaginacao({}), opcoes: { ativo: false } });
+
+    const { whereCount, find } = argumentos(prismaMock.cliente);
+    expect(whereCount).toEqual({ ativo: false, OR: [{ nome: { contains: "ana" } }] });
+    expect(find.where).toEqual(whereCount);
+  });
+
+  it("serviços: filtro de status combina com a busca em AND", async () => {
+    prismaMock.servico.count.mockResolvedValue(0);
+    prismaMock.servico.findMany.mockResolvedValue([]);
+
+    await listarServicosParaGestaoPaginado({ busca: "sola", ativo: true, paginacao: normalizarPaginacao({}) });
+
+    const { whereCount, find } = argumentos(prismaMock.servico);
+    expect(whereCount).toEqual({
+      AND: [
+        { OR: [{ nome: { contains: "sola", mode: "insensitive" } }, { descricao: { contains: "sola", mode: "insensitive" } }] },
+        { ativo: true },
+      ],
+    });
+    expect(find.where).toEqual(whereCount);
+  });
+
+  it("produtos: chip sem estoque filtra quantidade zero", async () => {
+    prismaMock.produto.count.mockResolvedValue(0);
+    prismaMock.produto.findMany.mockResolvedValue([]);
+
+    await listarProdutosPaginado({ estoque: "sem", paginacao: normalizarPaginacao({}) });
+
+    const { whereCount } = argumentos(prismaMock.produto);
+    expect(whereCount).toEqual({ quantidadeEstoque: { lte: 0 } });
+  });
+
+  it("insumos: chip zerados e status inativos se combinam", async () => {
+    prismaMock.insumo.count.mockResolvedValue(0);
+    prismaMock.insumo.findMany.mockResolvedValue([]);
+
+    await listarInsumosPaginado({ estoque: "zerado", ativo: false, paginacao: normalizarPaginacao({}) });
+
+    const { whereCount, find } = argumentos(prismaMock.insumo);
+    expect(whereCount).toEqual({ AND: [{ quantidadeEstoque: { lte: 0 } }, { ativo: false }] });
+    expect(find.where).toEqual(whereCount);
+  });
+
+  it("insumos: chip estoque baixo equivale ao alerta legado", async () => {
+    prismaMock.insumo.count.mockResolvedValue(0);
+    prismaMock.insumo.findMany.mockResolvedValue([]);
+
+    await listarInsumosPaginado({ estoque: "baixo", paginacao: normalizarPaginacao({}) });
+
+    expect(argumentos(prismaMock.insumo).whereCount).toEqual({ quantidadeEstoque: { lte: estoqueMinimoRef } });
+  });
+
   it("insumos: sem filtro usa where indefinido nos dois lados", async () => {
     prismaMock.insumo.count.mockResolvedValue(0);
     prismaMock.insumo.findMany.mockResolvedValue([]);

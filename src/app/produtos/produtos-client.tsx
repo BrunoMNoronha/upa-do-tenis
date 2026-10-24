@@ -2,19 +2,36 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+
+import { CadastroLayout } from "@/components/cadastro-layout";
+import { KpiCard } from "@/components/ui";
+import type { FiltroEstoqueProdutos, FiltroStatusCadastro } from "@/lib/cadastros-filtros";
+import type { EstatisticasProdutos } from "@/lib/produtos";
+import type { PaginacaoInfo } from "@/lib/paginacao";
 import { ProdutoForm } from "./components/produto-form";
 import { ProdutoImagem } from "./components/produto-imagem";
 import { ProdutoList } from "./components/produto-list";
-import type { PaginacaoInfo } from "@/lib/paginacao";
 import type { ProdutoListado } from "./types";
+
+export type FiltrosProdutos = {
+  status: FiltroStatusCadastro | undefined;
+  estoque: FiltroEstoqueProdutos | undefined;
+};
 
 type ProdutosClientProps = {
   produtos: ProdutoListado[];
   busca: string;
   pagination: PaginacaoInfo;
+  estatisticas: EstatisticasProdutos;
+  filtros: FiltrosProdutos;
 };
 
-export function ProdutosClient({ produtos, busca, pagination }: ProdutosClientProps) {
+const currencyFormatter = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+});
+
+export function ProdutosClient({ produtos, busca, pagination, estatisticas, filtros }: ProdutosClientProps) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [editando, setEditando] = useState<ProdutoListado | null>(null);
@@ -24,6 +41,7 @@ export function ProdutosClient({ produtos, busca, pagination }: ProdutosClientPr
 
   const iniciarEdicao = (produto: ProdutoListado) => {
     setEditando(produto);
+    document.getElementById("cadastro-rapido")?.scrollIntoView({ block: "nearest" });
   };
 
   const cancelarEdicao = () => {
@@ -36,28 +54,38 @@ export function ProdutosClient({ produtos, busca, pagination }: ProdutosClientPr
     }
   };
 
+  const semFiltro = !filtros.status && !filtros.estoque;
+
+  const kpis = (
+    <>
+      <KpiCard size="sm" label="Total" value={estatisticas.total} hint="produtos cadastrados" dot="accent" href="/produtos" active={semFiltro} />
+      <KpiCard size="sm" label="Ativos" value={estatisticas.ativos} hint="disponíveis no balcão" dot="success" href="/produtos?status=ativos" active={filtros.status === "ativos" && !filtros.estoque} />
+      <KpiCard size="sm" label="Sem estoque" value={estatisticas.semEstoque} hint="bloqueados na venda" dot="danger" href="/produtos?estoque=sem" active={filtros.estoque === "sem"} />
+      <KpiCard size="sm" label="Valor em estoque" value={currencyFormatter.format(estatisticas.valorEstoqueVenda)} hint="a preço de venda" dot="warning" />
+    </>
+  );
+
   return (
-    <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <div className="grid content-start gap-6">
-        <ProdutoForm
-          editando={editando}
-          onCancel={cancelarEdicao}
-          onSuccess={cancelarEdicao}
+    <CadastroLayout
+      kpis={kpis}
+      lista={
+        <ProdutoList
+          produtos={produtos}
+          busca={busca}
+          pagination={pagination}
+          filtros={filtros}
+          onEdit={iniciarEdicao}
+          onDeleteCurrent={onDeleteCurrent}
         />
-        {editandoAtual ? (
-          <ProdutoImagem
-            produto={editandoAtual}
-            onAtualizada={() => startTransition(() => router.refresh())}
-          />
-        ) : null}
-      </div>
-      <ProdutoList
-        produtos={produtos}
-        busca={busca}
-        pagination={pagination}
-        onEdit={iniciarEdicao}
-        onDeleteCurrent={onDeleteCurrent}
-      />
-    </section>
+      }
+      aside={
+        <div className="flex flex-col gap-5">
+          <ProdutoForm editando={editando} onCancel={cancelarEdicao} onSuccess={cancelarEdicao} />
+          {editandoAtual ? (
+            <ProdutoImagem produto={editandoAtual} onAtualizada={() => startTransition(() => router.refresh())} />
+          ) : null}
+        </div>
+      }
+    />
   );
 }

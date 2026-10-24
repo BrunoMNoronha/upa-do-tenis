@@ -1,7 +1,10 @@
 import { AppShell } from "@/components/app-shell";
+import { IconeMais } from "@/components/icones";
+import { Button } from "@/components/ui";
 import { InsumosClient } from "./insumos-client";
 
-import { listarInsumosPaginado } from "@/lib/insumos";
+import { contarEstatisticasInsumos, listarInsumosPaginado } from "@/lib/insumos";
+import { lerFiltroEstoqueInsumos, lerFiltroStatus, statusParaAtivo } from "@/lib/cadastros-filtros";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 
@@ -11,8 +14,8 @@ import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cach
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Insumos e Produtos",
-  description: "Cadastro e consulta de insumos e produtos da sapataria.",
+  title: "Estoque / Insumos",
+  description: "Cadastro e consulta dos insumos consumidos nos serviços.",
 };
 
 export default async function InsumosPage(props: {
@@ -21,15 +24,17 @@ export default async function InsumosPage(props: {
   const sessao = await exigirSessao();
   const searchParams = await props.searchParams;
 
-  const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
-
   const busca = lerBuscaDeSearchParams(searchParams);
-  const [{ data: insumosFetch, pagination }, dadosEmpresa] = await Promise.all([
+  const filtroStatus = lerFiltroStatus(searchParams);
+  const filtroEstoque = lerFiltroEstoqueInsumos(searchParams);
+  const [{ data: insumosFetch, pagination }, estatisticas, dadosEmpresa] = await Promise.all([
     listarInsumosPaginado({
-      estoqueBaixo: mostrarAlerta,
+      estoque: filtroEstoque,
+      ativo: statusParaAtivo(filtroStatus),
       busca,
       paginacao: lerPaginacaoDeSearchParams(searchParams),
     }),
+    contarEstatisticasInsumos(),
     obterDadosEmpresa(),
   ]);
   const insumosVisiveis = insumosFetch.map((insumo) => ({
@@ -48,11 +53,21 @@ export default async function InsumosPage(props: {
       dadosEmpresa={dadosEmpresa}
       usuario={sessao}
       eyebrow="Estoque"
-      title="Insumos e Produtos"
-      description="Gerencie os materiais utilizados nos serviços ou produtos para venda no balcão."
-      action={{ href: "/servicos", label: "Ir para Serviços" }}
+      title="Estoque / Insumos"
+      description="Materiais consumidos nos serviços. O consumo é lançado no detalhe da OS e dá baixa aqui."
+      actions={
+        <Button href="#cadastro-rapido" icon={<IconeMais />}>
+          Novo insumo
+        </Button>
+      }
     >
-      <InsumosClient insumos={insumosVisiveis} mostrarAlerta={mostrarAlerta} busca={busca} pagination={pagination} />
+      <InsumosClient
+        insumos={insumosVisiveis}
+        busca={busca}
+        pagination={pagination}
+        estatisticas={estatisticas}
+        filtros={{ status: filtroStatus, estoque: filtroEstoque }}
+      />
     </AppShell>
   );
 }

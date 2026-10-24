@@ -1,6 +1,9 @@
 import { AppShell } from "@/components/app-shell";
+import { IconeMais } from "@/components/icones";
+import { Button } from "@/components/ui";
 
-import { listarProdutosPaginado } from "@/lib/produtos";
+import { contarEstatisticasProdutos, listarProdutosPaginado } from "@/lib/produtos";
+import { lerFiltroEstoqueProdutos, lerFiltroStatus, statusParaAtivo } from "@/lib/cadastros-filtros";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 import { lerBuscaDeSearchParams } from "@/lib/busca-listagem";
 import { ProdutosClient } from "./produtos-client";
@@ -22,11 +25,16 @@ export default async function ProdutosPage(props: {
 
   const searchParams = await props.searchParams;
   const busca = lerBuscaDeSearchParams(searchParams);
-  const [{ data: produtos, pagination }, dadosEmpresa] = await Promise.all([
+  const filtroStatus = lerFiltroStatus(searchParams);
+  const filtroEstoque = lerFiltroEstoqueProdutos(searchParams);
+  const [{ data: produtos, pagination }, estatisticas, dadosEmpresa] = await Promise.all([
     listarProdutosPaginado({
       busca,
+      ativo: statusParaAtivo(filtroStatus),
+      estoque: filtroEstoque,
       paginacao: lerPaginacaoDeSearchParams(searchParams),
     }),
+    contarEstatisticasProdutos(),
     obterDadosEmpresa(),
   ]);
 
@@ -36,12 +44,18 @@ export default async function ProdutosPage(props: {
       usuario={sessao}
       eyebrow="Catálogo"
       title="Produtos"
-      description="Gerencie os produtos vendáveis da sapataria. A venda e a baixa de estoque serão habilitadas nas próximas fatias da Fase 12."
-      action={{ href: "/servicos", label: "Ir para Serviços" }}
+      description="Produtos vendáveis no balcão. A venda dá baixa automática no estoque."
+      actions={
+        <Button href="#cadastro-rapido" icon={<IconeMais />}>
+          Novo produto
+        </Button>
+      }
     >
       <ProdutosClient
         busca={busca}
         pagination={pagination}
+        estatisticas={estatisticas}
+        filtros={{ status: filtroStatus, estoque: filtroEstoque }}
         produtos={produtos.map((produto) => ({
           id: produto.id,
           nome: produto.nome,

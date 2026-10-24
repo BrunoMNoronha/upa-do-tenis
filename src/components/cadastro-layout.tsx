@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-import { Card } from "@/components/ui";
+import { IconeLixeira } from "@/components/icones";
+import { Button, Card } from "@/components/ui";
 
 function composeClasses(...classes: Array<string | undefined | false | null>) {
   return classes.filter(Boolean).join(" ");
@@ -77,5 +78,61 @@ export function LinhaFiltros({ children, resumo }: { children: ReactNode; resumo
       {children}
       {resumo ? <p className="text-[13px] text-[color:var(--text-soft)]">{resumo}</p> : null}
     </div>
+  );
+}
+
+/** Grupo de ações alinhado à direita de uma linha da tabela. */
+export function AcoesLinha({ children }: { children: ReactNode }) {
+  return <div className="flex flex-wrap items-center justify-end gap-1.5">{children}</div>;
+}
+
+/** Botão de texto Inativar/Reativar no padrão das linhas de cadastro. */
+export function BotaoStatusLinha({ ativo, onClick, disabled, title }: { ativo: boolean; onClick: () => void; disabled?: boolean; title?: string }) {
+  return (
+    <Button
+      type="button"
+      variant="text"
+      size="sm"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      className={ativo ? "font-bold text-[color:var(--danger)]" : "font-bold text-[color:var(--success)]"}
+    >
+      {ativo ? "Inativar" : "Reativar"}
+    </Button>
+  );
+}
+
+/** Botão de excluir compacto (ícone de lixeira com rótulo acessível). */
+export function BotaoExcluirLinha({ onClick, disabled, rotulo }: { onClick: () => void; disabled?: boolean; rotulo: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={rotulo}
+      title={rotulo}
+      className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--muted)] transition hover:bg-[color:var(--danger-soft)] hover:text-[color:var(--danger)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      <IconeLixeira />
+    </button>
+  );
+}
+
+/** Mensagem de erro de campo, ligada ao input por `aria-describedby`. */
+export function ErroCampo({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} role="alert" className="text-xs font-semibold text-[color:var(--danger)]">
+      {children}
+    </p>
+  );
+}
+
+/** Mensagem de erro da lista/ação (ex.: falha ao inativar). */
+export function ErroLista({ children }: { children: ReactNode }) {
+  return (
+    <p role="alert" className="mx-[22px] my-3 rounded-[var(--r-field)] border border-[rgba(185,28,28,0.25)] bg-[color:var(--danger-soft)] px-4 py-3 text-sm text-[color:var(--danger-badge-text)]">
+      {children}
+    </p>
   );
 }

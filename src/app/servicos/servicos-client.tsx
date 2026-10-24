@@ -5,14 +5,38 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Badge, Button, Input, KpiCard, Label, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { BuscaListagem } from "@/components/busca-listagem";
+import { ChipsFiltroUrl } from "@/components/chips-filtro-url";
+import {
+  AcoesLinha,
+  BotaoExcluirLinha,
+  BotaoStatusLinha,
+  CadastroLayout,
+  ErroCampo,
+  ErroLista,
+  LinhaFiltros,
+  PainelCadastroRapido,
+  PainelLista,
+} from "@/components/cadastro-layout";
+import {
+  CelulaSubtitulo,
+  CelulaTitulo,
+  Tabela,
+  TabelaCabecalho,
+  TabelaCelula,
+  TabelaColuna,
+  TabelaLinha,
+  TabelaVazia,
+} from "@/components/data-table";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { servicoFormSchema, type ServicoFormValues } from "@/lib/servicos-schema";
+import type { EstatisticasServicos } from "@/lib/servicos";
+import type { FiltroStatusCadastro } from "@/lib/cadastros-filtros";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
 import type { PaginacaoInfo } from "@/lib/paginacao";
-import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
+import { Paginacao, textoIntervalo, usePaginacaoUrl } from "@/components/paginacao";
 
 export type ServicoListado = {
   id: string;
@@ -27,6 +51,8 @@ type ServicosClientProps = {
   servicos: ServicoListado[];
   busca: string;
   pagination: PaginacaoInfo;
+  estatisticas: EstatisticasServicos;
+  filtroStatus: FiltroStatusCadastro | undefined;
 };
 
 const defaultValues: ServicoFormValues = {
@@ -36,16 +62,15 @@ const defaultValues: ServicoFormValues = {
   ativo: true,
 };
 
+const COLUNAS = "2fr 1fr 0.8fr 1.2fr";
+const FORM_ID = "form-servico";
+
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-});
-
-export function ServicosClient({ servicos, busca, pagination }: ServicosClientProps) {
+export function ServicosClient({ servicos, busca, pagination, estatisticas, filtroStatus }: ServicosClientProps) {
   const router = useRouter();
   const { criarHref } = usePaginacaoUrl();
   const [editando, setEditando] = useState<ServicoListado | null>(null);
@@ -83,6 +108,7 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
       precoBase: formatCurrency(servico.precoBase) as unknown as number,
       ativo: servico.ativo,
     });
+    document.getElementById("cadastro-rapido")?.scrollIntoView({ block: "nearest" });
   };
 
   const cancelarEdicao = () => {
@@ -118,195 +144,167 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
     });
   });
 
-  return (
-    <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <Card className="p-6">
-        <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-            {editando ? "Editar Serviço" : "Novo Cadastro"}
-          </p>
-          <SectionTitle className="mt-2 text-2xl">
-            {editando ? `Editando ${editando.nome}` : "Dados do serviço"}
-          </SectionTitle>
-        </div>
+  const kpis = (
+    <>
+      <KpiCard size="sm" label="Total" value={estatisticas.total} hint="serviços no catálogo" dot="accent" href="/servicos" active={!filtroStatus} />
+      <KpiCard size="sm" label="Ativos" value={estatisticas.ativos} hint="disponíveis na OS" dot="success" href="/servicos?status=ativos" active={filtroStatus === "ativos"} />
+      <KpiCard size="sm" label="Inativos" value={estatisticas.inativos} hint="fora do catálogo" dot="muted" href="/servicos?status=inativos" active={filtroStatus === "inativos"} />
+      <KpiCard
+        size="sm"
+        label="Preço médio"
+        value={estatisticas.precoMedioAtivos === null ? "—" : currencyFormatter.format(estatisticas.precoMedioAtivos)}
+        hint="entre os ativos"
+        dot="warning"
+      />
+    </>
+  );
 
-        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
-          <div className="grid gap-2">
-            <Label htmlFor="nome">Nome do Serviço</Label>
-            <Input
-              id="nome"
-              {...register("nome")}
-              placeholder="Ex: Troca de Sola"
-              aria-invalid={Boolean(errors.nome)}
-              aria-describedby={errors.nome ? "nome-error" : undefined}
-            />
-            {errors.nome ? (
-              <p id="nome-error" role="alert" className="text-sm text-red-600">
-                {errors.nome.message}
-              </p>
-            ) : null}
-          </div>
+  const filtros = (
+    <>
+      <BuscaListagem id="busca-servicos" label="Buscar serviço" placeholder="Buscar serviço..." busca={busca} />
+      <LinhaFiltros resumo={textoIntervalo(pagination)}>
+        <ChipsFiltroUrl
+          aria-label="Filtrar serviços por status"
+          opcoes={[
+            { label: "Todos", alteracoes: { status: null }, ativo: !filtroStatus },
+            { label: "Ativos", alteracoes: { status: "ativos" }, ativo: filtroStatus === "ativos" },
+            { label: "Inativos", alteracoes: { status: "inativos" }, ativo: filtroStatus === "inativos" },
+          ]}
+        />
+      </LinhaFiltros>
+    </>
+  );
 
-          <div className="grid gap-2">
-            <Label htmlFor="precoBase">Preço Base (R$)</Label>
-            <Input
-              id="precoBase"
-              type="text"
-              {...precoBaseField}
-              onChange={(e) => {
-                e.target.value = maskCurrency(e.target.value);
-                precoBaseField.onChange(e);
-              }}
-              onBlur={(e) => {
-                if (e.target.value) {
-                  e.target.value = formatCurrency(e.target.value);
-                  precoBaseField.onChange(e);
-                }
-                precoBaseField.onBlur(e);
-              }}
-              placeholder="R$ 0,00"
-              aria-invalid={Boolean(errors.precoBase)}
-              aria-describedby={errors.precoBase ? "precoBase-error" : undefined}
-            />
-            {errors.precoBase ? (
-              <p id="precoBase-error" role="alert" className="text-sm text-red-600">
-                {errors.precoBase.message}
-              </p>
-            ) : null}
-          </div>
+  const lista = (
+    <PainelLista filtros={filtros} rodape={<Paginacao pagination={pagination} rotulo="serviços" criarHref={criarHref} exibirResumo={false} />}>
+      {listaError ? <ErroLista>{listaError}</ErroLista> : null}
 
-          <div className="grid gap-2">
-            <Label htmlFor="descricao">Descrição</Label>
-            <Textarea
-              id="descricao"
-              {...register("descricao")}
-              rows={3}
-              placeholder="Detalhes adicionais sobre o serviço"
-              aria-invalid={Boolean(errors.descricao)}
-              aria-describedby={errors.descricao ? "descricao-error" : undefined}
-            />
-            {errors.descricao ? (
-              <p id="descricao-error" role="alert" className="text-sm text-red-600">
-                {errors.descricao.message}
-              </p>
-            ) : null}
-          </div>
-
-          {editando ? (
-            <label className="flex items-center gap-3 text-sm font-medium text-slate-700">
-              <Input type="checkbox" className="h-4 w-4" {...register("ativo")} />
-              Serviço ativo
-            </label>
-          ) : null}
-
-          {submitError ? (
-            <p role="alert" className="text-sm text-red-600">
-              {submitError}
-            </p>
-          ) : null}
-
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" isLoading={isSubmitting || isPending}>
-              {editando ? "Salvar alterações" : "Cadastrar Serviço"}
-            </Button>
-            {editando ? (
-              <Button type="button" variant="secondary" onClick={cancelarEdicao}>
-                Cancelar edição
-              </Button>
-            ) : null}
-          </div>
-        </form>
-      </Card>
-
-      <Card className="bg-[color:var(--text)] p-6 text-white">
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista</p>
-            <h2 className="mt-2 text-2xl font-semibold">Serviços Cadastrados</h2>
-          </div>
-          <Badge tone="accent">Total: {pagination.total}</Badge>
-        </div>
-
-        <BuscaListagem id="busca-servicos" label="Buscar serviço" placeholder="Buscar serviço..." busca={busca} />
-
-        {listaError ? (
-          <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
-            {listaError}
-          </p>
-        ) : null}
+      <Tabela aria-label="Serviços cadastrados">
+        <TabelaCabecalho colunas={COLUNAS}>
+          <TabelaColuna>Serviço</TabelaColuna>
+          <TabelaColuna>Preço base</TabelaColuna>
+          <TabelaColuna>Status</TabelaColuna>
+          <TabelaColuna alinharDireita>Ações</TabelaColuna>
+        </TabelaCabecalho>
 
         {servicos.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            {busca
-              ? `Nenhum serviço encontrado para "${busca}".`
-              : "Nenhum serviço cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
-          </div>
+          <TabelaVazia
+            mensagem={busca ? `Nenhum serviço encontrado para "${busca}".` : "Nenhum serviço cadastrado ainda. Use o painel ao lado para criar o primeiro registro."}
+          />
         ) : (
-          <div className="space-y-4">
-            {servicos.map((servico) => (
-              <article
-                key={servico.id}
-                className={`rounded-3xl border p-5 ${
-                  servico.ativo ? "border-white/10 bg-white/5" : "border-rose-500/50 bg-rose-950/20"
-                }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{servico.nome}</h3>
-                    {servico.descricao ? (
-                      <p className="mt-1 text-sm text-slate-300">{servico.descricao}</p>
-                    ) : null}
-                    <p className="mt-2 text-xs uppercase tracking-[0.1em] text-slate-400">
-                      Criado em {dateFormatter.format(new Date(servico.criadoEm))}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge tone="neutral">{currencyFormatter.format(servico.precoBase)}</Badge>
-                    <Badge tone={servico.ativo ? "success" : "danger"}>
-                      {servico.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => iniciarEdicao(servico)}
-                    className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                  >
+          servicos.map((servico) => (
+            <TabelaLinha key={servico.id} colunas={COLUNAS} inativa={!servico.ativo}>
+              <TabelaCelula rotulo="Serviço">
+                <CelulaTitulo>{servico.nome}</CelulaTitulo>
+                {servico.descricao ? <CelulaSubtitulo title={servico.descricao}>{servico.descricao}</CelulaSubtitulo> : null}
+              </TabelaCelula>
+              <TabelaCelula rotulo="Preço base">
+                <span className="text-[13px] font-bold text-[color:var(--text)]">{currencyFormatter.format(servico.precoBase)}</span>
+              </TabelaCelula>
+              <TabelaCelula rotulo="Status">
+                <Badge tone={servico.ativo ? "success" : "danger"}>{servico.ativo ? "Ativo" : "Inativo"}</Badge>
+              </TabelaCelula>
+              <TabelaCelula rotulo="Ações" alinharDireita>
+                <AcoesLinha>
+                  <Button type="button" variant="secondary" size="sm" onClick={() => iniciarEdicao(servico)}>
                     Editar
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <BotaoStatusLinha
+                    ativo={servico.ativo}
                     onClick={() => alternarStatus(servico)}
                     disabled={isPending || editando !== null}
                     title={editando ? "Salve ou cancele a edição antes de alterar o status pela lista." : undefined}
-                    className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                      servico.ativo
-                        ? "border-amber-400/40 text-amber-200 hover:bg-amber-950/40"
-                        : "border-emerald-400/40 text-emerald-200 hover:bg-emerald-950/40"
-                    }`}
-                  >
-                    {servico.ativo ? "Inativar" : "Reativar"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => pedirExclusao(servico)}
-                    disabled={isPending}
-                    className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                  />
+                  <BotaoExcluirLinha onClick={() => pedirExclusao(servico)} disabled={isPending} rotulo={`Excluir serviço ${servico.nome}`} />
+                </AcoesLinha>
+              </TabelaCelula>
+            </TabelaLinha>
+          ))
         )}
+      </Tabela>
+    </PainelLista>
+  );
 
-        <div className="mt-6 border-t border-white/10 pt-4">
-          <Paginacao pagination={pagination} rotulo="serviços" tone="dark" criarHref={criarHref} />
+  const aside = (
+    <PainelCadastroRapido
+      titulo={editando ? "Editar serviço" : "Novo serviço"}
+      dica={editando ? `Editando ${editando.nome}.` : "O preço base é sugerido e pode ser ajustado em cada OS."}
+      rodape={
+        <>
+          <Button type="button" variant="secondary" onClick={cancelarEdicao}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={FORM_ID} isLoading={isSubmitting || isPending} className="min-w-[160px]">
+            {editando ? "Salvar alterações" : "Cadastrar serviço"}
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} className="grid gap-3.5" onSubmit={onSubmit} noValidate>
+        <div className="grid gap-1">
+          <Label htmlFor="nome" obrigatorio>Nome do serviço</Label>
+          <Input
+            id="nome"
+            {...register("nome")}
+            placeholder="Ex.: Troca de sola"
+            aria-invalid={Boolean(errors.nome)}
+            aria-describedby={errors.nome ? "nome-error" : undefined}
+          />
+          {errors.nome ? <ErroCampo id="nome-error">{errors.nome.message}</ErroCampo> : null}
         </div>
-      </Card>
+
+        <div className="grid gap-1">
+          <Label htmlFor="precoBase" obrigatorio>Preço base (R$)</Label>
+          <Input
+            id="precoBase"
+            type="text"
+            {...precoBaseField}
+            onChange={(e) => {
+              e.target.value = maskCurrency(e.target.value);
+              precoBaseField.onChange(e);
+            }}
+            onBlur={(e) => {
+              if (e.target.value) {
+                e.target.value = formatCurrency(e.target.value);
+                precoBaseField.onChange(e);
+              }
+              precoBaseField.onBlur(e);
+            }}
+            placeholder="R$ 0,00"
+            aria-invalid={Boolean(errors.precoBase)}
+            aria-describedby={errors.precoBase ? "precoBase-error" : undefined}
+          />
+          {errors.precoBase ? <ErroCampo id="precoBase-error">{errors.precoBase.message}</ErroCampo> : null}
+        </div>
+
+        <div className="grid gap-1">
+          <Label htmlFor="descricao">Descrição</Label>
+          <Textarea
+            id="descricao"
+            {...register("descricao")}
+            rows={3}
+            placeholder="Detalhes adicionais sobre o serviço"
+            aria-invalid={Boolean(errors.descricao)}
+            aria-describedby={errors.descricao ? "descricao-error" : undefined}
+          />
+          {errors.descricao ? <ErroCampo id="descricao-error">{errors.descricao.message}</ErroCampo> : null}
+        </div>
+
+        {editando ? (
+          <label className="flex items-center gap-2.5 text-[13px] font-semibold text-[color:var(--text-body)]">
+            <Input type="checkbox" {...register("ativo")} />
+            Serviço ativo
+          </label>
+        ) : null}
+
+        {submitError ? <ErroCampo id="servico-submit-error">{submitError}</ErroCampo> : null}
+      </form>
+    </PainelCadastroRapido>
+  );
+
+  return (
+    <>
+      <CadastroLayout kpis={kpis} lista={lista} aside={aside} />
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}
@@ -324,6 +322,6 @@ export function ServicosClient({ servicos, busca, pagination }: ServicosClientPr
         onCancelar={cancelarExclusao}
         isConfirmando={isPending}
       />
-    </section>
+    </>
   );
 }

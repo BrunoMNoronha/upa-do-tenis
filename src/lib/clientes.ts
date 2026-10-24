@@ -10,10 +10,13 @@ const clienteOrderByPaginado = [...clienteOrderBy, { id: "desc" as const }];
 
 import { sanitizePhone } from "@/lib/sanitizers";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
+import { inicioDoMesOperacional } from "@/lib/cadastros-filtros";
 
 type ListarClientesOpcoes = {
   /** Telas operacionais (ex.: abertura de OS) só podem oferecer clientes ativos. */
   apenasAtivos?: boolean;
+  /** Chips da tela de Clientes: `true` só ativos, `false` só inativos, indefinido todos. */
+  ativo?: boolean;
 };
 
 function montarFiltrosClientes(search?: string, opcoes?: ListarClientesOpcoes) {
@@ -21,6 +24,8 @@ function montarFiltrosClientes(search?: string, opcoes?: ListarClientesOpcoes) {
 
   if (opcoes?.apenasAtivos) {
     filtros.ativo = true;
+  } else if (opcoes?.ativo !== undefined) {
+    filtros.ativo = opcoes.ativo;
   }
 
   if (search) {
@@ -68,6 +73,25 @@ export async function listarClientesPaginado(params: {
         take,
       }),
   });
+}
+
+export type EstatisticasClientes = {
+  total: number;
+  ativos: number;
+  inativos: number;
+  /** Cadastrados desde o dia 1 do mês corrente (fuso da operação). */
+  novosNoMes: number;
+};
+
+/** Contadores da tela de Clientes (somente leitura; independem de busca e página). */
+export async function contarEstatisticasClientes(agora: Date = new Date()): Promise<EstatisticasClientes> {
+  const [total, ativos, novosNoMes] = await Promise.all([
+    prisma.cliente.count(),
+    prisma.cliente.count({ where: { ativo: true } }),
+    prisma.cliente.count({ where: { criadoEm: { gte: inicioDoMesOperacional(agora) } } }),
+  ]);
+
+  return { total, ativos, inativos: total - ativos, novosNoMes };
 }
 
 export async function criarCliente(input: ClienteFormValues) {
