@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export default async function AtendimentosRapidosPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const searchParams = await props.searchParams;
 
   const busca = lerBuscaDeSearchParams(searchParams);
@@ -37,6 +37,7 @@ export default async function AtendimentosRapidosPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e Atendimento"
       title="Histórico de Atendimentos Rápidos"
       description="Consulte os atendimentos rápidos por código AR ou período."

@@ -187,3 +187,44 @@ export function resetarPagina(atual: URLSearchParams | string): URLSearchParams 
   params.delete("page");
   return params;
 }
+
+export type PaginaVisivel = number | "...";
+
+/**
+ * Páginas exibidas na navegação numerada: sempre a primeira e a última,
+ * a atual com `vizinhos` de cada lado e reticências nos saltos. Um salto de
+ * uma única página é preenchido com o número em vez de "...".
+ */
+export function calcularPaginasVisiveis(page: number, totalPages: number, vizinhos = 1): PaginaVisivel[] {
+  const ultima = Math.max(1, totalPages);
+  const atual = Math.min(Math.max(1, page), ultima);
+
+  // Com poucas páginas a navegação completa cabe sem reticências.
+  if (ultima <= vizinhos * 2 + 5) {
+    return Array.from({ length: ultima }, (_, indice) => indice + 1);
+  }
+
+  const selecionadas = new Set<number>([1, ultima]);
+  for (let candidata = atual - vizinhos; candidata <= atual + vizinhos; candidata += 1) {
+    if (candidata >= 1 && candidata <= ultima) {
+      selecionadas.add(candidata);
+    }
+  }
+
+  const ordenadas = Array.from(selecionadas).sort((a, b) => a - b);
+  const resultado: PaginaVisivel[] = [];
+
+  ordenadas.forEach((numero, indice) => {
+    const anterior = ordenadas[indice - 1];
+    if (anterior !== undefined) {
+      if (numero - anterior === 2) {
+        resultado.push(anterior + 1);
+      } else if (numero - anterior > 2) {
+        resultado.push("...");
+      }
+    }
+    resultado.push(numero);
+  });
+
+  return resultado;
+}

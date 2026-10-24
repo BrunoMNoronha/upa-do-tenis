@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   PAGE_SIZE_MAXIMO,
   PAGE_SIZE_PADRAO,
+  calcularPaginasVisiveis,
   calcularTotalPaginas,
   lerPaginacaoDeSearchParams,
   montarPaginacaoInfo,
@@ -147,5 +148,30 @@ describe("montarQueryPagina e resetarPagina", () => {
 
   it("resetarPagina remove page e mantém filtros e pageSize", () => {
     expect(resetarPagina("page=4&pageSize=50&status=ABERTA").toString()).toBe("pageSize=50&status=ABERTA");
+  });
+});
+
+describe("calcularPaginasVisiveis", () => {
+  it("lista todas as páginas quando são poucas", () => {
+    expect(calcularPaginasVisiveis(1, 1)).toEqual([1]);
+    expect(calcularPaginasVisiveis(2, 3)).toEqual([1, 2, 3]);
+    expect(calcularPaginasVisiveis(1, 5)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("mantém primeira, última e a vizinhança da atual com reticências", () => {
+    expect(calcularPaginasVisiveis(1, 36)).toEqual([1, 2, "...", 36]);
+    expect(calcularPaginasVisiveis(5, 36)).toEqual([1, "...", 4, 5, 6, "...", 36]);
+    expect(calcularPaginasVisiveis(36, 36)).toEqual([1, "...", 35, 36]);
+  });
+
+  it("preenche saltos de uma única página com o número", () => {
+    expect(calcularPaginasVisiveis(3, 10)).toEqual([1, 2, 3, 4, "...", 10]);
+    expect(calcularPaginasVisiveis(8, 10)).toEqual([1, "...", 7, 8, 9, 10]);
+  });
+
+  it("corrige página fora do intervalo", () => {
+    expect(calcularPaginasVisiveis(0, 3)).toEqual([1, 2, 3]);
+    expect(calcularPaginasVisiveis(9, 3)).toEqual([1, 2, 3]);
+    expect(calcularPaginasVisiveis(1, 0)).toEqual([1]);
   });
 });

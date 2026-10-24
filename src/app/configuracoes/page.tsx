@@ -17,7 +17,7 @@ export const metadata = {
 };
 
 export default async function ConfiguracoesPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [linkAvaliacaoGoogle, dadosEmpresa, statusChaveClaude] = await Promise.all([
     obterLinkAvaliacaoGoogle(),
@@ -28,6 +28,7 @@ export default async function ConfiguracoesPage() {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Administração"
       title="Configurações"
       description="Gerencie os parâmetros operacionais e integrações da sapataria."

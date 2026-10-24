@@ -18,7 +18,7 @@ export const metadata = {
 export default async function ClientesPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
   const busca = typeof searchParams.busca === "string" ? searchParams.busca : "";
@@ -33,6 +33,7 @@ export default async function ClientesPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Cadastro e consulta"
       title="Clientes"
       description="Cadastre e consulte clientes com persistência local em banco relacional, mantendo o fluxo simples e consistente para a primeira entrega do MVP."

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui";
 
 import { formatarDataCabecalho, montarSaudacao } from "./dashboard-header";
 
@@ -9,9 +10,6 @@ type DashboardHeaderProps = {
   agora?: Date;
   nomeEmpresa?: string;
 };
-
-const acaoBase =
-  "inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full px-5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--background)]";
 
 function IconeVenda() {
   return (
@@ -40,33 +38,26 @@ export function DashboardHeader({ nomeUsuario, agora = new Date(), nomeEmpresa =
   const data = formatarDataCabecalho(agora);
 
   return (
-    <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between lg:gap-6">
-      <div className="flex flex-col gap-1.5">
-        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[color:var(--accent)]">Relatórios e métricas</p>
-        <h1 className="text-3xl font-extrabold leading-tight tracking-[-0.01em] text-[color:var(--text)]">{saudacao}</h1>
-        <p className="text-sm text-[color:var(--text-soft)]">
+    <PageHeader
+      eyebrow="Relatórios e métricas"
+      title={saudacao}
+      description={
+        <>
           <span>{data}</span>
           <span aria-hidden="true"> · </span>
           <span>Visão geral financeira e operacional de {nomeEmpresa}</span>
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
-        <Link
-          href="/vendas-balcao"
-          className={`${acaoBase} border border-[color:var(--border)] bg-white text-[color:var(--text)] hover:bg-[color:var(--surface-muted)]`}
-        >
-          <IconeVenda />
-          Venda de balcão
-        </Link>
-        <Link
-          href="/ordens-servico?nova=1"
-          className={`${acaoBase} bg-[color:var(--accent)] font-bold text-white hover:bg-[color:var(--accent-strong)]`}
-        >
-          <IconeMais />
-          Nova ordem de serviço
-        </Link>
-      </div>
-    </header>
+        </>
+      }
+      actions={
+        <>
+          <Button href="/vendas-balcao" variant="secondary" icon={<IconeVenda />}>
+            Venda de balcão
+          </Button>
+          <Button href="/ordens-servico?nova=1" icon={<IconeMais />}>
+            Nova ordem de serviço
+          </Button>
+        </>
+      }
+    />
   );
 }

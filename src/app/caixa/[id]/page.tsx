@@ -7,13 +7,14 @@ import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cach
 export const dynamic = "force-dynamic";
 
 export default async function CaixaDetalhePage(props: { params: Promise<{ id: string }> }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const { id } = await props.params;
   const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       title="Detalhes do Caixa"
       description="Visualização de fechamento e movimentações."
       eyebrow="Caixa"

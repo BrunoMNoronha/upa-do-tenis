@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { acrescentarParametrosNaPaginaAtual, criarControladorFiltrosUrl } from "@/lib/filtros-url";
+import { acrescentarParametrosNaPaginaAtual, criarControladorFiltrosUrl, montarHrefFiltros } from "@/lib/filtros-url";
 
 const DEBOUNCE_MS = 350;
 const FILTROS_OS = ["statusOp", "statusFin", "busca", "atrasadas"];
@@ -110,5 +110,20 @@ describe("acrescentarParametrosNaPaginaAtual", () => {
     expect(acrescentarParametrosNaPaginaAtual("/clientes", ATUAL)).toBeNull();
     expect(acrescentarParametrosNaPaginaAtual("/ordens-servico/abc?nova=1", ATUAL)).toBeNull();
     expect(acrescentarParametrosNaPaginaAtual("https://outro.local/ordens-servico?nova=1", ATUAL)).toBeNull();
+  });
+});
+
+describe("montarHrefFiltros", () => {
+  it("aplica o filtro, volta para a página 1 e preserva pageSize e busca", () => {
+    expect(montarHrefFiltros("/clientes", "page=3&pageSize=50&busca=ana", { status: "ativos" })).toBe(
+      "/clientes?pageSize=50&busca=ana&status=ativos",
+    );
+  });
+
+  it("remove parâmetros com valor nulo e devolve só o pathname quando nada resta", () => {
+    expect(montarHrefFiltros("/insumos", "estoque=baixo&page=2", { estoque: null })).toBe("/insumos");
+    expect(montarHrefFiltros("/insumos", "estoque=baixo&status=inativos", { estoque: "zerado", status: null })).toBe(
+      "/insumos?estoque=zerado",
+    );
   });
 });

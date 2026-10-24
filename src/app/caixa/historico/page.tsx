@@ -7,12 +7,13 @@ import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cach
 export const dynamic = "force-dynamic";
 
 export default async function CaixaHistoricoPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       title="Histórico de Caixas"
       description="Visualize os caixas fechados e abertos anteriormente."
       eyebrow="Caixa"

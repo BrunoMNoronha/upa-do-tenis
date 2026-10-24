@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function ProdutosPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
   const busca = lerBuscaDeSearchParams(searchParams);
@@ -33,6 +33,7 @@ export default async function ProdutosPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Catálogo"
       title="Produtos"
       description="Gerencie os produtos vendáveis da sapataria. A venda e a baixa de estoque serão habilitadas nas próximas fatias da Fase 12."

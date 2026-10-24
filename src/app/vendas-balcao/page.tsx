@@ -16,7 +16,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function VendaBalcaoPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [produtos, formasPagamento, dadosEmpresa] = await Promise.all([
     listarProdutos(),
@@ -27,6 +27,7 @@ export default async function VendaBalcaoPage() {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Atendimento"
       title="Venda de Balcão"
       description="Selecione produtos, ajuste as quantidades, escolha a forma de pagamento e finalize a venda. O estoque e o caixa são atualizados automaticamente."

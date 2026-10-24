@@ -13,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function InsightsPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [dadosEmpresa, statusChave] = await Promise.all([obterDadosEmpresa(), obterStatusChaveClaude()]);
   const hoje = dataOperacionalHoje();
@@ -21,6 +21,7 @@ export default async function InsightsPage() {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Visão geral"
       title="Insights de Negócio"
       description={`Análises geradas por IA sobre o desempenho financeiro, operacional e de estoque de ${dadosEmpresa.nomeFantasia}.`}

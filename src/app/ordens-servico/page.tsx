@@ -42,7 +42,7 @@ async function ListaOrdensServico({ filtros, paginacao, nomeEmpresa }: {
 export default async function OrdensServicoPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
   const filtros = normalizarFiltrosListagemOrdensServico(searchParams);
@@ -52,6 +52,7 @@ export default async function OrdensServicoPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e atendimento"
       title="Ordens de Serviço"
       description="Acompanhe a fila de ordens, consulte os campos principais e cadastre novas OS integradas ao banco de dados."

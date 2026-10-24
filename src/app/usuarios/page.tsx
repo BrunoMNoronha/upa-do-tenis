@@ -13,13 +13,14 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function UsuariosPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [usuarios, dadosEmpresa] = await Promise.all([listarUsuarios(), obterDadosEmpresa()]);
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Administração"
       title="Usuários"
       description="Cadastre e gerencie os usuários que utilizam o sistema da sapataria."

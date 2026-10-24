@@ -8,7 +8,7 @@ function iconBase(props: IconProps, children: React.ReactNode) {
       className={props.className}
       fill="none"
       viewBox="0 0 24 24"
-      strokeWidth={1.8}
+      strokeWidth={2}
       stroke="currentColor"
       aria-hidden="true"
     >

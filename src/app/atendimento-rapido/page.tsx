@@ -15,7 +15,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AtendimentoRapidoPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [servicos, formasPagamento, dadosEmpresa] = await Promise.all([
     listarServicos(),
@@ -26,6 +26,7 @@ export default async function AtendimentoRapidoPage() {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Atendimento"
       title="Atendimento Rápido"
       description="Para serviços feitos na hora e pagos na entrega, sem cliente e sem ordem de serviço. O pagamento entra no caixa aberto."

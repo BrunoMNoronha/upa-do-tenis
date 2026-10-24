@@ -26,7 +26,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function OrdemServicoDetalhePage(props: OrdemServicoDetalhePageProps) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const { id } = await props.params;
 
   const [formasPagamento, todosInsumos, todosServicos, dadosEmpresa, ordemServico] = await Promise.all([
@@ -57,6 +57,7 @@ export default async function OrdemServicoDetalhePage(props: OrdemServicoDetalhe
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e financeiro"
       title="Detalhe da Ordem de Serviço"
       description="Consulte dados completos da OS, histórico operacional, pagamentos registrados e resumo financeiro consolidado pelo backend."

@@ -18,7 +18,7 @@ export const metadata = {
 export default async function InsumosPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const searchParams = await props.searchParams;
 
   const mostrarAlerta = searchParams?.alerta === "true" || searchParams?.estoqueBaixo === "true";
@@ -46,6 +46,7 @@ export default async function InsumosPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Estoque"
       title="Insumos e Produtos"
       description="Gerencie os materiais utilizados nos serviços ou produtos para venda no balcão."

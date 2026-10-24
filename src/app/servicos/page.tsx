@@ -18,7 +18,7 @@ export const metadata = {
 export default async function ServicosPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
   const busca = lerBuscaDeSearchParams(searchParams);
@@ -33,6 +33,7 @@ export default async function ServicosPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Catálogo"
       title="Serviços"
       description="Gerencie os serviços prestados pela sapataria."

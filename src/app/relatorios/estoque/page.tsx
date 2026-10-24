@@ -13,12 +13,13 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RelatorioEstoquePage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Relatórios"
       title="Estoque Global"
       description="Visão consolidada, métricas e alertas sobre o inventário."

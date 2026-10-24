@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
 export default async function VendasPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const searchParams = await props.searchParams;
 
   const dataInicial = typeof searchParams.dataInicial === "string" ? searchParams.dataInicial : undefined;
@@ -40,6 +40,7 @@ export default async function VendasPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e Atendimento"
       title="Histórico de Vendas"
       description="Consulte as vendas realizadas no balcão, filtre por período e forma de pagamento."
