@@ -10,3 +10,8 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+
+## 2026-10-24 - Prisma Unique Constraint Violations
+**Vulnerability:** Information Exposure / Unhandled Error
+**Learning:** In Prisma APIs, uniqueness constraint violations (like `P2002`) will by default fall through to standard error handlers (usually returning 500) if not caught. In endpoints handling user input, this exposes internal DB codes or can aid enumeration attacks.
+**Prevention:** Explicitly handle `error.code === 'P2002'` across all endpoints that create or update records with unique fields, transforming them into generic `409 Conflict` errors without leaking the internal reason.

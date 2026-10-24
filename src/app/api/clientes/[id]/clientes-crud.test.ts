@@ -101,6 +101,16 @@ describe("PATCH /api/clientes/[id]", () => {
     expect(prismaMock.cliente.update).not.toHaveBeenCalled();
   });
 
+
+  it("retorna 409 quando o cliente já existe com o mesmo e-mail ou CPF/CNPJ", async () => {
+    prismaMock.cliente.update.mockRejectedValueOnce({ code: "P2002" });
+
+    const response = await PATCH(criarRequest("duplicado", "PATCH", { email: "test@example.com" }), wrapParams("duplicado"));
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ message: "Já existe um cliente cadastrado com este e-mail ou CPF/CNPJ." });
+  });
+
   it("retorna 404 quando o cliente não existe", async () => {
     prismaMock.cliente.update.mockRejectedValueOnce({ code: "P2025" });
 
