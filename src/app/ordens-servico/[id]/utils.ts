@@ -1,6 +1,7 @@
 import { ResumoFinanceiro } from "./types";
 
 import { formatCurrency } from "@/lib/formatters";
+import { rotuloStatusFinanceiro, rotuloStatusOperacional } from "@/lib/ordens-servico-status-apresentacao";
 export const currencyFormatter = { format: formatCurrency };
 
 export const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
@@ -8,12 +9,25 @@ export const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
+/** Rótulo de status operacional ou financeiro, com acentuação ("Concluída", "Parcial"). */
 export function formatarStatus(status: string) {
+  const operacional = rotuloStatusOperacional(status);
+  if (operacional !== status) return operacional;
+  const financeiro = rotuloStatusFinanceiro(status);
+  if (financeiro !== status) return financeiro;
   return status
     .toLowerCase()
     .split("_")
     .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
     .join(" ");
+}
+
+/** Percentual pago do total (0–100, inteiro); total zero ou inválido devolve 0. */
+export function percentualPago(valorPago: number, valorTotal: number): number {
+  const total = Number(valorTotal);
+  const pago = Number(valorPago);
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(pago)) return 0;
+  return Math.min(100, Math.max(0, Math.round((pago / total) * 100)));
 }
 
 export function obterTomStatusFinanceiro(status: ResumoFinanceiro["statusFinanceiro"]) {

@@ -6,6 +6,7 @@ import {
 } from "@/lib/dados-cache";
 import { listarInsumos } from "@/lib/insumos";
 import { obterDetalheOrdemServicoDto, OrdemServicoDetalheError } from "@/lib/ordens-servico";
+import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
 import { OrdemServicoDetalheClient } from "./ordem-servico-detalhe-client";
 import type { OrdemServicoDetalhe } from "./types";
@@ -61,7 +62,7 @@ export default async function OrdemServicoDetalhePage(props: OrdemServicoDetalhe
       eyebrow="Operação e financeiro"
       title="Detalhe da Ordem de Serviço"
       description="Consulte dados completos da OS, histórico operacional, pagamentos registrados e resumo financeiro consolidado pelo backend."
-      action={{ href: "/ordens-servico", label: "Voltar para Ordens" }}
+      ocultarCabecalho
     >
       <OrdemServicoDetalheClient
         ordemServicoId={id}
@@ -69,6 +70,7 @@ export default async function OrdemServicoDetalhePage(props: OrdemServicoDetalhe
         formasPagamento={formasPagamento}
         insumosDisponiveis={insumosDisponiveis}
         servicosDisponiveis={servicosDisponiveis}
+        nomeEmpresa={nomeExibicaoEmpresa(dadosEmpresa)}
       />
     </AppShell>
   );
