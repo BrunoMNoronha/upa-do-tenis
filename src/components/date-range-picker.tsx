@@ -21,8 +21,12 @@ type DateRangePickerProps = {
   className?: string;
   /** Oculta os atalhos internos (Hoje, Última semana...) quando a tela já oferece presets próprios. */
   hidePresets?: boolean;
-  /** "card" (padrão) desenha borda e fundo; "inline" só os campos, para compor com outros controles. */
-  variant?: "card" | "inline";
+  /**
+   * "card" (padrão) desenha borda e fundo; "inline" só os campos, para compor
+   * com outros controles; "linha" é a versão compacta em uma linha
+   * ("Período [início] até [fim] [Filtrar]"), sem o texto de resumo.
+   */
+  variant?: "card" | "inline" | "linha";
 };
 
 const periodoFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
@@ -73,6 +77,34 @@ export function DateRangePicker({
   const periodoLegivel = from && to
     ? `${periodoFormatter.format(parseDataLocal(from))} – ${periodoFormatter.format(parseDataLocal(to))}`
     : "Nenhum período selecionado";
+
+  if (variant === "linha") {
+    const campo =
+      "h-9 rounded-[10px] border border-[color:var(--border-strong)] bg-white px-3 text-[13px] text-[color:var(--text)] outline-none focus:border-[color:var(--accent)] focus:ring-[3px] focus:ring-[color:var(--focus-ring)]";
+    return (
+      <div className={`flex flex-wrap items-center gap-2.5 ${className}`}>
+        <label htmlFor={`${idPrefix}-inicio`} className="text-[13px] font-semibold text-[color:var(--text-soft)]">
+          Período
+        </label>
+        <input id={`${idPrefix}-inicio`} type="date" value={from} onChange={(e) => applyRange(e.target.value, to)} className={campo} />
+        <span className="text-[13px] text-[color:var(--text-soft)]" aria-hidden="true">até</span>
+        <label htmlFor={`${idPrefix}-fim`} className="sr-only">Data final</label>
+        <input id={`${idPrefix}-fim`} type="date" value={to} onChange={(e) => applyRange(from, e.target.value)} className={campo} />
+        {onApply ? (
+          <button
+            type="button"
+            onClick={onApply}
+            disabled={applying}
+            aria-busy={applying || undefined}
+            className="inline-flex h-9 items-center rounded-[10px] bg-[color:var(--ink)] px-4 text-[13px] font-bold text-white transition hover:bg-[#2b3646] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {applying ? "Filtrando..." : applyLabel}
+          </button>
+        ) : null}
+        <span className="sr-only" aria-live="polite">Período: {periodoLegivel}</span>
+      </div>
+    );
+  }
 
   return (
     <div

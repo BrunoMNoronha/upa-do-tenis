@@ -17,7 +17,7 @@ export function DashboardPanel({ title, description, action, className = "", chi
   return (
     <section
       aria-label={title}
-      className={`flex flex-col gap-4 rounded-[var(--r-card)] border border-[color:var(--border)] bg-white p-5 sm:p-6 ${className}`}
+      className={`flex flex-col gap-4 rounded-[var(--r-card)] border border-[color:var(--border)] bg-white p-5 sm:px-6 sm:py-[22px] ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">

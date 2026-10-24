@@ -140,17 +140,20 @@ export function DashboardClient({
                 value={formatCurrency(viewModel.totalRecebido)}
                 description="Pagamentos registrados no período"
                 tone="highlight"
+                href="/relatorios/financeiro-os"
               />
               <DashboardKpiCard
                 label="Total pendente"
                 value={formatCurrency(viewModel.totalPendente)}
                 description="Saldo a receber de OS não canceladas"
                 badge={descreverOrdensComSaldo(viewModel.ordensComSaldo)}
+                href="/ordens-servico?statusFin=COM_SALDO_EM_ABERTO"
               />
               <DashboardKpiCard
                 label="Ticket médio"
                 value={formatCurrency(viewModel.ticketMedio)}
                 description="Média do valor total por OS"
+                href="/relatorios/financeiro-os"
               />
               <DashboardKpiCard
                 label="OS ativas no período"
