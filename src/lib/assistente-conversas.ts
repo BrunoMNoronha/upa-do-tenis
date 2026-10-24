@@ -66,23 +66,30 @@ export async function obterConversaCompleta(id: string, usuarioId: string) {
     conteudoApi: JSON.parse(m.conteudo) as Anthropic.Beta.BetaMessageParam["content"],
   }));
 
+  let perguntas = 0;
+  const visiveis: MensagemVisivel[] = [];
+
+  for (const m of mensagens) {
+    const eTurnoUsuario = eTurnoDoUsuario(m.papel, m.conteudoApi);
+    if (eTurnoUsuario) perguntas++;
+
+    const texto = extrairTexto(m.conteudoApi);
+    if (!texto) continue;
+    if (m.papel === "user" && !eTurnoUsuario) continue;
+
+    visiveis.push({
+      papel: m.papel as "user" | "assistant",
+      texto,
+      modelo: m.modelo,
+      criadoEm: m.criadoEm.toISOString(),
+    });
+  }
+
   return {
     resumo: paraResumo(conversa),
     historico: mensagens.map((m) => ({ role: m.papel as "user" | "assistant", content: m.conteudoApi })),
-    perguntas: mensagens.filter((m) => eTurnoDoUsuario(m.papel, m.conteudoApi)).length,
-    visiveis: mensagens
-      .map((m): MensagemVisivel | null => {
-        const texto = extrairTexto(m.conteudoApi);
-        if (!texto) return null;
-        if (m.papel === "user" && !eTurnoDoUsuario(m.papel, m.conteudoApi)) return null;
-        return {
-          papel: m.papel as "user" | "assistant",
-          texto,
-          modelo: m.modelo,
-          criadoEm: m.criadoEm.toISOString(),
-        };
-      })
-      .filter((m): m is MensagemVisivel => m !== null),
+    perguntas,
+    visiveis,
   };
 }
 

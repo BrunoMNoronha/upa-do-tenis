@@ -37,3 +37,7 @@
 ## 2026-10-04 - Avoid unnecessary array iteration via consecutive array method chains
 **Learning:** Chaining array methods like multiple `.filter()` over the same source array causes iterations of time complexity O(k*N) and creates intermediate array structures which increase memory usage and garbage collection overhead.
 **Action:** When filtering or mapping data into different categorizations (e.g., separating exact matches from partial matches), use a single `for...of` loop with a constant complexity of O(N).
+
+## 2026-10-19 - Contagem e projeção de mensagens em passada única
+**Learning:** Em `obterConversaCompleta`, `mensagens.filter(...).length` seguido de `mensagens.map(...).filter(...)` percorria a lista três vezes e alocava arrays intermediários a cada requisição de conversa.
+**Action:** Consolidar contagem (`perguntas`) e projeção (`visiveis`) em um único `for...of` com `continue` para descartar itens, preservando exatamente o mesmo resultado e evitando arrays temporários.
