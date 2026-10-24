@@ -4,7 +4,8 @@ import { useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
-import { Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Button, Input, Label, Textarea } from "@/components/ui";
+import { IconeFechar, IconeMais } from "@/components/icones";
 import { Combobox } from "@/components/combobox";
 import type { DadosCompartilhamentoAcompanhamento } from "@/components/compartilhar-acompanhamento-dialog";
 import { formatCurrency, maskCPFCNPJ, maskPhone } from "@/lib/formatters";
@@ -80,29 +81,35 @@ function FormSection({
   titulo,
   descricao,
   obrigatorio = false,
+  acao,
   children,
 }: {
   titulo: string;
   descricao?: string;
   /** Marca a seção cujo campo principal é obrigatório (o label fica só para leitores de tela). */
   obrigatorio?: boolean;
+  /** Ação ao lado do título (ex.: "+ Cadastrar novo cliente"). */
+  acao?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-4">
-      <div className="border-b border-[color:var(--border)] pb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">
-          {titulo}
-          {obrigatorio ? (
-            <>
-              {" "}
-              <span aria-hidden="true" className="text-red-600">*</span>
-            </>
+    <section className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h3 className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[color:var(--accent-strong)]">
+            {titulo}
+            {obrigatorio ? (
+              <>
+                {" "}
+                <span aria-hidden="true" className="text-[color:var(--danger)]">*</span>
+              </>
+            ) : null}
+          </h3>
+          {descricao ? (
+            <p className="mt-1 text-xs leading-5 text-[color:var(--text-soft)]">{descricao}</p>
           ) : null}
-        </h3>
-        {descricao ? (
-          <p className="mt-1 text-xs leading-5 text-slate-500">{descricao}</p>
-        ) : null}
+        </div>
+        {acao}
       </div>
       {children}
     </section>
@@ -475,27 +482,49 @@ export function OrdemServicoForm({
   }
 
   return (
-    <section id="nova-ordem">
-      <Card className="p-6 shadow-none">
-        <div className="-mx-6 -mt-6 mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-5">
-          <SectionTitle className="text-2xl">
-            Cadastro de OS
-          </SectionTitle>
-          <div className="flex items-start gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Fechar cadastro de OS"
-              className="rounded-full p-2 text-slate-500 transition hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
-            >
-              <span aria-hidden="true" className="text-xl leading-none">×</span>
-            </button>
+    <section id="nova-ordem" className="flex min-h-full flex-col">
+        <div className="flex items-start justify-between gap-4 border-b border-[color:var(--border)] px-6 py-6 sm:px-8">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-bold uppercase tracking-[0.08em] text-[color:var(--accent)]">Cadastro</p>
+            <h2 id="cadastro-os-titulo" className="text-2xl font-extrabold text-[color:var(--text)]">
+              Nova ordem de serviço
+            </h2>
+            <p className="text-[13px] text-[color:var(--text-soft)]">
+              Campos com * são obrigatórios. A OS nasce como <span className="font-bold text-[color:var(--text)]">Aberta</span>.
+            </p>
           </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Fechar cadastro de OS"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[color:var(--border-strong)] bg-white text-[color:var(--text-soft)] transition hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
+          >
+            <IconeFechar className="h-[18px] w-[18px]" />
+          </button>
         </div>
 
-        <form className="grid gap-8" onSubmit={onSubmit} noValidate>
+        <form className="flex flex-1 flex-col" onSubmit={onSubmit} noValidate>
+          <div className="grid gap-6 px-6 py-6 sm:px-8">
           {/* 1. Cliente */}
-          <FormSection titulo="Cliente" obrigatorio>
+          <FormSection
+            titulo="1. Cliente"
+            obrigatorio
+            acao={
+              <button
+                type="button"
+                aria-expanded={mostrarNovoCliente}
+                aria-controls="cadastro-rapido-cliente"
+                onClick={() => {
+                  setClienteError(null);
+                  setMostrarNovoCliente((atual) => !atual);
+                }}
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-[color:var(--accent)] transition hover:bg-[color:var(--surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)]"
+              >
+                {mostrarNovoCliente ? <IconeFechar /> : <IconeMais />}
+                {mostrarNovoCliente ? "Fechar cadastro rápido" : "Cadastrar novo cliente"}
+              </button>
+            }
+          >
             <div className="grid gap-2">
               <Label htmlFor="clienteId" className="sr-only">
                 Cliente <CampoObrigatorio />
@@ -519,52 +548,6 @@ export function OrdemServicoForm({
                     emptyText="Cliente não encontrado"
                   />
                 </div>
-                <button
-                  type="button"
-                  aria-label={
-                    mostrarNovoCliente
-                      ? "Fechar cadastro rápido de cliente"
-                      : "Cadastrar novo cliente"
-                  }
-                  title={
-                    mostrarNovoCliente
-                      ? "Fechar cadastro rápido"
-                      : "Cadastrar novo cliente"
-                  }
-                  aria-expanded={mostrarNovoCliente}
-                  aria-controls="cadastro-rapido-cliente"
-                  onClick={() => {
-                    setClienteError(null);
-                    setMostrarNovoCliente((atual) => !atual);
-                  }}
-                  className={`inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)] ${
-                    mostrarNovoCliente
-                      ? "border-[color:var(--accent)] bg-[color:var(--accent-tint)] text-[color:var(--accent-strong)]"
-                      : "border-black/10 bg-white text-[color:var(--accent-strong)] hover:border-[color:var(--accent-soft)] hover:bg-[color:var(--accent-tint)]"
-                  }`}
-                >
-                  <svg
-                    className="h-5 w-5"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    {mostrarNovoCliente ? (
-                      <path d="M6 6l12 12M18 6L6 18" />
-                    ) : (
-                      <>
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M19 8v6M22 11h-6" />
-                      </>
-                    )}
-                  </svg>
-                </button>
               </div>
               <ErroCampo id="clienteId-error" mensagem={errors.clienteId?.message} />
             </div>
@@ -665,7 +648,7 @@ export function OrdemServicoForm({
           </FormSection>
 
           {/* 2. Dados da Ordem de Serviço */}
-          <FormSection titulo="Dados da Ordem de Serviço">
+          <FormSection titulo="2. Identificação">
             <div className="grid gap-4 md:grid-cols-3">
               <div className="grid content-start gap-2">
                 <Label htmlFor="dataEntrada">Data de entrada</Label>
@@ -744,7 +727,7 @@ export function OrdemServicoForm({
 
           {/* 3. Itens recebidos (issue #205): um card por objeto entregue */}
           <FormSection
-            titulo="Itens recebidos"
+            titulo="3. Itens recebidos"
             obrigatorio
             descricao="Cada objeto entregue pelo cliente é um item, com a própria foto e os próprios serviços."
           >
@@ -789,26 +772,26 @@ export function OrdemServicoForm({
               </div>
             </div>
 
-            <div className="grid gap-2 rounded-2xl border border-[color:var(--accent-soft)] bg-[color:var(--accent-tint)] p-4 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4">
+            <div className="grid gap-2 rounded-[14px] border border-[color:var(--accent-soft)] bg-[color:var(--accent-tint)] px-4 py-3.5 sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[color:var(--accent-strong)]">
-                  Total da OS
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[color:var(--accent-strong)]">
+                  Valor total dos serviços
                 </p>
-                <p className="mt-1 text-xs text-slate-600">
-                  Soma dos subtotais de todos os itens.
+                <p className="mt-1 text-xs text-[color:var(--text-soft)]">
+                  Calculado a partir dos serviços de todos os itens.
                 </p>
               </div>
               <p
                 data-testid="total-ordem"
-                className="text-right text-lg font-semibold text-[color:var(--accent-strong)] sm:w-56"
+                className="text-right text-xl font-extrabold text-[color:var(--accent-strong)] sm:w-56"
               >
                 {formatCurrency(totalOrdem)}
               </p>
             </div>
           </FormSection>
 
-          {/* 5. Observações */}
-          <FormSection titulo="Observações">
+          {/* 4. Observações */}
+          <FormSection titulo="4. Observações">
             <div className="grid gap-2">
               <Label htmlFor="observacoes" className="sr-only">Observações</Label>
               <Textarea
@@ -832,8 +815,10 @@ export function OrdemServicoForm({
             </div>
           ) : null}
 
-          {/* 6. Ações */}
-          <div className="sticky bottom-0 -mx-6 -mb-6 flex flex-col-reverse gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          </div>
+
+          {/* Ações */}
+          <div className="sticky bottom-0 mt-auto flex flex-col-reverse gap-3 border-t border-[color:var(--border)] bg-[color:var(--surface)] px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
             <Button
               type="button"
               variant="secondary"
@@ -842,17 +827,19 @@ export function OrdemServicoForm({
             >
               Cancelar
             </Button>
-            <Button
-              type="submit"
-              isLoading={isPending || isSubmitting}
-              disabled={Boolean(ordemPendenteFoto) || fotoProcessando}
-              className="w-full sm:w-auto sm:min-w-[12rem]"
-            >
-              Cadastrar ordem
-            </Button>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <p className="text-xs text-[color:var(--text-soft)]">Sinal e pagamentos são registrados no detalhe da OS.</p>
+              <Button
+                type="submit"
+                isLoading={isPending || isSubmitting}
+                disabled={Boolean(ordemPendenteFoto) || fotoProcessando}
+                className="w-full sm:w-auto sm:min-w-[192px]"
+              >
+                Cadastrar ordem
+              </Button>
+            </div>
           </div>
         </form>
-      </Card>
     </section>
   );
 }

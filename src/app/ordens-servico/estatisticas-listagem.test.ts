@@ -5,7 +5,7 @@ const captura = vi.hoisted(() => ({ stats: {} as Record<string, unknown> }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn(), push: vi.fn() }), useSearchParams: () => new URLSearchParams(), usePathname: () => "/ordens-servico" }));
 vi.mock("@/components/ui", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/components/ui")>(),
-  StatCard: ({ label, value }: { label: string; value: unknown }) => { captura.stats[label] = value; return null; },
+  KpiCard: ({ label, value }: { label: string; value: unknown }) => { captura.stats[label] = value; return null; },
 }));
 import { OrdensServicoClient } from "./ordens-servico-client";
 
@@ -26,9 +26,9 @@ describe("contadores exibidos na listagem de OS", () => {
       filtros: { ...filtros, statusOperacional: "ABERTA" },
       nomeEmpresa: "UPA do Tênis",
     }));
-    expect(captura.stats).toEqual({ Abertas: 2, "Em andamento": 1, "Com saldo": 3 });
+    expect(captura.stats).toEqual({ Abertas: 2, "Em andamento": 1, "Com saldo em aberto": 3, Atrasadas: 0 });
   });
-  it("exibe alerta consolidado com o total global de OS atrasadas", () => {
+  it("anuncia o total global de OS atrasadas e o contador fica no card", () => {
     const html = renderToStaticMarkup(createElement(OrdensServicoClient, {
       initialOrders: [],
       pagination: paginacao(0),
@@ -37,11 +37,21 @@ describe("contadores exibidos na listagem de OS", () => {
       nomeEmpresa: "UPA do Tênis",
     }));
     expect(html).toContain("2 ordens de serviço atrasadas");
-    expect(html).toContain("Ver atrasadas");
-    expect(html).toContain("Atrasadas (2)");
+    expect(captura.stats.Atrasadas).toBe(2);
   });
-  it("alterna o botão do alerta quando o filtro de atrasadas está ativo", () => {
-    const html = renderToStaticMarkup(createElement(OrdensServicoClient, {
+  it("alterna o texto do card quando o filtro de atrasadas está ativo", async () => {
+    vi.resetModules();
+    vi.doUnmock("@/components/ui");
+    const { OrdensServicoClient: ClienteReal } = await import("./ordens-servico-client");
+    const fora = renderToStaticMarkup(createElement(ClienteReal, {
+      initialOrders: [],
+      pagination: paginacao(0),
+      estatisticas: { abertas: 0, emAndamento: 0, comSaldo: 0, atrasadas: 1 },
+      filtros,
+      nomeEmpresa: "UPA do Tênis",
+    }));
+    expect(fora).toContain("Ver atrasadas →");
+    const html = renderToStaticMarkup(createElement(ClienteReal, {
       initialOrders: [],
       pagination: paginacao(0),
       estatisticas: { abertas: 0, emAndamento: 0, comSaldo: 0, atrasadas: 1 },
@@ -50,6 +60,7 @@ describe("contadores exibidos na listagem de OS", () => {
     }));
     expect(html).toContain("1 ordem de serviço atrasada");
     expect(html).toContain("Mostrar todas");
+    expect(html).toContain('aria-pressed="true"');
   });
   it("não exibe alerta quando não há OS atrasadas", () => {
     const html = renderToStaticMarkup(createElement(OrdensServicoClient, {
@@ -60,7 +71,7 @@ describe("contadores exibidos na listagem de OS", () => {
       nomeEmpresa: "UPA do Tênis",
     }));
     expect(html).not.toContain("ordens de serviço atrasadas");
-    expect(html).not.toContain("Ver atrasadas");
+    expect(html).not.toContain("ordem de serviço atrasada");
   });
   it("exibe zeros quando não há ordens", () => {
     renderToStaticMarkup(createElement(OrdensServicoClient, {
@@ -70,7 +81,7 @@ describe("contadores exibidos na listagem de OS", () => {
       filtros,
       nomeEmpresa: "UPA do Tênis",
     }));
-    expect(captura.stats).toEqual({ Abertas: 0, "Em andamento": 0, "Com saldo": 0 });
+    expect(captura.stats).toEqual({ Abertas: 0, "Em andamento": 0, "Com saldo em aberto": 0, Atrasadas: 0 });
   });
   it("renderiza os controles de paginação com o total vindo do servidor", () => {
     const html = renderToStaticMarkup(createElement(OrdensServicoClient, {
@@ -81,7 +92,7 @@ describe("contadores exibidos na listagem de OS", () => {
       nomeEmpresa: "UPA do Tênis",
     }));
     expect(html).toContain("Página 2 de 3");
-    expect(html).toContain("Exibindo 21–40 de 45 ordens");
+    expect(html).toContain("Mostrando 21–40 de 45");
     expect(html).toContain('href="/ordens-servico?page=3"');
     expect(html).toContain('href="/ordens-servico"');
   });

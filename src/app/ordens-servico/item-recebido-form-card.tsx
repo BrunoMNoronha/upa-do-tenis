@@ -4,7 +4,8 @@ import { useEffect, useId, useRef } from "react";
 import Image from "next/image";
 import type { UseFormRegisterReturn } from "react-hook-form";
 
-import { Button, Input, Label } from "@/components/ui";
+import { Input, Label } from "@/components/ui";
+import { IconeLixeira } from "@/components/icones";
 import { Combobox } from "@/components/combobox";
 import { FotoOtimizadaResumo } from "@/components/foto-otimizada-resumo";
 import { useFotosOtimizadas } from "@/components/use-fotos-otimizadas";
@@ -104,14 +105,14 @@ export function ItemRecebidoFormCard({
       className="grid gap-4 rounded-2xl border border-[color:var(--border)] bg-white p-4"
     >
       <div className="flex items-center justify-between gap-3">
-        <h4 className="text-sm font-semibold text-[color:var(--text)]">Item {indice + 1}</h4>
+        <h4 className="text-sm font-extrabold text-[color:var(--text)]">Item {indice + 1}</h4>
         {podeRemover ? (
           <button
             type="button"
             onClick={onRemoverItem}
             disabled={bloqueado}
             aria-label={`Remover item ${indice + 1}`}
-            className="text-xs font-semibold text-slate-500 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-full px-3 text-xs font-bold text-[color:var(--danger)] hover:bg-[color:var(--danger-soft)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             Remover item
           </button>
@@ -120,18 +121,19 @@ export function ItemRecebidoFormCard({
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="grid content-start gap-2">
-          <Label htmlFor={`${idBase}-descricao`} className="sr-only">
-            Descrição do item {indice + 1}
+          <Label htmlFor={`${idBase}-descricao`} obrigatorio>
+            Descrição do item
           </Label>
           <Input
             id={`${idBase}-descricao`}
             {...descricaoField}
-            placeholder="Ex.: tênis preto"
+            placeholder="Ex.: tênis branco Nike Air"
             disabled={bloqueado}
             aria-invalid={Boolean(erroDescricao)}
             aria-describedby={erroDescricao ? `${idBase}-erro-descricao` : undefined}
           />
-          {erroDescricao ? <p id={`${idBase}-erro-descricao`} role="alert" className="text-sm text-red-600">{erroDescricao}</p> : null}
+          {erroDescricao ? <p id={`${idBase}-erro-descricao`} role="alert" className="text-xs font-semibold text-[color:var(--danger)]">{erroDescricao}</p> : null}
+          <p className="text-xs text-[color:var(--text-soft)]">Marca, cor e detalhes que identifiquem o par no balcão.</p>
         </div>
 
         <div className="grid content-start gap-2">
@@ -155,11 +157,12 @@ export function ItemRecebidoFormCard({
             onChange={(event) => selecionarFotos(Array.from(event.target.files ?? []), event.currentTarget)}
             className="sr-only"
           />
+          <p className="text-xs font-bold text-[color:var(--text-body)]">Foto do item</p>
           <div className="flex flex-wrap gap-2">
-            <label htmlFor={`${idBase}-camera`} className="cursor-pointer rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
+            <label htmlFor={`${idBase}-camera`} className="inline-flex min-h-[44px] cursor-pointer items-center rounded-xl border border-dashed border-[rgba(74,53,35,0.35)] bg-[color:var(--background)] px-3 text-[13px] font-semibold text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
               Tirar foto
             </label>
-            <label htmlFor={`${idBase}-galeria`} className="cursor-pointer rounded-xl border border-black/10 bg-white px-3 py-2 text-sm font-medium text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
+            <label htmlFor={`${idBase}-galeria`} className="inline-flex min-h-[44px] cursor-pointer items-center rounded-xl border border-dashed border-[rgba(74,53,35,0.35)] bg-[color:var(--background)] px-3 text-[13px] font-semibold text-[color:var(--accent-strong)] hover:bg-[color:var(--accent-tint)]">
               Escolher da galeria
             </label>
             <span className="self-center text-xs text-slate-500">{fotos.fotos.length} de {fotos.limite} fotos</span>
@@ -191,9 +194,7 @@ export function ItemRecebidoFormCard({
       </div>
 
       <div className="grid gap-3">
-        <Label htmlFor={`${idBase}-servico`} className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
-          Serviços
-        </Label>
+        <Label htmlFor={`${idBase}-servico`}>Serviços</Label>
         {bloqueado ? null : (
           <Combobox
             id={`${idBase}-servico`}
@@ -214,9 +215,14 @@ export function ItemRecebidoFormCard({
               return (
                 <div
                   key={item.servicoId}
-                  className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-[1fr_10rem_auto] sm:items-center"
+                  className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-[color:var(--border)] px-3.5 py-2.5 sm:grid-cols-[1fr_140px_40px] sm:items-center"
                 >
-                  <p className="text-sm font-medium text-slate-700">{servico?.nome || "Serviço"}</p>
+                  <div className="col-span-2 min-w-0 sm:col-span-1">
+                    <p className="truncate text-sm font-bold text-[color:var(--text)]">{servico?.nome || "Serviço"}</p>
+                    {servico ? (
+                      <p className="text-xs text-[color:var(--text-soft)]">Preço base {formatCurrency(Number(servico.precoBase))}</p>
+                    ) : null}
+                  </div>
                   <Input
                     aria-label={`Valor de ${servico?.nome || "serviço"} no item ${indice + 1}`}
                     type="number"
@@ -225,15 +231,18 @@ export function ItemRecebidoFormCard({
                     value={item.valor}
                     disabled={bloqueado}
                     onChange={(event) => onAtualizarValorServico(item.servicoId, event.target.value)}
+                    className="bg-[color:var(--background)] text-right"
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="ghost"
                     disabled={bloqueado}
                     onClick={() => onRemoverServico(item.servicoId)}
+                    aria-label={`Remover ${servico?.nome || "serviço"} do item ${indice + 1}`}
+                    title="Remover serviço"
+                    className="inline-flex h-11 w-10 items-center justify-center rounded-[10px] text-[color:var(--muted)] transition hover:bg-[color:var(--danger-soft)] hover:text-[color:var(--danger)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Remover
-                  </Button>
+                    <IconeLixeira />
+                  </button>
                 </div>
               );
             })}
@@ -246,8 +255,8 @@ export function ItemRecebidoFormCard({
       </div>
 
       <div className="flex items-center justify-between gap-3 border-t border-[color:var(--border)] pt-3 text-sm">
-        <span className="text-slate-600">Subtotal do item</span>
-        <span className="font-semibold text-[color:var(--accent-strong)]">{formatCurrency(subtotal)}</span>
+        <span className="text-[color:var(--text-soft)]">Subtotal do item</span>
+        <span className="font-bold text-[color:var(--accent-strong)]">{formatCurrency(subtotal)}</span>
       </div>
     </div>
   );
