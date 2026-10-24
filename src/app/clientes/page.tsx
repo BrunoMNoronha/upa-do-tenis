@@ -1,8 +1,10 @@
 import { AppShell } from "@/components/app-shell";
-import { Card, SectionTitle } from "@/components/ui";
+import { IconeMais } from "@/components/icones";
+import { Button } from "@/components/ui";
 import { ClientesClient } from "./clientes-client";
 
-import { listarClientesPaginado } from "@/lib/clientes";
+import { contarEstatisticasClientes, listarClientesPaginado } from "@/lib/clientes";
+import { lerFiltroStatus, statusParaAtivo } from "@/lib/cadastros-filtros";
 import { lerPaginacaoDeSearchParams } from "@/lib/paginacao";
 
 import { exigirSessao } from "@/lib/auth-server";
@@ -18,49 +20,39 @@ export const metadata = {
 export default async function ClientesPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
-  const busca = typeof searchParams.busca === "string" ? searchParams.busca : "";
-  const [{ data: clientes, pagination }, dadosEmpresa] = await Promise.all([
+  const busca = typeof searchParams.busca === "string" ? searchParams.busca.trim() : "";
+  const filtroStatus = lerFiltroStatus(searchParams);
+  const [{ data: clientes, pagination }, estatisticas, dadosEmpresa] = await Promise.all([
     listarClientesPaginado({
       search: busca || undefined,
       paginacao: lerPaginacaoDeSearchParams(searchParams),
+      opcoes: { ativo: statusParaAtivo(filtroStatus) },
     }),
+    contarEstatisticasClientes(),
     obterDadosEmpresa(),
   ]);
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Cadastro e consulta"
       title="Clientes"
-      description="Cadastre e consulte clientes com persistência local em banco relacional, mantendo o fluxo simples e consistente para a primeira entrega do MVP."
-      action={{ href: "/ordens-servico", label: "Ir para OS" }}
+      description="Base de clientes usada nas ordens de serviço e no acompanhamento por WhatsApp."
+      actions={
+        <Button href="#cadastro-rapido" icon={<IconeMais />}>
+          Novo cliente
+        </Button>
+      }
     >
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">Fluxo</p>
-          <SectionTitle className="mt-3 text-xl">Cadastro rápido</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">
-            Formulário enxuto para uso no balcão, com edição, inativação e exclusão pela própria lista.
-          </p>
-        </Card>
-        <Card className="p-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-            Clientes inativos
-          </p>
-          <SectionTitle className="mt-3 text-xl">Base para OS</SectionTitle>
-          <p className="mt-3 text-sm leading-6 text-slate-700">
-            Clientes inativos continuam visíveis aqui para consulta e reativação, mas deixam de ser oferecidos na
-            abertura de ordens de serviço.
-          </p>
-        </Card>
-      </div>
-
       <ClientesClient
         busca={busca}
         pagination={pagination}
+        estatisticas={estatisticas}
+        filtroStatus={filtroStatus}
         clientes={clientes.map((cliente) => ({
           id: cliente.id,
           nome: cliente.nome,

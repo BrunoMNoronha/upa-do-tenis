@@ -25,6 +25,19 @@
   --ink: #1f2937;
   --text-soft: #5b6472;
   --neutral-bar: #d6ccc0;
+  /* Tokens complementares do design (bordas de controles, cinzas de apoio,
+     cores sobre fundo escuro e paleta das badges). */
+  --border-strong: rgba(74, 53, 35, 0.16);
+  --muted: #a89f93;
+  --track: #e8e0d5;
+  --bar-on-dark: #e2c7ad;
+  --on-dark-soft: #d1d5db;
+  --saldo-on-dark: #fcd34d;
+  --text-body: #4b5563;
+  --danger-badge-bg: #fee2e2;
+  --danger-badge-text: #991b1b;
+  --warning-badge-text: #92400e;
+  --focus-ring: rgba(140, 90, 50, 0.12);
   --font-sans: var(--font-manrope), "Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
@@ -42,10 +55,7 @@ body {
 
 body {
   margin: 0;
-  background:
-    radial-gradient(circle at top left, rgba(140, 90, 50, 0.16), transparent 26%),
-    radial-gradient(circle at top right, rgba(31, 41, 55, 0.05), transparent 22%),
-    linear-gradient(180deg, #fcf8f2 0%, #f6eee3 100%);
+  background: var(--background);
   color: var(--text);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

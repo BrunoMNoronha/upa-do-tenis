@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Input, Label, PanelHeader, Textarea } from "@/components/ui";
+import { Button, Card, Input, Label, PanelHeader } from "@/components/ui";
 import { FormaPagamento, PagamentoFormValues } from "../types";
 
 const pagamentoFormDefaultValues: PagamentoFormValues = {
@@ -90,22 +90,22 @@ export function ReceberPagamentoForm({
   };
 
   return (
-    <Card className="p-6">
-      <PanelHeader title="Receber pagamento" description="O lançamento será registrado no caixa aberto." />
+    <Card className="p-[22px]">
+      <PanelHeader title="Receber pagamento" description="Registra no caixa aberto e atualiza o saldo" />
 
       {formasPagamento.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-[color:var(--text-soft)]">
           Nenhuma forma de pagamento ativa está disponível. Cadastre uma forma em Financeiro para registrar pagamentos.
         </p>
       ) : (
         <form className="mt-4 grid gap-3" onSubmit={handleRegistrarPagamento}>
-          <div className="grid gap-2">
+          <div className="grid gap-1">
             <Label htmlFor="formaPagamentoId">Forma de pagamento</Label>
             <select
               id="formaPagamentoId"
               value={pagamentoForm.formaPagamentoId}
               onChange={(event) => handlePagamentoInput("formaPagamentoId", event.target.value)}
-              className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
+              className="h-11 w-full rounded-[10px] border border-[color:var(--border-strong)] bg-white px-3 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--accent)] focus:ring-[3px] focus:ring-[color:var(--focus-ring)]"
               required
             >
               <option value="">Selecione...</option>
@@ -118,7 +118,8 @@ export function ReceberPagamentoForm({
             </select>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1">
             <Label htmlFor="valorPagamento">Valor</Label>
             <Input
               id="valorPagamento"
@@ -132,8 +133,8 @@ export function ReceberPagamentoForm({
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="dataPagamento">Data de pagamento</Label>
+          <div className="grid gap-1">
+            <Label htmlFor="dataPagamento">Data</Label>
             <Input
               id="dataPagamento"
               type="date"
@@ -142,21 +143,21 @@ export function ReceberPagamentoForm({
               required
             />
           </div>
+          </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="observacoesPagamento">Observações (opcional)</Label>
-            <Textarea
+          <div className="grid gap-1">
+            <Label htmlFor="observacoesPagamento">Observações</Label>
+            <Input
               id="observacoesPagamento"
-              rows={3}
               value={pagamentoForm.observacoes}
               onChange={(event) => handlePagamentoInput("observacoes", event.target.value)}
-              placeholder="Detalhes adicionais sobre o pagamento"
+              placeholder="Opcional"
             />
           </div>
 
           {pagamentoErro ? (
-            <div className="text-sm text-red-600">
-              <p>{pagamentoErro}</p>
+            <div className="text-sm text-[color:var(--danger)]">
+              <p role="alert">{pagamentoErro}</p>
               {typeof pagamentoErro === "string" && pagamentoErro.includes("caixa") && (
                 <div className="mt-2">
                   <Button href="/caixa" type="button" variant="secondary">
@@ -166,13 +167,11 @@ export function ReceberPagamentoForm({
               )}
             </div>
           ) : null}
-          {pagamentoSucesso ? <p className="text-sm text-emerald-700">{pagamentoSucesso}</p> : null}
+          {pagamentoSucesso ? <p role="status" className="text-sm text-[color:var(--success)]">{pagamentoSucesso}</p> : null}
 
-          <div>
-            <Button type="submit" isLoading={enviandoPagamento}>
-              Registrar pagamento
-            </Button>
-          </div>
+          <Button type="submit" isLoading={enviandoPagamento} className="w-full">
+            Registrar pagamento
+          </Button>
         </form>
       )}
     </Card>

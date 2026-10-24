@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { Badge, Button, Card, Label, PanelHeader, Textarea } from "@/components/ui";
+import { Button, Card, Label, PanelHeader, Textarea } from "@/components/ui";
 import { MOTIVO_ESTORNO_MAX, MOTIVO_ESTORNO_MIN } from "@/lib/ordens-servico-estornos-schema";
 import { Pagamento } from "../types";
 import { currencyFormatter, dateFormatter } from "../utils";
+import { rotuloTipoPagamento } from "@/lib/ordens-servico-progresso";
 
 type HistoricoPagamentosViewProps = {
   pagamentos: Pagamento[];
@@ -17,52 +18,59 @@ type HistoricoPagamentosViewProps = {
 /** Lista de pagamentos, sem estado nem requisição (renderizável em teste). */
 export function HistoricoPagamentosView({ pagamentos, podeEstornar, onEstornar }: HistoricoPagamentosViewProps) {
   return (
-    <Card className="p-6">
-      <PanelHeader title="Pagamentos registrados" description={`${pagamentos.length} lançamento(s)`} />
+    <Card className="p-[22px]">
+      <PanelHeader
+        title="Histórico de pagamentos"
+        action={
+          <span className="text-xs font-semibold text-[color:var(--text-soft)]">
+            {pagamentos.length === 1 ? "1 registro" : `${pagamentos.length} registros`}
+          </span>
+        }
+      />
       {pagamentos.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">Nenhum pagamento registrado até o momento.</p>
+        <p className="mt-4 text-sm text-[color:var(--text-soft)]">Nenhum pagamento registrado até o momento.</p>
       ) : (
-        <div className="mt-4 space-y-3">
+        <ul className="mt-4 flex flex-col gap-2">
           {pagamentos.map((pagamento) => {
             const estorno = pagamento.estorno;
+            const valor = currencyFormatter.format(Number(pagamento.valor || 0));
             return (
-              <article
-                key={pagamento.id}
-                className={`rounded-2xl border border-black/10 p-3 text-sm text-slate-700 ${estorno ? "bg-slate-50" : "bg-white/80"}`}
-              >
+              <li key={pagamento.id} className="rounded-xl bg-[color:var(--background)] px-3.5 py-2.5 text-[13px]">
                 <div className="flex items-center justify-between gap-3">
-                  <p className={`font-semibold ${estorno ? "text-slate-500 line-through" : "text-[color:var(--text)]"}`}>
-                    {currencyFormatter.format(Number(pagamento.valor || 0))}
+                  <div className={`min-w-0 ${estorno ? "text-[color:var(--muted)]" : ""}`}>
+                    <p className="truncate font-bold text-[color:var(--text)]">
+                      {pagamento.formaPagamento?.nome || "Forma não informada"} · {rotuloTipoPagamento(pagamento.tipo)}
+                    </p>
+                    <p className="text-xs text-[color:var(--text-soft)]">{dateFormatter.format(new Date(pagamento.dataPagamento))}</p>
+                    {pagamento.observacoes ? <p className="truncate text-xs text-[color:var(--text-soft)]">{pagamento.observacoes}</p> : null}
+                  </div>
+                  <p className={`shrink-0 text-sm font-extrabold ${estorno ? "text-[color:var(--muted)] line-through" : "text-[color:var(--success)]"}`}>
+                    {valor}
                   </p>
-                  <Badge tone="accent">{pagamento.formaPagamento?.nome || "Forma não informada"}</Badge>
-                </div>
-                <div className={estorno ? "text-slate-500" : undefined}>
-                  <p className="mt-1">Tipo: {pagamento.tipo}</p>
-                  <p className="mt-1">Data: {dateFormatter.format(new Date(pagamento.dataPagamento))}</p>
-                  {pagamento.observacoes ? <p className="mt-1">Obs.: {pagamento.observacoes}</p> : null}
                 </div>
                 {estorno ? (
-                  <p className="mt-2 rounded-xl bg-rose-50 px-3 py-2 text-rose-800">
+                  <p className="mt-2 rounded-lg bg-[color:var(--danger-soft)] px-3 py-2 text-xs text-[color:var(--danger-badge-text)]">
                     <strong>Estornado</strong> em {dateFormatter.format(new Date(estorno.dataEstorno))}
                     {estorno.usuario?.nome ? ` por ${estorno.usuario.nome}` : ""} — {estorno.motivo}
                   </p>
                 ) : podeEstornar && onEstornar ? (
-                  <div className="mt-2 flex justify-end">
+                  <div className="mt-1 flex justify-end">
                     <Button
                       type="button"
-                      variant="secondary"
-                      className="!text-rose-700"
-                      aria-label={`Estornar pagamento de ${currencyFormatter.format(Number(pagamento.valor || 0))}`}
+                      variant="text"
+                      size="sm"
+                      className="font-bold text-[color:var(--danger)]"
+                      aria-label={`Estornar pagamento de ${valor}`}
                       onClick={() => onEstornar(pagamento)}
                     >
                       Estornar
                     </Button>
                   </div>
                 ) : null}
-              </article>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </Card>
   );

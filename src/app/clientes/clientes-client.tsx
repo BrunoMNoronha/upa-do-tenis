@@ -5,13 +5,38 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { Badge, Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { Badge, Button, Input, KpiCard, Label, Textarea } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { BuscaListagem } from "@/components/busca-listagem";
+import { ChipsFiltroUrl } from "@/components/chips-filtro-url";
+import {
+  AcoesLinha,
+  BotaoExcluirLinha,
+  BotaoStatusLinha,
+  CadastroLayout,
+  ErroCampo,
+  ErroLista,
+  LinhaFiltros,
+  PainelCadastroRapido,
+  PainelLista,
+} from "@/components/cadastro-layout";
+import {
+  CelulaSubtitulo,
+  CelulaTitulo,
+  Tabela,
+  TabelaCabecalho,
+  TabelaCelula,
+  TabelaColuna,
+  TabelaLinha,
+  TabelaVazia,
+} from "@/components/data-table";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import { clienteFormSchema, type ClienteFormValues } from "@/lib/clientes-schema";
+import type { EstatisticasClientes } from "@/lib/clientes";
+import type { FiltroStatusCadastro } from "@/lib/cadastros-filtros";
 import { formatCPFCNPJ, formatPhone, maskCPFCNPJ, maskPhone, whatsappLink } from "@/lib/formatters";
 import type { PaginacaoInfo } from "@/lib/paginacao";
-import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
+import { Paginacao, textoIntervalo, usePaginacaoUrl } from "@/components/paginacao";
 
 export type ClienteListado = {
   id: string;
@@ -28,6 +53,8 @@ type ClientesClientProps = {
   clientes: ClienteListado[];
   busca: string;
   pagination: PaginacaoInfo;
+  estatisticas: EstatisticasClientes;
+  filtroStatus: FiltroStatusCadastro | undefined;
 };
 
 const defaultValues: ClienteFormValues = {
@@ -38,17 +65,15 @@ const defaultValues: ClienteFormValues = {
   observacoes: "",
 };
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
+const COLUNAS = "1.5fr 1.3fr 1fr 0.9fr 0.7fr 1.3fr";
+const FORM_ID = "form-cliente";
 
-export function ClientesClient({ clientes, busca, pagination }: ClientesClientProps) {
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" });
+const mesFormatter = new Intl.DateTimeFormat("pt-BR", { month: "2-digit" });
+
+export function ClientesClient({ clientes, busca, pagination, estatisticas, filtroStatus }: ClientesClientProps) {
   const router = useRouter();
-  const { criarHref, searchParams } = usePaginacaoUrl();
-  // O formulário de busca é GET: ao buscar, `page` é omitido (volta para 1)
-  // e o tamanho de página escolhido é preservado.
-  const pageSizeAtual = searchParams.get("pageSize");
+  const { criarHref } = usePaginacaoUrl();
   const [editando, setEditando] = useState<ClienteListado | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -84,6 +109,7 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
       cpfCnpj: cliente.cpfCnpj ? maskCPFCNPJ(cliente.cpfCnpj) : "",
       observacoes: cliente.observacoes ?? "",
     });
+    document.getElementById("cadastro-rapido")?.scrollIntoView({ block: "nearest" });
   };
 
   const cancelarEdicao = () => {
@@ -119,29 +145,134 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
     });
   });
 
-  return (
-    <section className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-      <Card className="p-6">
-        <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-            {editando ? "Editar cliente" : "Novo cliente"}
-          </p>
-          <SectionTitle className="mt-2 text-2xl">
-            {editando ? `Editando ${editando.nome}` : "Preencha os dados básicos"}
-          </SectionTitle>
+  const kpis = (
+    <>
+      <KpiCard size="sm" label="Total" value={estatisticas.total} hint="clientes cadastrados" dot="accent" href="/clientes" active={!filtroStatus} />
+      <KpiCard size="sm" label="Ativos" value={estatisticas.ativos} hint="disponíveis para OS" dot="success" href="/clientes?status=ativos" active={filtroStatus === "ativos"} />
+      <KpiCard size="sm" label="Inativos" value={estatisticas.inativos} hint="ocultos no cadastro de OS" dot="muted" href="/clientes?status=inativos" active={filtroStatus === "inativos"} />
+      <KpiCard size="sm" label="Novos no mês" value={estatisticas.novosNoMes} hint={`desde 01/${mesFormatter.format(new Date())}`} dot="warning" />
+    </>
+  );
+
+  const filtros = (
+    <>
+      <BuscaListagem id="busca-clientes" label="Buscar por nome ou telefone" placeholder="Buscar por nome ou telefone..." busca={busca} />
+      <LinhaFiltros resumo={textoIntervalo(pagination)}>
+        <ChipsFiltroUrl
+          aria-label="Filtrar clientes por status"
+          opcoes={[
+            { label: "Todos", alteracoes: { status: null }, ativo: !filtroStatus },
+            { label: "Ativos", alteracoes: { status: "ativos" }, ativo: filtroStatus === "ativos" },
+            { label: "Inativos", alteracoes: { status: "inativos" }, ativo: filtroStatus === "inativos" },
+          ]}
+        />
+      </LinhaFiltros>
+    </>
+  );
+
+  const lista = (
+    <PainelLista filtros={filtros} rodape={<Paginacao pagination={pagination} rotulo="clientes" criarHref={criarHref} exibirResumo={false} />}>
+      {listaError ? <ErroLista>{listaError}</ErroLista> : null}
+
+      <Tabela aria-label="Clientes cadastrados">
+        <TabelaCabecalho colunas={COLUNAS}>
+          <TabelaColuna>Cliente</TabelaColuna>
+          <TabelaColuna>Contato</TabelaColuna>
+          <TabelaColuna>Documento</TabelaColuna>
+          <TabelaColuna>Cadastrado em</TabelaColuna>
+          <TabelaColuna>Status</TabelaColuna>
+          <TabelaColuna alinharDireita>Ações</TabelaColuna>
+        </TabelaCabecalho>
+
+        {clientes.length === 0 ? (
+          <TabelaVazia mensagem={busca ? `Nenhum cliente encontrado para "${busca}".` : "Nenhum cliente encontrado."} />
+        ) : (
+          clientes.map((cliente) => {
+            const telefoneMascarado = formatPhone(cliente.telefone);
+            const link = whatsappLink(cliente.telefone);
+
+            return (
+              <TabelaLinha key={cliente.id} colunas={COLUNAS} inativa={!cliente.ativo}>
+                <TabelaCelula rotulo="Cliente">
+                  <CelulaTitulo>{cliente.nome}</CelulaTitulo>
+                  {cliente.observacoes ? <CelulaSubtitulo title={cliente.observacoes}>{cliente.observacoes}</CelulaSubtitulo> : null}
+                </TabelaCelula>
+                <TabelaCelula rotulo="Contato">
+                  {cliente.telefone ? (
+                    link ? (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block truncate text-sm font-bold text-[color:var(--text)] hover:text-[color:var(--success)] hover:underline"
+                        title="Abrir conversa no WhatsApp"
+                      >
+                        {telefoneMascarado}
+                      </a>
+                    ) : (
+                      <CelulaTitulo>{telefoneMascarado}</CelulaTitulo>
+                    )
+                  ) : (
+                    <CelulaTitulo className="text-[color:var(--text-soft)]">Sem telefone</CelulaTitulo>
+                  )}
+                  <CelulaSubtitulo>{cliente.email ?? "Sem e-mail"}</CelulaSubtitulo>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Documento">
+                  <span className={`text-[13px] font-medium ${cliente.cpfCnpj ? "text-[color:var(--text)]" : "text-[color:var(--text-soft)]"}`}>
+                    {cliente.cpfCnpj ? formatCPFCNPJ(cliente.cpfCnpj) : "—"}
+                  </span>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Cadastrado em">
+                  <span className="text-[13px] font-medium text-[color:var(--text)]">{dateFormatter.format(new Date(cliente.criadoEm))}</span>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Status">
+                  <Badge tone={cliente.ativo ? "success" : "danger"}>{cliente.ativo ? "Ativo" : "Inativo"}</Badge>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Ações" alinharDireita>
+                  <AcoesLinha>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => iniciarEdicao(cliente)}>
+                      Editar
+                    </Button>
+                    <BotaoStatusLinha ativo={cliente.ativo} onClick={() => alternarStatus(cliente)} disabled={isPending} />
+                    <BotaoExcluirLinha onClick={() => pedirExclusao(cliente)} disabled={isPending} rotulo={`Excluir cliente ${cliente.nome}`} />
+                  </AcoesLinha>
+                </TabelaCelula>
+              </TabelaLinha>
+            );
+          })
+        )}
+      </Tabela>
+    </PainelLista>
+  );
+
+  const aside = (
+    <PainelCadastroRapido
+      titulo={editando ? "Editar cliente" : "Novo cliente"}
+      dica={editando ? `Editando ${editando.nome}.` : "Nome e telefone bastam para abrir uma OS."}
+      rodape={
+        <>
+          <Button type="button" variant="secondary" onClick={cancelarEdicao}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={FORM_ID} isLoading={isSubmitting || isPending} className="min-w-[160px]">
+            {editando ? "Salvar alterações" : "Cadastrar cliente"}
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} className="grid gap-3.5" onSubmit={onSubmit} noValidate>
+        <div className="grid gap-1">
+          <Label htmlFor="nome" obrigatorio>Nome</Label>
+          <Input id="nome" {...register("nome")} placeholder="Nome do cliente" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
+          {errors.nome ? <ErroCampo id="nome-error">{errors.nome.message}</ErroCampo> : null}
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="nome">Nome e sobrenome</Label>
-            <Input id="nome" {...register("nome")} placeholder="Ex.: Maria Silva" aria-invalid={Boolean(errors.nome)} aria-describedby={errors.nome ? "nome-error" : undefined} />
-            {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="telefone">Telefone</Label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-1">
+            <Label htmlFor="telefone" obrigatorio>Telefone</Label>
             <Input
               id="telefone"
+              type="tel"
               {...register("telefone")}
               onChange={(e) => {
                 e.target.value = maskPhone(e.target.value);
@@ -151,185 +282,45 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
               aria-invalid={Boolean(errors.telefone)}
               aria-describedby={errors.telefone ? "telefone-error" : undefined}
             />
-            {errors.telefone ? <p id="telefone-error" role="alert" className="text-sm text-red-600">{errors.telefone.message}</p> : null}
+            {errors.telefone ? <ErroCampo id="telefone-error">{errors.telefone.message}</ErroCampo> : null}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" {...register("email")} placeholder="cliente@exemplo.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
-              {errors.email ? <p id="email-error" role="alert" className="text-sm text-red-600">{errors.email.message}</p> : null}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
-              <Input
-                id="cpfCnpj"
-                {...register("cpfCnpj")}
-                onChange={(e) => {
-                  e.target.value = maskCPFCNPJ(e.target.value);
-                  register("cpfCnpj").onChange(e);
-                }}
-                placeholder="Opcional"
-                aria-invalid={Boolean(errors.cpfCnpj)}
-                aria-describedby={errors.cpfCnpj ? "cpfCnpj-error" : undefined}
-              />
-              {errors.cpfCnpj ? <p id="cpfCnpj-error" role="alert" className="text-sm text-red-600">{errors.cpfCnpj.message}</p> : null}
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              {...register("observacoes")}
-              rows={4}
-              placeholder="Informações adicionais sobre o cliente"
+          <div className="grid gap-1">
+            <Label htmlFor="cpfCnpj">CPF ou CNPJ</Label>
+            <Input
+              id="cpfCnpj"
+              {...register("cpfCnpj")}
+              onChange={(e) => {
+                e.target.value = maskCPFCNPJ(e.target.value);
+                register("cpfCnpj").onChange(e);
+              }}
+              placeholder="Opcional"
+              aria-invalid={Boolean(errors.cpfCnpj)}
+              aria-describedby={errors.cpfCnpj ? "cpfCnpj-error" : undefined}
             />
+            {errors.cpfCnpj ? <ErroCampo id="cpfCnpj-error">{errors.cpfCnpj.message}</ErroCampo> : null}
           </div>
-
-          {submitError ? <p role="alert" className="text-sm text-red-600">{submitError}</p> : null}
-
-          <div className="flex flex-wrap gap-3">
-            <Button type="submit" isLoading={isSubmitting || isPending}>
-              {editando ? "Salvar alterações" : "Cadastrar cliente"}
-            </Button>
-            {editando ? (
-              <Button type="button" variant="secondary" onClick={cancelarEdicao}>
-                Cancelar edição
-              </Button>
-            ) : null}
-          </div>
-        </form>
-      </Card>
-
-      <Card className="bg-[color:var(--text)] p-6 text-white">
-        <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">
-              Lista de clientes
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">Clientes cadastrados</h2>
-          </div>
-          <Badge tone="accent">Total: {pagination.total}</Badge>
         </div>
 
-        <form className="mb-6 flex gap-2">
-          {pageSizeAtual ? <input type="hidden" name="pageSize" value={pageSizeAtual} /> : null}
-          <Input
-            name="busca"
-            defaultValue={busca}
-            placeholder="Buscar por nome ou telefone..."
-            className="!border-white/20 !bg-white/10 !text-white placeholder:text-slate-400"
-          />
-          <Button type="submit" variant="secondary">
-            Buscar
-          </Button>
-          {busca ? (
-            <Button
-              href={pageSizeAtual ? `/clientes?pageSize=${pageSizeAtual}` : "/clientes"}
-              variant="ghost"
-              className="!border-white/20 !text-white hover:!bg-white/10"
-            >
-              Limpar
-            </Button>
-          ) : null}
-        </form>
-
-        {listaError ? (
-          <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
-            {listaError}
-          </p>
-        ) : null}
-
-        {clientes.length === 0 ? (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-            Nenhum cliente encontrado.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {clientes.map((cliente) => {
-              const telefoneMascarado = formatPhone(cliente.telefone);
-              const link = whatsappLink(cliente.telefone);
-
-              return (
-                <article
-                  key={cliente.id}
-                  className={`rounded-3xl border p-5 ${
-                    cliente.ativo ? "border-white/10 bg-white/5" : "border-rose-500/50 bg-rose-950/20"
-                  }`}
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{cliente.nome}</h3>
-                      {cliente.telefone ? (
-                        link ? (
-                          <a
-                            href={link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 inline-block text-sm text-[color:var(--accent-soft)] hover:underline"
-                          >
-                            {telefoneMascarado}
-                          </a>
-                        ) : (
-                          <p className="mt-1 text-sm text-slate-200">{telefoneMascarado}</p>
-                        )
-                      ) : null}
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <Badge tone="neutral">{dateFormatter.format(new Date(cliente.criadoEm))}</Badge>
-                      <Badge tone={cliente.ativo ? "success" : "danger"}>
-                        {cliente.ativo ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-2 text-sm text-slate-200">
-                    {cliente.email ? <p>E-mail: {cliente.email}</p> : null}
-                    {cliente.cpfCnpj ? <p>CPF/CNPJ: {formatCPFCNPJ(cliente.cpfCnpj)}</p> : null}
-                    {cliente.observacoes ? <p>Observações: {cliente.observacoes}</p> : null}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      onClick={() => iniciarEdicao(cliente)}
-                      className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                    >
-                      Editar cliente
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => alternarStatus(cliente)}
-                      disabled={isPending}
-                      className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                        cliente.ativo
-                          ? "border-amber-400/40 text-amber-200 hover:bg-amber-950/40"
-                          : "border-emerald-400/40 text-emerald-200 hover:bg-emerald-950/40"
-                      }`}
-                    >
-                      {cliente.ativo ? "Inativar" : "Reativar"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => pedirExclusao(cliente)}
-                      disabled={isPending}
-                      className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      Excluir
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
-
-        <div className="mt-6 border-t border-white/10 pt-4">
-          <Paginacao pagination={pagination} rotulo="clientes" tone="dark" criarHref={criarHref} />
+        <div className="grid gap-1">
+          <Label htmlFor="email">E-mail</Label>
+          <Input id="email" type="email" {...register("email")} placeholder="cliente@exemplo.com" aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "email-error" : undefined} />
+          {errors.email ? <ErroCampo id="email-error">{errors.email.message}</ErroCampo> : null}
         </div>
-      </Card>
+
+        <div className="grid gap-1">
+          <Label htmlFor="observacoes">Observações</Label>
+          <Textarea id="observacoes" {...register("observacoes")} rows={3} placeholder="Informações adicionais sobre o cliente" />
+        </div>
+
+        {submitError ? <ErroCampo id="cliente-submit-error">{submitError}</ErroCampo> : null}
+      </form>
+    </PainelCadastroRapido>
+  );
+
+  return (
+    <>
+      <CadastroLayout kpis={kpis} lista={lista} aside={aside} />
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}
@@ -347,6 +338,6 @@ export function ClientesClient({ clientes, busca, pagination }: ClientesClientPr
         onCancelar={cancelarExclusao}
         isConfirmando={isPending}
       />
-    </section>
+    </>
   );
 }

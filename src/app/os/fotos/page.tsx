@@ -12,12 +12,13 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function OsFotosPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e atendimento"
       title="Fotos da OS"
       description="Busque a ordem, confira o cliente e o item e tire a foto pelo celular."

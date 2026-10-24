@@ -5,12 +5,20 @@ export type DashboardKpiCardProps = {
   value: string;
   description: string;
   badge?: string;
+  /** Cor da badge nos cards claros (o card de destaque usa sempre tom claro sobre escuro). */
+  badgeTone?: "warning" | "success" | "accent";
   tone?: "default" | "highlight";
   href?: string;
   loading?: boolean;
 };
 
 const alturaCard = "min-h-[132px]";
+
+const TONS_BADGE = {
+  warning: "bg-[color:var(--warning-soft)] text-[color:var(--warning-badge-text)]",
+  success: "bg-[color:var(--success-soft)] text-[color:var(--success)]",
+  accent: "bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]",
+} as const;
 
 /**
  * Card de KPI do Dashboard: rótulo, valor grande, descrição curta e badge
@@ -21,6 +29,7 @@ export function DashboardKpiCard({
   value,
   description,
   badge,
+  badgeTone = "warning",
   tone = "default",
   href,
   loading = false,
@@ -43,26 +52,26 @@ export function DashboardKpiCard({
 
   const conteudo = (
     <div
-      className={`${alturaCard} flex h-full flex-col justify-between rounded-[var(--r-card)] border p-5 transition ${
+      className={`${alturaCard} flex h-full flex-col justify-between gap-3 rounded-[var(--r-card)] px-[22px] py-5 transition ${
         destaque
-          ? "border-transparent bg-[color:var(--ink)] text-white"
-          : "border-[color:var(--border)] bg-white text-[color:var(--text)]"
-      } ${href ? "hover:border-[color:var(--accent)]/40" : ""}`}
+          ? "bg-[color:var(--ink)] text-white"
+          : "border border-[color:var(--border)] bg-white text-[color:var(--text)]"
+      } ${href && !destaque ? "hover:border-[rgba(140,90,50,0.4)]" : ""} ${href && destaque ? "hover:bg-[#2b3646]" : ""}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className={`text-[13px] font-semibold ${destaque ? "text-gray-300" : "text-[color:var(--text-soft)]"}`}>{label}</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-[13px] font-semibold ${destaque ? "text-[color:var(--on-dark-soft)]" : "text-[color:var(--text-soft)]"}`}>{label}</p>
         {badge ? (
           <span
             className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-              destaque ? "bg-white/15 text-white" : "bg-[color:var(--warning-soft)] text-amber-800"
+              destaque ? "bg-white/[0.12] text-[#bbf7d0]" : TONS_BADGE[badgeTone]
             }`}
           >
             {badge}
           </span>
         ) : null}
       </div>
-      <p className="mt-3 break-words text-[1.75rem] font-extrabold leading-none tracking-[-0.02em] sm:text-3xl">{value}</p>
-      <p className={`mt-3 text-xs ${destaque ? "text-gray-300" : "text-[color:var(--text-soft)]"}`}>{description}</p>
+      <p className="break-words text-[1.75rem] font-extrabold leading-none tracking-[-0.02em] sm:text-3xl">{value}</p>
+      <p className={`text-xs ${destaque ? "text-[color:var(--on-dark-soft)]" : "text-[color:var(--text-soft)]"}`}>{description}</p>
     </div>
   );
 

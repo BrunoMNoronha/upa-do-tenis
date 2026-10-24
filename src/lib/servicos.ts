@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { paginarConsulta, type PaginacaoNormalizada } from "@/lib/paginacao";
-import { montarCondicaoBusca } from "@/lib/busca-listagem";
+import { combinarCondicoes, montarCondicaoBusca } from "@/lib/busca-listagem";
 
 /**
  * Listagem operacional: só serviços ativos, para as telas que vinculam
@@ -33,10 +33,16 @@ export async function listarServicosParaGestao() {
  */
 export async function listarServicosParaGestaoPaginado(params: {
   busca?: string;
+  /** Chips da tela: `true` só ativos, `false` só inativos, indefinido todos. */
+  ativo?: boolean;
   paginacao: PaginacaoNormalizada;
 }) {
-  // Busca por nome/descrição aplicada no mesmo where de count e findMany.
-  const where = montarCondicaoBusca(params.busca, ["nome", "descricao"]) ?? {};
+  // Busca por nome/descrição e filtro de status aplicados no mesmo where de count e findMany.
+  const where =
+    combinarCondicoes(
+      montarCondicaoBusca(params.busca, ["nome", "descricao"]),
+      params.ativo === undefined ? undefined : { ativo: params.ativo },
+    ) ?? {};
 
   return paginarConsulta({
     paginacao: params.paginacao,
@@ -49,4 +55,30 @@ export async function listarServicosParaGestaoPaginado(params: {
         take,
       }),
   });
+}
+
+export type EstatisticasServicos = {
+  total: number;
+  ativos: number;
+  inativos: number;
+  /** Média do preço base entre os ativos; `null` sem serviços ativos. */
+  precoMedioAtivos: number | null;
+};
+
+/** Contadores da tela de Serviços (somente leitura; independem de busca e página). */
+export async function contarEstatisticasServicos(): Promise<EstatisticasServicos> {
+  const [total, ativos, media] = await Promise.all([
+    prisma.servico.count(),
+    prisma.servico.count({ where: { ativo: true } }),
+    prisma.servico.aggregate({ where: { ativo: true }, _avg: { precoBase: true } }),
+  ]);
+
+  const precoMedio = media._avg.precoBase;
+
+  return {
+    total,
+    ativos,
+    inativos: total - ativos,
+    precoMedioAtivos: precoMedio === null || precoMedio === undefined ? null : Number(precoMedio),
+  };
 }

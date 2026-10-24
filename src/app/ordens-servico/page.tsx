@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 import { AppShell } from "@/components/app-shell";
 import { OrdensServicoClient } from "./ordens-servico-client";
-import { LoadingState } from "@/components/ui";
+import { Button, LoadingState } from "@/components/ui";
+import { IconeCamera, IconeMais } from "@/components/icones";
+import { LinkAcaoNaPagina } from "@/components/link-acao-na-pagina";
 import { obterDadosEmpresaComCache as obterDadosEmpresa } from "@/lib/dados-cache";
 import { nomeExibicaoEmpresa } from "@/lib/dados-empresa";
 
@@ -42,7 +44,7 @@ async function ListaOrdensServico({ filtros, paginacao, nomeEmpresa }: {
 export default async function OrdensServicoPage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const searchParams = await props.searchParams;
   const filtros = normalizarFiltrosListagemOrdensServico(searchParams);
@@ -52,10 +54,21 @@ export default async function OrdensServicoPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e atendimento"
       title="Ordens de Serviço"
-      description="Acompanhe a fila de ordens, consulte os campos principais e cadastre novas OS integradas ao banco de dados."
+      description="Acompanhe a fila de ordens, consulte os campos principais e cadastre novas OS."
       action={{ href: "/ordens-servico?nova=1", label: "Nova ordem" }}
+      actions={
+        <>
+          <Button href="/os/fotos" variant="secondary" icon={<IconeCamera />}>
+            Fotos da OS
+          </Button>
+          <LinkAcaoNaPagina href="/ordens-servico?nova=1" icon={<IconeMais />}>
+            Nova ordem
+          </LinkAcaoNaPagina>
+        </>
+      }
     >
       <Suspense fallback={<LoadingState text="Carregando ordens de serviço..." />}>
         <ListaOrdensServico filtros={filtros} paginacao={paginacao} nomeEmpresa={nomeExibicaoEmpresa(dadosEmpresa)} />

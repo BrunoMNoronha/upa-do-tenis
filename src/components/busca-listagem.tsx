@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { Input } from "@/components/ui";
+import { SearchInput } from "@/components/ui";
 import { criarControladorFiltrosUrl } from "@/lib/filtros-url";
 
 export const BUSCA_LISTAGEM_DEBOUNCE_MS = 350;
@@ -14,6 +14,7 @@ type BuscaListagemProps = {
   placeholder: string;
   /** Termo vigente, já normalizado pelo servidor a partir da URL. */
   busca: string;
+  className?: string;
 };
 
 /**
@@ -21,7 +22,7 @@ type BuscaListagemProps = {
  * cada tecla localmente; a navegação (`?busca=`) é feita com debounce e
  * sempre volta para a página 1, preservando `pageSize` e demais filtros.
  */
-export function BuscaListagem({ id, label, placeholder, busca }: BuscaListagemProps) {
+export function BuscaListagem({ id, label, placeholder, busca, className }: BuscaListagemProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -63,27 +64,15 @@ export function BuscaListagem({ id, label, placeholder, busca }: BuscaListagemPr
   };
 
   return (
-    <div className="mb-6 flex gap-2">
-      <Input
-        id={id}
-        type="search"
-        aria-label={label}
-        aria-busy={isPending || undefined}
-        value={termo}
-        onChange={(event) => aoDigitar(event.target.value)}
-        placeholder={placeholder}
-        autoComplete="off"
-        className="!border-white/20 !bg-white/10 !text-white placeholder:text-slate-400"
-      />
-      {termo ? (
-        <button
-          type="button"
-          onClick={limpar}
-          className="shrink-0 rounded-2xl border border-white/20 px-4 text-xs font-semibold text-white transition hover:bg-white/10"
-        >
-          Limpar
-        </button>
-      ) : null}
-    </div>
+    <SearchInput
+      id={id}
+      label={label}
+      value={termo}
+      onChange={aoDigitar}
+      onClear={limpar}
+      placeholder={placeholder}
+      isPending={isPending}
+      className={className}
+    />
   );
 }

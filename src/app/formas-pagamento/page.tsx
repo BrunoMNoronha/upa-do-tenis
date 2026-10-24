@@ -14,13 +14,14 @@ export const metadata = {
 };
 
 export default async function FormasPagamentoPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
 
   const [formas, dadosEmpresa] = await Promise.all([listarFormasPagamentoParaGestao(), obterDadosEmpresa()]);
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Financeiro"
       title="Formas de Pagamento"
       description="Gerencie os métodos de pagamento aceitos na loja."

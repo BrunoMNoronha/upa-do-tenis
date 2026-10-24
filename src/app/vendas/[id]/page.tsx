@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export default async function VendaDetalhePage(props: {
   params: Promise<{ id: string }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const { id } = await props.params;
 
   const [venda, dadosEmpresa] = await Promise.all([obterVendaPorId(id), obterDadosEmpresa()]);
@@ -43,6 +43,7 @@ export default async function VendaDetalhePage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Operação e Atendimento / Vendas"
       title={`Venda ${venda.numero}`}
       description={`Detalhes da venda registrada em ${date}.`}

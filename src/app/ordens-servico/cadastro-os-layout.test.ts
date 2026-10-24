@@ -63,8 +63,8 @@ describe("layout do formulário de cadastro de OS", () => {
     expect(renderizarCadastro()).toBe(html);
   });
 
-  it("organiza o formulário em seções na ordem: cliente, dados da OS, itens recebidos, observações", () => {
-    const secoes = ["Cliente", "Dados da Ordem de Serviço", "Itens recebidos", "Observações"];
+  it("organiza o formulário em seções numeradas: cliente, identificação, itens recebidos, observações", () => {
+    const secoes = ["1. Cliente", "2. Identificação", "3. Itens recebidos", "4. Observações"];
     // O título pode trazer o marcador de obrigatório após o texto.
     const posicoes = secoes.map((titulo) => posicao(html, `tracking-[0.16em] text-[color:var(--accent-strong)]">${titulo}`));
     expect([...posicoes].sort((a, b) => a - b)).toEqual(posicoes);
@@ -103,6 +103,11 @@ describe("layout do formulário de cadastro de OS", () => {
     expect(html).toMatch(
       new RegExp(`<input[^>]*id="prazoPrevisto"[^>]*value="${calcularPrazoPrevistoPadrao(hoje)}"`),
     );
+  });
+
+  it("exibe o título visível que rotula o diálogo e o botão de cadastro rápido de cliente", () => {
+    expect(html).toMatch(/<h2[^>]*id="cadastro-os-titulo"[^>]*>Nova ordem de serviço<\/h2>/);
+    expect(html).toMatch(/aria-controls="cadastro-rapido-cliente"[^>]*>.*Cadastrar novo cliente/);
   });
 
   it("mantém as ações existentes: cadastrar (primária) e cancelar (secundária)", () => {

@@ -32,6 +32,7 @@ export default async function DashboardPage() {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={usuario}
       eyebrow="Relatórios e Métricas"
       title="Dashboard"
       description={`Visão geral financeira e operacional de ${dadosEmpresa.nomeFantasia}.`}

@@ -1,35 +1,56 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, Card } from "@/components/ui";
+
+import { Badge, Button } from "@/components/ui";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { BuscaListagem } from "@/components/busca-listagem";
+import { ChipsFiltroUrl } from "@/components/chips-filtro-url";
+import {
+  AcoesLinha,
+  BotaoExcluirLinha,
+  BotaoStatusLinha,
+  ErroLista,
+  LinhaFiltros,
+  PainelLista,
+} from "@/components/cadastro-layout";
+import {
+  CelulaSubtitulo,
+  CelulaTitulo,
+  Tabela,
+  TabelaCabecalho,
+  TabelaCelula,
+  TabelaColuna,
+  TabelaLinha,
+  TabelaVazia,
+} from "@/components/data-table";
 import { useCadastroAcoes } from "@/components/use-cadastro-acoes";
 import type { PaginacaoInfo } from "@/lib/paginacao";
 import { ROTULO_SITUACAO_CATALOGO, situacaoNoCatalogo } from "@/lib/catalogo-regras";
-import { Paginacao, usePaginacaoUrl } from "@/components/paginacao";
+import { Paginacao, textoIntervalo, usePaginacaoUrl } from "@/components/paginacao";
+import type { FiltrosProdutos } from "../produtos-client";
 import type { ProdutoListado } from "../types";
 
 type ProdutoListProps = {
   produtos: ProdutoListado[];
   busca: string;
   pagination: PaginacaoInfo;
+  filtros: FiltrosProdutos;
   onEdit: (produto: ProdutoListado) => void;
   onDeleteCurrent: (id: string) => void;
 };
+
+const COLUNAS = "2fr 1fr 1fr 0.8fr 1.7fr";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
-  dateStyle: "short",
-});
+const quantidadeFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 });
 
-export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurrent }: ProdutoListProps) {
+export function ProdutoList({ produtos, busca, pagination, filtros, onEdit, onDeleteCurrent }: ProdutoListProps) {
   const { criarHref } = usePaginacaoUrl();
   const {
     listaError,
@@ -68,122 +89,94 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
     }
   };
 
-  return (
-    <Card className="bg-[color:var(--text)] p-6 text-white">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-soft)]">Lista</p>
-          <h2 className="mt-2 text-2xl font-semibold">Produtos Cadastrados</h2>
-        </div>
-        <Badge tone="accent">Total: {pagination.total}</Badge>
-      </div>
+  const semFiltro = !filtros.status && !filtros.estoque;
 
+  const filtrosBarra = (
+    <>
       <BuscaListagem id="busca-produtos" label="Buscar produto" placeholder="Buscar produto..." busca={busca} />
+      <LinhaFiltros resumo={textoIntervalo(pagination)}>
+        <ChipsFiltroUrl
+          aria-label="Filtrar produtos"
+          opcoes={[
+            { label: "Todos", alteracoes: { status: null, estoque: null }, ativo: semFiltro },
+            { label: "Ativos", alteracoes: { status: "ativos", estoque: null }, ativo: filtros.status === "ativos" && !filtros.estoque },
+            { label: "Inativos", alteracoes: { status: "inativos", estoque: null }, ativo: filtros.status === "inativos" && !filtros.estoque },
+            { label: "Sem estoque", alteracoes: { estoque: "sem", status: null }, ativo: filtros.estoque === "sem" },
+          ]}
+        />
+      </LinhaFiltros>
+    </>
+  );
 
-      {listaError || erroPublicacao ? (
-        <p className="mb-4 rounded-2xl border border-rose-500/50 bg-rose-950/20 p-4 text-sm text-rose-200">
-          {listaError ?? erroPublicacao}
-        </p>
-      ) : null}
+  return (
+    <PainelLista filtros={filtrosBarra} rodape={<Paginacao pagination={pagination} rotulo="produtos" criarHref={criarHref} exibirResumo={false} />}>
+      {listaError || erroPublicacao ? <ErroLista>{listaError ?? erroPublicacao}</ErroLista> : null}
 
-      {produtos.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 text-sm leading-6 text-slate-200">
-          {busca
-            ? `Nenhum produto encontrado para "${busca}".`
-            : "Nenhum produto cadastrado ainda. Use o formulário ao lado para criar o primeiro registro."}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {produtos.map((produto) => {
+      <Tabela aria-label="Produtos cadastrados">
+        <TabelaCabecalho colunas={COLUNAS}>
+          <TabelaColuna>Produto</TabelaColuna>
+          <TabelaColuna>Preço de venda</TabelaColuna>
+          <TabelaColuna>Estoque</TabelaColuna>
+          <TabelaColuna>Status</TabelaColuna>
+          <TabelaColuna alinharDireita>Ações</TabelaColuna>
+        </TabelaCabecalho>
+
+        {produtos.length === 0 ? (
+          <TabelaVazia
+            mensagem={busca ? `Nenhum produto encontrado para "${busca}".` : "Nenhum produto cadastrado ainda. Use o painel ao lado para criar o primeiro registro."}
+          />
+        ) : (
+          produtos.map((produto) => {
             const situacao = situacaoNoCatalogo(produto);
+            const semEstoque = produto.quantidadeEstoque <= 0;
             return (
-            <article
-              key={produto.id}
-              className={`rounded-3xl border p-5 ${
-                produto.ativo ? "border-white/10 bg-white/5" : "border-rose-500/50 bg-rose-950/20"
-              }`}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{produto.nome}</h3>
-                  {produto.descricao ? (
-                    <p className="mt-1 text-sm text-slate-300">{produto.descricao}</p>
-                  ) : null}
-                  <p className="mt-2 text-xs uppercase tracking-[0.1em] text-slate-400">
-                    Criado em {dateFormatter.format(new Date(produto.criadoEm))}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <div className="flex items-center gap-2">
-                    <Badge tone="neutral">{currencyFormatter.format(produto.precoVenda)}</Badge>
-                    <Badge tone={produto.quantidadeEstoque > 0 ? "accent" : "neutral"}>
-                      Estoque: {produto.quantidadeEstoque} un
-                    </Badge>
-                  </div>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Badge tone={produto.ativo ? "success" : "danger"}>
-                      {produto.ativo ? "Ativo" : "Inativo"}
-                    </Badge>
-                    <Badge tone={situacao === "VISIVEL" ? "accent" : "neutral"}>
-                      {ROTULO_SITUACAO_CATALOGO[situacao]}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Link
-                  href={`/produtos/${produto.id}/movimentacoes`}
-                  className="rounded-full border border-sky-400/40 px-4 py-1.5 text-xs font-semibold text-sky-200 transition hover:bg-sky-950/40"
-                >
-                  Extrato
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => onEdit(produto)}
-                  className="rounded-full border border-white/20 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => alternarStatus(produto)}
-                  disabled={isPending}
-                  className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                    produto.ativo
-                      ? "border-amber-400/40 text-amber-200 hover:bg-amber-950/40"
-                      : "border-emerald-400/40 text-emerald-200 hover:bg-emerald-950/40"
-                  }`}
-                >
-                  {produto.ativo ? "Inativar" : "Reativar"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void alternarPublicacao(produto)}
-                  disabled={alterandoPublicacao !== null || publicacaoPendente}
-                  aria-label={`${produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}: ${produto.nome}`}
-                  className="rounded-full border border-violet-400/40 px-4 py-1.5 text-xs font-semibold text-violet-200 transition hover:bg-violet-950/40 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => pedirExclusao(produto)}
-                  disabled={isPending}
-                  className="rounded-full border border-rose-400/40 px-4 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-950/40 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  Excluir
-                </button>
-              </div>
-            </article>
+              <TabelaLinha key={produto.id} colunas={COLUNAS} inativa={!produto.ativo}>
+                <TabelaCelula rotulo="Produto">
+                  <CelulaTitulo>{produto.nome}</CelulaTitulo>
+                  <CelulaSubtitulo title={produto.descricao ?? undefined}>
+                    {produto.descricao ? `${produto.descricao} · ` : ""}
+                    {ROTULO_SITUACAO_CATALOGO[situacao]}
+                  </CelulaSubtitulo>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Preço de venda">
+                  <span className="text-[13px] font-bold text-[color:var(--text)]">{currencyFormatter.format(produto.precoVenda)}</span>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Estoque">
+                  <Badge tone={semEstoque ? "danger" : "accent"}>
+                    {semEstoque ? "Sem estoque" : `${quantidadeFormatter.format(produto.quantidadeEstoque)} un`}
+                  </Badge>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Status">
+                  <Badge tone={produto.ativo ? "success" : "danger"}>{produto.ativo ? "Ativo" : "Inativo"}</Badge>
+                </TabelaCelula>
+                <TabelaCelula rotulo="Ações" alinharDireita>
+                  <AcoesLinha>
+                    <Button type="button" variant="secondary" size="sm" onClick={() => onEdit(produto)}>
+                      Editar
+                    </Button>
+                    <Button href={`/produtos/${produto.id}/movimentacoes`} variant="secondary" size="sm">
+                      Movimentações
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      onClick={() => void alternarPublicacao(produto)}
+                      disabled={alterandoPublicacao !== null || publicacaoPendente}
+                      aria-label={`${produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}: ${produto.nome}`}
+                      className="font-bold"
+                    >
+                      {produto.publicadoNoCatalogo ? "Retirar do catálogo" : "Publicar no catálogo"}
+                    </Button>
+                    <BotaoStatusLinha ativo={produto.ativo} onClick={() => alternarStatus(produto)} disabled={isPending} />
+                    <BotaoExcluirLinha onClick={() => pedirExclusao(produto)} disabled={isPending} rotulo={`Excluir produto ${produto.nome}`} />
+                  </AcoesLinha>
+                </TabelaCelula>
+              </TabelaLinha>
             );
-          })}
-        </div>
-      )}
-
-      <div className="mt-6 border-t border-white/10 pt-4">
-        <Paginacao pagination={pagination} rotulo="produtos" tone="dark" criarHref={criarHref} />
-      </div>
+          })
+        )}
+      </Tabela>
 
       <ConfirmDialog
         aberto={itemParaExcluir !== null}
@@ -195,6 +188,6 @@ export function ProdutoList({ produtos, busca, pagination, onEdit, onDeleteCurre
         onCancelar={cancelarExclusao}
         isConfirmando={isPending}
       />
-    </Card>
+    </PainelLista>
   );
 }

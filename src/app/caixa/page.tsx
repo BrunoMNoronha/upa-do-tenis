@@ -10,13 +10,14 @@ import { exigirSessao } from "@/lib/auth-server";
 export const dynamic = "force-dynamic";
 
 export default async function CaixaPage() {
-  await exigirSessao({ permitirFechamento: true });
+  const sessao = await exigirSessao({ permitirFechamento: true });
 
   const [formasPagamento, dadosEmpresa] = await Promise.all([listarFormasPagamento(), obterDadosEmpresa()]);
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       title="Controle de Caixa"
       description="Gerencie a abertura, fechamento e movimentações do caixa."
       action={{ label: "Histórico", href: "/caixa/historico" }}

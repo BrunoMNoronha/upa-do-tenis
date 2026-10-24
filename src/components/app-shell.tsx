@@ -2,34 +2,74 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
-import { Badge } from "@/components/ui";
+import { LinkAcaoNaPagina } from "@/components/link-acao-na-pagina";
+import { PageHeader } from "@/components/page-header";
 import { navGroups } from "@/config/navigation";
 import { DADOS_EMPRESA_PADRAO, nomeExibicaoEmpresa, type DadosEmpresa } from "@/lib/dados-empresa";
-import { acrescentarParametrosNaPaginaAtual } from "@/lib/filtros-url";
+import { iniciais } from "@/lib/iniciais";
 
 const SIDEBAR_COLLAPSED_KEY = "upa:sidebar-collapsed";
 
+type UsuarioShell = {
+  nome: string;
+  email?: string | null;
+};
+
 type AppShellProps = {
   dadosEmpresa?: DadosEmpresa;
+  /** Usuário da sessão, exibido no rodapé do menu (iniciais, nome e e-mail). */
+  usuario?: UsuarioShell | null;
   title: string;
   description: string;
   eyebrow?: string;
+  /** Ação única em forma de link; quando só acrescenta parâmetros à URL, aplica com pushState. */
   action?: {
     href: string;
     label: string;
   };
+  /** Botões do cabeçalho; quando informado, substitui `action`. */
+  actions?: ReactNode;
   /**
-   * Cabeçalho customizado (variante plana). Quando informado, substitui o
-   * card padrão com eyebrow/título/descrição e a ação do topo no mobile;
-   * as ações passam a ser responsabilidade do próprio cabeçalho.
+   * Cabeçalho customizado. Quando informado, substitui o cabeçalho plano
+   * padrão (eyebrow/título/descrição/ações).
    */
-  header?: React.ReactNode;
-  children: React.ReactNode;
+  header?: ReactNode;
+  /** Não renderiza cabeçalho algum; a página desenha o próprio. */
+  ocultarCabecalho?: boolean;
+  children: ReactNode;
 };
 
-export function AppShell({ title, description, eyebrow, action, header, children, dadosEmpresa }: AppShellProps) {
+function IconeSair({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M10 4H5v16h5" />
+      <path d="M14 8l4 4-4 4M18 12H9" />
+    </svg>
+  );
+}
+
+function IconeRecolher({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
+    </svg>
+  );
+}
+
+export function AppShell({
+  title,
+  description,
+  eyebrow,
+  action,
+  actions,
+  header,
+  ocultarCabecalho = false,
+  children,
+  dadosEmpresa,
+  usuario,
+}: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -38,17 +78,6 @@ export function AppShell({ title, description, eyebrow, action, header, children
   // divergência de hidratação; a preferência salva é aplicada após montar.
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [identidade, setIdentidade] = useState(dadosEmpresa ?? DADOS_EMPRESA_PADRAO);
-
-  // Ação que só acrescenta parâmetros à página atual (ex.: "Nova ordem"):
-  // aplica na URL vigente com pushState, integrado ao App Router. Os filtros
-  // ficam preservados e a página não é consultada de novo no servidor.
-  const aoClicarAcao = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!action || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    const destino = acrescentarParametrosNaPaginaAtual(action.href, window.location.href);
-    if (!destino) return;
-    event.preventDefault();
-    window.history.pushState(null, "", destino);
-  };
 
   useEffect(() => {
     try {
@@ -101,6 +130,11 @@ export function AppShell({ title, description, eyebrow, action, header, children
   // No mobile o menu abre como drawer sempre expandido; o recolhimento vale
   // apenas para desktop (lg+), por isso as classes condicionais usam lg:.
   const collapsedOnDesktop = isCollapsed;
+  const somenteExpandido = collapsedOnDesktop ? "lg:hidden" : "";
+
+  const acoesCabecalho = actions ?? (action ? (
+    <LinkAcaoNaPagina href={action.href}>{action.label}</LinkAcaoNaPagina>
+  ) : undefined);
 
   return (
     <div className="flex min-h-screen bg-[color:var(--background)]">
@@ -115,19 +149,24 @@ export function AppShell({ title, description, eyebrow, action, header, children
       {/* Sidebar */}
       <aside
         aria-label="Menu principal"
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-[color:var(--border)] bg-[color:var(--surface)] transition-[transform,width] duration-200 ease-in-out lg:static lg:translate-x-0 print:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-[248px] transform flex-col border-r border-[color:var(--border)] bg-[color:var(--surface)] transition-[transform,width] duration-200 ease-in-out lg:static lg:translate-x-0 print:hidden ${
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } ${collapsedOnDesktop ? "lg:w-[4.5rem]" : "lg:w-64"}`}
+        } ${collapsedOnDesktop ? "lg:w-[4.5rem]" : "lg:w-[248px]"}`}
       >
-        <div className="flex h-full flex-col">
-          <div
-            className={`flex h-16 items-center border-b border-[color:var(--border)] ${
-              collapsedOnDesktop ? "px-6 lg:justify-center lg:px-2" : "justify-between px-6 lg:pr-3"
-            }`}
-          >
-            <div className={collapsedOnDesktop ? "lg:hidden" : ""}>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--accent-strong)]">{identidade.nomeFantasia}</p>
-              {identidade.nomeComplementar ? <p className="mt-0.5 text-xs text-slate-500">{identidade.nomeComplementar}</p> : null}
+        <div className="flex h-full flex-col px-4 py-6">
+          {/* Marca */}
+          <div className={`flex items-center gap-3 px-2 pb-5 ${collapsedOnDesktop ? "lg:flex-col lg:px-0" : ""}`}>
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color:var(--accent)] text-[15px] font-extrabold tracking-[0.02em] text-white"
+              aria-hidden="true"
+            >
+              {iniciais(identidade.nomeFantasia)}
+            </div>
+            <div className={`flex min-w-0 flex-1 flex-col gap-0.5 ${somenteExpandido}`}>
+              <p className="truncate text-[15px] font-extrabold leading-[1.1] text-[color:var(--text)]">{identidade.nomeFantasia}</p>
+              {identidade.nomeComplementar ? (
+                <p className="truncate text-xs font-semibold text-[color:var(--text-soft)]">{identidade.nomeComplementar}</p>
+              ) : null}
             </div>
             <button
               type="button"
@@ -135,150 +174,113 @@ export function AppShell({ title, description, eyebrow, action, header, children
               aria-expanded={!isCollapsed}
               aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
               title={isCollapsed ? "Expandir menu" : "Recolher menu"}
-              className="hidden rounded-md p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] lg:inline-flex"
+              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[color:var(--text-soft)] transition hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] lg:inline-flex"
             >
-              <svg
-                className={`h-5 w-5 transition-transform duration-200 ${isCollapsed ? "rotate-180" : ""}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M18.75 19.5l-7.5-7.5 7.5-7.5m-6 15L5.25 12l7.5-7.5" />
-              </svg>
+              <IconeRecolher className={`h-[18px] w-[18px] transition-transform duration-200 ${isCollapsed ? "rotate-180" : ""}`} />
             </button>
           </div>
 
-          <nav className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-5">
+          <nav className="flex flex-1 flex-col gap-5 overflow-y-auto overflow-x-hidden">
             {navGroups.map((group) => (
-              <div key={group.label}>
-                <p
-                  className={`px-3 pb-1.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-slate-400 ${
-                    collapsedOnDesktop ? "lg:hidden" : ""
-                  }`}
-                >
+              <div key={group.label} className="flex flex-col gap-1">
+                <p className={`px-3.5 pb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[color:var(--accent)] ${somenteExpandido}`}>
                   {group.label}
                 </p>
-                <div className="space-y-1">
-                  {group.items.map((item) => {
-                    const isActive = item.href === "/"
-                      ? pathname === item.href
-                      : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                    const Icon = item.icon;
+                {group.items.map((item) => {
+                  const isActive = item.href === "/"
+                    ? pathname === item.href
+                    : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
 
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        aria-current={isActive ? "page" : undefined}
-                        aria-label={item.label}
-                        title={collapsedOnDesktop ? item.label : undefined}
-                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] ${
-                          collapsedOnDesktop ? "lg:justify-center lg:px-0" : ""
-                        } ${
-                          isActive
-                            ? "bg-[color:var(--accent)] text-white shadow-sm"
-                            : "text-slate-700 hover:bg-slate-100 hover:text-[color:var(--accent-strong)]"
-                        }`}
-                      >
-                        <Icon className="h-5 w-5 shrink-0" />
-                        <span className={`truncate ${collapsedOnDesktop ? "lg:hidden" : ""}`}>{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      aria-current={isActive ? "page" : undefined}
+                      aria-label={item.label}
+                      title={collapsedOnDesktop ? item.label : undefined}
+                      className={`flex h-11 items-center gap-3 rounded-xl px-3.5 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] ${
+                        collapsedOnDesktop ? "lg:justify-center lg:px-0" : ""
+                      } ${
+                        isActive
+                          ? "bg-[color:var(--accent)] text-white hover:bg-[color:var(--accent-strong)]"
+                          : "text-[color:var(--text-body)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text)]"
+                      }`}
+                    >
+                      <Icon className="h-[18px] w-[18px] shrink-0" />
+                      <span className={`truncate ${somenteExpandido}`}>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             ))}
           </nav>
 
-          <div
-            className={`flex items-center gap-3 border-t border-[color:var(--border)] p-4 ${
-              collapsedOnDesktop ? "justify-between lg:justify-center lg:p-2" : "justify-between"
-            }`}
-          >
-            <span className={collapsedOnDesktop ? "lg:hidden" : ""}>
-              <Badge tone="accent">MVP v1</Badge>
-            </span>
+          {/* Usuário */}
+          <div className={`flex items-center gap-2.5 border-t border-[color:var(--border)] px-2 pt-3.5 ${collapsedOnDesktop ? "lg:flex-col lg:px-0" : ""}`}>
+            {usuario ? (
+              <>
+                <div
+                  className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-[13px] font-extrabold text-[color:var(--accent-strong)]"
+                  aria-hidden="true"
+                  title={collapsedOnDesktop ? usuario.nome : undefined}
+                >
+                  {iniciais(usuario.nome)}
+                </div>
+                <div className={`flex min-w-0 flex-1 flex-col ${somenteExpandido}`}>
+                  <p className="truncate text-[13px] font-bold text-[color:var(--text)]">{usuario.nome}</p>
+                  {usuario.email ? <p className="truncate text-xs text-[color:var(--text-soft)]">{usuario.email}</p> : null}
+                </div>
+              </>
+            ) : (
+              <span className={`flex-1 ${somenteExpandido}`} />
+            )}
             <button
               type="button"
               onClick={handleLogout}
               disabled={isLoggingOut}
               aria-label={isLoggingOut ? "Saindo..." : "Sair"}
               title="Sair"
-              className={`rounded-full border border-[color:var(--border)] text-xs font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60 ${
-                collapsedOnDesktop ? "px-4 py-1.5 lg:border-0 lg:p-2" : "px-4 py-1.5"
-              }`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[color:var(--text-soft)] transition hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--accent-strong)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <span className={collapsedOnDesktop ? "lg:hidden" : ""}>
-                {isLoggingOut ? "Saindo..." : "Sair"}
-              </span>
-              {collapsedOnDesktop ? (
-                <svg
-                  className="hidden h-5 w-5 lg:block"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.8}
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-                  />
-                </svg>
-              ) : null}
+              <IconeSair className="h-[18px] w-[18px]" />
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile Header */}
         <header className="flex h-16 items-center justify-between border-b border-[color:var(--border)] bg-[color:var(--surface)] px-4 lg:hidden print:hidden">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
               aria-label="Abrir menu"
-              className="rounded-md p-2 text-slate-500 hover:bg-slate-100"
+              className="rounded-md p-2 text-[color:var(--text-soft)] hover:bg-[color:var(--surface-muted)]"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="font-semibold text-slate-800">{nomeExibicaoEmpresa(identidade)}</span>
+            <span className="font-semibold text-[color:var(--text)]">{nomeExibicaoEmpresa(identidade)}</span>
           </div>
-          {action && !header ? (
-            <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[color:var(--accent-strong)]" href={action.href} onClick={aoClicarAcao}>
-              {action.label}
-            </Link>
-          ) : null}
         </header>
 
         {/* Main Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8 print:p-0">
+          <div className="px-5 py-6 lg:px-9 lg:py-8 print:p-0">
             {header ? (
-              <div className="mb-6 print:hidden">{header}</div>
-            ) : (
-              <section className="mb-8 flex flex-wrap items-start justify-between gap-4 rounded-[2rem] border border-[color:var(--border)] bg-[color:var(--surface)] p-6 shadow-[0_18px_44px_rgba(31,41,55,0.08)] sm:p-8 print:hidden">
-                <div>
-                  {eyebrow ? <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[color:var(--accent-strong)]">{eyebrow}</p> : null}
-                  <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[color:var(--text)] md:text-4xl">{title}</h1>
-                  <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700 md:text-base">{description}</p>
-                </div>
-
-                <div className="hidden lg:block">
-                  {action ? (
-                    <Link className="inline-flex items-center rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[color:var(--accent-strong)] hover:shadow" href={action.href} onClick={aoClicarAcao}>
-                      {action.label}
-                    </Link>
-                  ) : null}
-                </div>
-              </section>
+              <div className="mb-5 print:hidden">{header}</div>
+            ) : ocultarCabecalho ? null : (
+              <PageHeader
+                className="mb-5 print:hidden"
+                eyebrow={eyebrow}
+                title={title}
+                description={description}
+                actions={acoesCabecalho}
+              />
             )}
 
             {children}

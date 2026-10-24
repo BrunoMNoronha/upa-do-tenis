@@ -36,6 +36,17 @@ export function montarCondicaoBusca(
   };
 }
 
+/**
+ * Combina condições opcionais de `where` em AND, ignorando as indefinidas.
+ * Nenhuma condição devolve `undefined`; uma só é devolvida como está.
+ */
+export function combinarCondicoes(...condicoes: Array<Record<string, unknown> | undefined>): Record<string, unknown> | undefined {
+  const definidas = condicoes.filter((condicao): condicao is Record<string, unknown> => condicao !== undefined);
+  if (definidas.length === 0) return undefined;
+  if (definidas.length === 1) return definidas[0];
+  return { AND: definidas };
+}
+
 /** Lê o parâmetro `busca` de searchParams (URLSearchParams ou objeto de página). */
 export function lerBuscaDeSearchParams(
   searchParams: URLSearchParams | Record<string, string | string[] | undefined>,

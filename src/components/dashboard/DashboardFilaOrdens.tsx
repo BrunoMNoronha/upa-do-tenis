@@ -9,13 +9,16 @@ type DashboardFilaOrdensProps = {
   total: number;
 };
 
-/** Cor de cada status, usada na barra e no marcador dos mini cards. */
+/** Cor de cada status, usada na barra segmentada. */
 const corStatus: Record<StatusOperacionalId, string> = {
   ABERTA: "bg-[color:var(--warning)]",
   EM_ANDAMENTO: "bg-[color:var(--accent)]",
   CONCLUIDA: "bg-[color:var(--success)]",
   ENTREGUE: "bg-[color:var(--neutral-bar)]",
 };
+
+/** Marcador dos mini cards: "Entregues" usa um cinza mais escuro para contraste. */
+const corMarcador: Record<StatusOperacionalId, string> = { ...corStatus, ENTREGUE: "bg-[color:var(--muted)]" };
 
 const HREF_ATRASADAS = "/ordens-servico?atrasadas=true";
 
@@ -73,7 +76,7 @@ export function DashboardFilaOrdens({ fila, total }: DashboardFilaOrdensProps) {
               className="flex h-full flex-col gap-1 rounded-[14px] bg-[color:var(--background)] px-3.5 py-3 transition hover:bg-[color:var(--surface-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-soft)]"
             >
               <span className="flex items-center gap-2 text-xs font-bold text-[color:var(--text-soft)]">
-                <span className={`h-2 w-2 shrink-0 rounded-full ${corStatus[item.id]}`} aria-hidden="true" />
+                <span className={`h-2 w-2 shrink-0 rounded-full ${corMarcador[item.id]}`} aria-hidden="true" />
                 {item.rotulo}
               </span>
               <span className="text-2xl font-extrabold leading-none text-[color:var(--text)]">{item.quantidade}</span>

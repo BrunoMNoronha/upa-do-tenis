@@ -232,7 +232,7 @@ export function VendaBalcaoClient({ produtos, formasPagamento }: VendaBalcaoClie
   // ── Layout principal ──────────────────────────────────────────────────────
 
   return (
-    <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_420px]">
+    <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <CatalogoProdutos
         busca={busca}
         setBusca={setBusca}
@@ -246,7 +246,7 @@ export function VendaBalcaoClient({ produtos, formasPagamento }: VendaBalcaoClie
         estoqueEsgotadoNoCarrinho={estoqueEsgotadoNoCarrinho}
       />
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         <CarrinhoResumo
           itens={itens}
           produtos={produtos}

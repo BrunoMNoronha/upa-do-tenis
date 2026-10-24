@@ -90,3 +90,25 @@ export function acrescentarParametrosNaPaginaAtual(href: string, urlAtual: strin
   destino.searchParams.forEach((valor, chave) => atual.searchParams.set(chave, valor));
   return atual.pathname + atual.search;
 }
+
+/**
+ * Monta o href de um chip de filtro mantido na URL: aplica (ou remove, com
+ * `null`) cada parâmetro informado, volta para a página 1 e preserva o
+ * restante (`pageSize`, `busca`, outros filtros).
+ */
+export function montarHrefFiltros(
+  pathname: string,
+  atual: URLSearchParams | string,
+  alteracoes: Record<string, string | null>,
+): string {
+  const params = resetarPagina(atual);
+  Object.entries(alteracoes).forEach(([chave, valor]) => {
+    if (valor) {
+      params.set(chave, valor);
+    } else {
+      params.delete(chave);
+    }
+  });
+  const query = params.toString();
+  return query ? `${pathname}?${query}` : pathname;
+}

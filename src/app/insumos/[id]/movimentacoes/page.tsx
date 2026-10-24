@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function MovimentacoesInsumoPage(props: {
   params: Promise<{ id: string }>;
 }) {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const { id } = await props.params;
 
   const [data, dadosEmpresa] = await Promise.all([listarMovimentacoesInsumo(id), obterDadosEmpresa()]);
@@ -22,6 +22,7 @@ export default async function MovimentacoesInsumoPage(props: {
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Estoque"
       title={`Extrato: ${data.insumo.nome}`}
       description="Consulte o histórico imutável e registre entradas, saídas ou ajustes."

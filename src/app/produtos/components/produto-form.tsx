@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 
-import { Button, Card, Input, Label, SectionTitle, Textarea } from "@/components/ui";
+import { ErroCampo, PainelCadastroRapido } from "@/components/cadastro-layout";
+import { Button, Input, Label, Textarea } from "@/components/ui";
 import { produtoFormSchema, type ProdutoFormValues } from "@/lib/produtos-schema";
 import { formatCurrency, maskCurrency } from "@/lib/formatters";
 import type { ProdutoListado } from "../types";
@@ -22,6 +23,8 @@ const defaultValues: ProdutoFormValues = {
   precoVenda: 0,
   quantidadeInicial: undefined,
 };
+
+const FORM_ID = "form-produto";
 
 export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps) {
   const router = useRouter();
@@ -52,6 +55,12 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
       reset(defaultValues);
     }
   }, [editando, reset]);
+
+  const cancelar = () => {
+    setSubmitError(null);
+    reset(defaultValues);
+    onCancel();
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     setSubmitError(null);
@@ -88,76 +97,80 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
   });
 
   return (
-    <Card className="p-6">
-      <div className="mb-6">
-        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--accent-strong)]">
-          {editando ? "Editar Produto" : "Novo Cadastro"}
-        </p>
-        <SectionTitle className="mt-2 text-2xl">
-          {editando ? `Editando ${editando.nome}` : "Dados do produto"}
-        </SectionTitle>
-      </div>
-
-      <form className="grid gap-4" onSubmit={onSubmit} noValidate>
-        <div className="grid gap-2">
-          <Label htmlFor="nome">Nome do Produto</Label>
+    <PainelCadastroRapido
+      titulo={editando ? "Editar produto" : "Novo produto"}
+      dica={editando ? `Editando ${editando.nome}.` : "O estoque inicial é opcional; entradas seguintes vão por Movimentações."}
+      rodape={
+        <>
+          <Button type="button" variant="secondary" onClick={cancelar}>
+            Cancelar
+          </Button>
+          <Button type="submit" form={FORM_ID} isLoading={isSubmitting || isPending} className="min-w-[160px]">
+            {editando ? "Salvar alterações" : "Cadastrar produto"}
+          </Button>
+        </>
+      }
+    >
+      <form id={FORM_ID} className="grid gap-3.5" onSubmit={onSubmit} noValidate>
+        <div className="grid gap-1">
+          <Label htmlFor="nome" obrigatorio>Nome do produto</Label>
           <Input
             id="nome"
             {...register("nome")}
-            placeholder="Ex: Cadarço 120cm"
+            placeholder="Ex.: Cadarço 120 cm"
             aria-invalid={Boolean(errors.nome)}
             aria-describedby={errors.nome ? "nome-error" : undefined}
           />
-          {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
+          {errors.nome ? <ErroCampo id="nome-error">{errors.nome.message}</ErroCampo> : null}
         </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="precoVenda">Preço de Venda (R$)</Label>
-          <Input
-            id="precoVenda"
-            type="text"
-            aria-invalid={Boolean(errors.precoVenda)}
-            aria-describedby={errors.precoVenda ? "precoVenda-error" : undefined}
-            {...register("precoVenda")}
-            onChange={(e) => {
-              e.target.value = maskCurrency(e.target.value);
-              register("precoVenda").onChange(e);
-            }}
-            onBlur={(e) => {
-              if (e.target.value) {
-                e.target.value = formatCurrency(e.target.value);
-                register("precoVenda").onChange(e);
-              }
-              register("precoVenda").onBlur(e);
-            }}
-            placeholder="R$ 0,00"
-          />
-          {errors.precoVenda ? <p id="precoVenda-error" role="alert" className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
-        </div>
-
-        {!editando ? (
-          <div className="grid gap-2">
-            <Label htmlFor="quantidadeInicial">Estoque Inicial (unidades)</Label>
+        <div className={`grid gap-3 ${editando ? "" : "sm:grid-cols-2"}`}>
+          <div className="grid gap-1">
+            <Label htmlFor="precoVenda" obrigatorio>Preço de venda (R$)</Label>
             <Input
-              id="quantidadeInicial"
-              type="number"
-              min="0"
-              step="1"
-              {...register("quantidadeInicial")}
-              placeholder="0 (opcional)"
-              aria-invalid={Boolean(errors.quantidadeInicial)}
-              aria-describedby={errors.quantidadeInicial ? "quantidadeInicial-error quantidadeInicial-hint" : "quantidadeInicial-hint"}
+              id="precoVenda"
+              type="text"
+              aria-invalid={Boolean(errors.precoVenda)}
+              aria-describedby={errors.precoVenda ? "precoVenda-error" : undefined}
+              {...register("precoVenda")}
+              onChange={(e) => {
+                e.target.value = maskCurrency(e.target.value);
+                register("precoVenda").onChange(e);
+              }}
+              onBlur={(e) => {
+                if (e.target.value) {
+                  e.target.value = formatCurrency(e.target.value);
+                  register("precoVenda").onChange(e);
+                }
+                register("precoVenda").onBlur(e);
+              }}
+              placeholder="R$ 0,00"
             />
-            <p id="quantidadeInicial-hint" className="text-xs text-slate-400">
-              Opcional. Se informado, registrará uma entrada manual rastreável no estoque.
-            </p>
-            {errors.quantidadeInicial ? (
-              <p id="quantidadeInicial-error" role="alert" className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
-            ) : null}
+            {errors.precoVenda ? <ErroCampo id="precoVenda-error">{errors.precoVenda.message}</ErroCampo> : null}
           </div>
-        ) : null}
 
-        <div className="grid gap-2">
+          {!editando ? (
+            <div className="grid gap-1">
+              <Label htmlFor="quantidadeInicial">Estoque inicial (un)</Label>
+              <Input
+                id="quantidadeInicial"
+                type="number"
+                min="0"
+                step="1"
+                {...register("quantidadeInicial")}
+                placeholder="0 (opcional)"
+                aria-invalid={Boolean(errors.quantidadeInicial)}
+                aria-describedby={errors.quantidadeInicial ? "quantidadeInicial-error quantidadeInicial-hint" : "quantidadeInicial-hint"}
+              />
+              <p id="quantidadeInicial-hint" className="text-xs text-[color:var(--text-soft)]">
+                Se informado, registra uma entrada manual rastreável no estoque.
+              </p>
+              {errors.quantidadeInicial ? <ErroCampo id="quantidadeInicial-error">{errors.quantidadeInicial.message}</ErroCampo> : null}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="grid gap-1">
           <Label htmlFor="descricao">Descrição</Label>
           <Textarea
             id="descricao"
@@ -167,22 +180,11 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             aria-invalid={Boolean(errors.descricao)}
             aria-describedby={errors.descricao ? "descricao-error" : undefined}
           />
-        {errors.descricao ? <p id="descricao-error" role="alert" className="text-sm text-red-600">{errors.descricao.message}</p> : null}
+          {errors.descricao ? <ErroCampo id="descricao-error">{errors.descricao.message}</ErroCampo> : null}
         </div>
 
-        {submitError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{submitError}</p> : null}
-
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" isLoading={isSubmitting || isPending}>
-            {editando ? "Salvar alterações" : "Cadastrar Produto"}
-          </Button>
-          {editando ? (
-            <Button type="button" variant="secondary" onClick={onCancel}>
-              Cancelar edição
-            </Button>
-          ) : null}
-        </div>
+        {submitError ? <ErroCampo id="produto-submit-error">{submitError}</ErroCampo> : null}
       </form>
-    </Card>
+    </PainelCadastroRapido>
   );
 }

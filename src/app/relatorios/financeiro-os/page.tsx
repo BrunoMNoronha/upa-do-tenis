@@ -13,12 +13,13 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function RelatorioFinanceiroOSPage() {
-  await exigirSessao();
+  const sessao = await exigirSessao();
   const dadosEmpresa = await obterDadosEmpresa();
 
   return (
     <AppShell
       dadosEmpresa={dadosEmpresa}
+      usuario={sessao}
       eyebrow="Relatórios e Métricas"
       title="Relatório Financeiro de OS"
       description="Visão analítica e filtrável das Ordens de Serviço."

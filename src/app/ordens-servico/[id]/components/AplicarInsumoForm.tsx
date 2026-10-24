@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button, Card, Input, Label, PanelHeader, Textarea } from "@/components/ui";
+import { Button, Card, Input, Label, PanelHeader } from "@/components/ui";
 import { ItemOS, InsumoDisponivel, InsumoFormValues } from "../types";
 
 const insumoFormDefaultValues: InsumoFormValues = {
@@ -95,22 +95,22 @@ export function AplicarInsumoForm({
   };
 
   return (
-    <Card className="p-6">
-      <PanelHeader title="Insumos aplicados" description="Vincule o consumo ao item da ordem." />
+    <Card className="p-[22px]">
+      <PanelHeader title="Aplicar insumo" description="Baixa no estoque e custo vinculado ao item" />
 
       {itensOrdem.length === 0 || insumosDisponiveis.length === 0 ? (
-        <p className="mt-4 text-sm text-slate-600">
+        <p className="mt-4 text-sm text-[color:var(--text-soft)]">
           Para registrar insumo, a OS precisa ter item e deve existir insumo cadastrado ativo.
         </p>
       ) : (
         <form className="mt-4 grid gap-3" onSubmit={handleRegistrarInsumo}>
-          <div className="grid gap-2">
+          <div className="grid gap-1">
             <Label htmlFor="itemOrdemServicoId">Item da OS</Label>
             <select
               id="itemOrdemServicoId"
               value={insumoForm.itemOrdemServicoId}
               onChange={(event) => handleInsumoInput("itemOrdemServicoId", event.target.value)}
-              className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
+              className="h-11 w-full rounded-[10px] border border-[color:var(--border-strong)] bg-white px-3 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--accent)] focus:ring-[3px] focus:ring-[color:var(--focus-ring)]"
               required
             >
               <option value="">Selecione...</option>
@@ -122,13 +122,13 @@ export function AplicarInsumoForm({
             </select>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid gap-1">
             <Label htmlFor="insumoId">Insumo</Label>
             <select
               id="insumoId"
               value={insumoForm.insumoId}
               onChange={(event) => handleInsumoInput("insumoId", event.target.value)}
-              className="flex h-11 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-[color:var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[color:var(--accent-strong)]"
+              className="h-11 w-full rounded-[10px] border border-[color:var(--border-strong)] bg-white px-3 text-sm text-[color:var(--text)] outline-none focus:border-[color:var(--accent)] focus:ring-[3px] focus:ring-[color:var(--focus-ring)]"
               required
             >
               <option value="">Selecione...</option>
@@ -140,8 +140,8 @@ export function AplicarInsumoForm({
             </select>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-1">
               <Label htmlFor="quantidadeInsumo">Quantidade</Label>
               <Input
                 id="quantidadeInsumo"
@@ -155,8 +155,8 @@ export function AplicarInsumoForm({
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="custoUnitarioAplicado">Custo unitário aplicado</Label>
+            <div className="grid gap-1">
+              <Label htmlFor="custoUnitarioAplicado">Custo unitário</Label>
               <Input
                 id="custoUnitarioAplicado"
                 type="number"
@@ -170,25 +170,22 @@ export function AplicarInsumoForm({
             </div>
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="observacoesInsumo">Observações (opcional)</Label>
-            <Textarea
+          <div className="grid gap-1">
+            <Label htmlFor="observacoesInsumo">Observações</Label>
+            <Input
               id="observacoesInsumo"
-              rows={3}
               value={insumoForm.observacoes}
               onChange={(event) => handleInsumoInput("observacoes", event.target.value)}
-              placeholder="Informações adicionais do insumo aplicado"
+              placeholder="Opcional"
             />
           </div>
 
-          {insumoErro ? <p className="text-sm text-red-600">{insumoErro}</p> : null}
-          {insumoSucesso ? <p className="text-sm text-emerald-700">{insumoSucesso}</p> : null}
+          {insumoErro ? <p role="alert" className="text-sm text-[color:var(--danger)]">{insumoErro}</p> : null}
+          {insumoSucesso ? <p role="status" className="text-sm text-[color:var(--success)]">{insumoSucesso}</p> : null}
 
-          <div>
-            <Button type="submit" isLoading={enviandoInsumo}>
-              Registrar insumo
-            </Button>
-          </div>
+          <Button type="submit" variant="secondary" isLoading={enviandoInsumo} className="w-full">
+            Aplicar insumo
+          </Button>
         </form>
       )}
     </Card>
