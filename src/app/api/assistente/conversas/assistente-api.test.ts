@@ -1,7 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/lib/auth-server", () => ({ obterUsuarioSessaoDaRequest: vi.fn() }));
+import { NextResponse } from "next/server";
+vi.mock("@/lib/auth-server", () => ({
+  obterUsuarioSessaoDaRequest: vi.fn(),
+  exigirSessaoApi: vi.fn(async (req) => {
+    const { obterUsuarioSessaoDaRequest } = await import("@/lib/auth-server");
+    const session = await obterUsuarioSessaoDaRequest(req);
+    if (!session) {
+      return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    }
+    return null;
+  }),
+}));
 vi.mock("@/lib/insights-config", () => ({ obterChaveClaude: vi.fn() }));
 vi.mock("@/lib/assistente-ia", () => ({ responderPergunta: vi.fn() }));
 vi.mock("@/lib/assistente-conversas", async (importOriginal) => {

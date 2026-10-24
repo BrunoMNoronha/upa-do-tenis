@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obterUsuarioSessaoDaRequest } from "@/lib/auth-server";
+import { obterUsuarioSessaoDaRequest, exigirSessaoApi } from "@/lib/auth-server";
 import { criarConversaComMensagens, listarConversas } from "@/lib/assistente-conversas";
 import { responderPergunta } from "@/lib/assistente-ia";
 import { novaConversaSchema } from "@/lib/assistente-schema";
@@ -14,8 +14,10 @@ const SEM_CACHE_HTTP = { "Cache-Control": "private, no-store" };
 
 export async function GET(req: NextRequest) {
   try {
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
 
     const paginaInformada = Number(req.nextUrl.searchParams.get("pagina") ?? "1");
     const pagina = Number.isInteger(paginaInformada) && paginaInformada > 0 ? paginaInformada : 1;
@@ -32,8 +34,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const usuario = await obterUsuarioSessaoDaRequest(req);
-    if (!usuario) return NextResponse.json({ message: "Não autenticado." }, { status: 401 });
+    const naoAutenticado = await exigirSessaoApi(req);
+    if (naoAutenticado) return naoAutenticado;
+
+    const usuario = (await obterUsuarioSessaoDaRequest(req))!;
 
     const body = await req.json().catch(() => null);
     const parsed = novaConversaSchema.safeParse(body ?? {});
