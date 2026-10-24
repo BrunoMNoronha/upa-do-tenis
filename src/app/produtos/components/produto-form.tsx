@@ -108,7 +108,7 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             aria-invalid={Boolean(errors.nome)}
             aria-describedby={errors.nome ? "nome-error" : undefined}
           />
-          {errors.nome ? <p id="nome-error" className="text-sm text-red-600">{errors.nome.message}</p> : null}
+          {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
         </div>
 
         <div className="grid gap-2">
@@ -132,7 +132,7 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             }}
             placeholder="R$ 0,00"
           />
-          {errors.precoVenda ? <p id="precoVenda-error" className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
+          {errors.precoVenda ? <p id="precoVenda-error" role="alert" className="text-sm text-red-600">{errors.precoVenda.message}</p> : null}
         </div>
 
         {!editando ? (
@@ -152,7 +152,7 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
               Opcional. Se informado, registrará uma entrada manual rastreável no estoque.
             </p>
             {errors.quantidadeInicial ? (
-              <p id="quantidadeInicial-error" className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
+              <p id="quantidadeInicial-error" role="alert" className="text-sm text-red-600">{errors.quantidadeInicial.message}</p>
             ) : null}
           </div>
         ) : null}
@@ -167,7 +167,7 @@ export function ProdutoForm({ editando, onCancel, onSuccess }: ProdutoFormProps)
             aria-invalid={Boolean(errors.descricao)}
             aria-describedby={errors.descricao ? "descricao-error" : undefined}
           />
-        {errors.descricao ? <p id="descricao-error" className="text-sm text-red-600">{errors.descricao.message}</p> : null}
+        {errors.descricao ? <p id="descricao-error" role="alert" className="text-sm text-red-600">{errors.descricao.message}</p> : null}
         </div>
 
         {submitError ? <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{submitError}</p> : null}
