@@ -24,6 +24,10 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
 
     return NextResponse.json(clienteAtualizado, { status: 200 });
   } catch (error) {
+    if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json({ message: "Já existe um cliente cadastrado com este e-mail ou CPF/CNPJ." }, { status: 409 });
+    }
+
     if ((error as { code?: string })?.code === "P2025") {
       return NextResponse.json({ message: "Cliente não encontrado." }, { status: 404 });
     }
