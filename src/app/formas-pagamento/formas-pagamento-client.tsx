@@ -132,11 +132,17 @@ export function FormasPagamentoClient({ formas }: FormasPagamentoClientProps) {
           </SectionTitle>
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
+        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome</Label>
-            <Input id="nome" {...register("nome")} placeholder="Ex: Cartão de Crédito Visa" />
-            {errors.nome ? <p className="text-sm text-red-600">{errors.nome.message}</p> : null}
+            <Input
+              id="nome"
+              {...register("nome")}
+              placeholder="Ex: Cartão de Crédito Visa"
+              aria-invalid={Boolean(errors.nome)}
+              aria-describedby={errors.nome ? "nome-error" : undefined}
+            />
+            {errors.nome ? <p id="nome-error" role="alert" className="text-sm text-red-600">{errors.nome.message}</p> : null}
           </div>
 
           <div className="grid gap-2">
@@ -146,6 +152,8 @@ export function FormasPagamentoClient({ formas }: FormasPagamentoClientProps) {
               {...register("tipo")}
               disabled={tipoBloqueado}
               className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+              aria-invalid={Boolean(errors.tipo)}
+              aria-describedby={errors.tipo ? "tipo-error tipo-hint" : "tipo-hint"}
             >
               <option value="" disabled>
                 Selecione o tipo...
@@ -157,21 +165,21 @@ export function FormasPagamentoClient({ formas }: FormasPagamentoClientProps) {
               ))}
             </select>
             {tipoBloqueado ? (
-              <p className="text-xs text-amber-700">
+              <p id="tipo-hint" className="text-xs text-amber-700">
                 O tipo está travado porque esta forma já possui pagamentos, vendas ou movimentações de caixa —
                 alterá-lo reescreveria o fechamento de caixa. Para corrigir, inative-a e cadastre uma nova forma
                 com o tipo correto.
               </p>
             ) : (
-              <p className="text-xs text-slate-500">
+              <p id="tipo-hint" className="text-xs text-slate-500">
                 Use &quot;Dinheiro&quot; para formas que representam dinheiro físico — o caixa usa este campo para
                 calcular o saldo da gaveta.
               </p>
             )}
-            {errors.tipo ? <p className="text-sm text-red-600">{errors.tipo.message}</p> : null}
+            {errors.tipo ? <p id="tipo-error" role="alert" className="text-sm text-red-600">{errors.tipo.message}</p> : null}
           </div>
 
-          {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
+          {submitError ? <p role="alert" className="text-sm text-red-600">{submitError}</p> : null}
 
           <div className="flex flex-wrap gap-3">
             <Button type="submit" isLoading={isSubmitting || isPending}>
