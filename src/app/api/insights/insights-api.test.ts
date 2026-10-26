@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
@@ -47,6 +48,7 @@ describe("POST /api/insights", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(USUARIO);
+    vi.mocked(exigirSessaoApi).mockResolvedValue(null);
     vi.mocked(obterChaveClaude).mockResolvedValue("sk-ant-chave");
     vi.mocked(montarPayloadInsights).mockResolvedValue({ periodo: {} } as never);
     vi.mocked(gerarAnaliseInsights).mockResolvedValue({
@@ -69,7 +71,7 @@ describe("POST /api/insights", () => {
   });
 
   it("responde 401 sem sessão", async () => {
-    vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(null);
+    vi.mocked(exigirSessaoApi).mockResolvedValue(NextResponse.json({ message: "Não autenticado." }, { status: 401 }));
 
     const res = await POST(criarRequest("POST", CORPO_VALIDO));
 
