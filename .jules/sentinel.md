@@ -10,3 +10,10 @@
 ## 2026-09-12 - Respostas seguras na API de clientes
 **Aprendizado:** Falhas inesperadas devem produzir resposta JSON genérica, sem expor detalhes internos.
 **Ação:** Preservar autenticação e validação, tratar duplicidade com 409 e testar falhas de leitura e criação.
+## 2024-03-24 - Atualização de cliente
+
+**Vulnerability:** Information Exposure (Erro 500 em violação de restrição única)
+
+**Learning:** Ao atualizar um cliente com um e-mail ou CPF/CNPJ já existente na base, o Prisma lança um erro com código P2002. Sem o devido tratamento na rota PATCH, isso causa um erro 500 que, além de prejudicar a experiência, vaza logs no console.
+
+**Prevention:** Adicionar tratamento específico para o código P2002 em rotas de atualização, retornando status 409 (Conflict) e ocultando os detalhes do banco de dados na resposta da API.

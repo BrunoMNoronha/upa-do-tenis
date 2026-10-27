@@ -28,6 +28,13 @@ export async function PATCH(req: NextRequest, props: { params: Promise<{ id: str
       return NextResponse.json({ message: "Cliente não encontrado." }, { status: 404 });
     }
 
+    if ((error as { code?: string })?.code === "P2002") {
+      return NextResponse.json(
+        { message: "Já existe um cliente cadastrado com este e-mail ou CPF/CNPJ." },
+        { status: 409 }
+      );
+    }
+
     console.error("Erro ao atualizar cliente:", error);
     return NextResponse.json(
       { message: "Ocorreu um erro interno ao atualizar o cliente." },
