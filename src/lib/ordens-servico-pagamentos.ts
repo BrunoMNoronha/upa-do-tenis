@@ -141,34 +141,27 @@ export async function registrarPagamentoOrdemServico(
       ordemServicoId: ordem.id,
     }, tx);
 
-    const ordemComPagamento = await tx.ordemServico.findUnique({
-      where: { id: ordemServicoId },
-      include: {
-        pagamentos: { include: INCLUDE_ESTORNO_PAGAMENTO },
-        itens: {
-          include: {
-            servicos: {
-              include: {
-                servico: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    // Performance Optimization (Bolt):
+    // Evita a segunda query findUnique que carregava pagamentos/itens novamente.
+    // Usamos a 'ordem' (Order) já carregada no início da transação, mantendo as
+    // mesmas propriedades de relacionamentos aninhados para que calcularResumoFinanceiroOS
+    // calcule o saldo corretamente. Como pagamento.create retorna as propriedades escalares
+    // mas não as relações, mapeamos isso para não quebrar a lógica de negócio.
+    const pagamentoSimulado = {
+      ...pagamento,
+      estorno: null // Novo pagamento nunca tem estorno no momento da criação
+    };
 
-    if (!ordemComPagamento) {
-      throw new PagamentoOrdemServicoError("Ordem de serviço não encontrada.", 404);
-    }
+    const pagamentosAtualizados = [...(ordem.pagamentos || []), pagamentoSimulado];
 
     const resumoAtualizado = calcularResumoFinanceiroOS({
-      statusOperacional: ordemComPagamento.status,
-      valorTotal: ordemComPagamento.valorTotal,
-      valorDesconto: ordemComPagamento.valorDesconto,
-      valorSinal: ordemComPagamento.valorSinal,
-      valorPago: ordemComPagamento.valorPago,
-      pagamentos: ordemComPagamento.pagamentos,
-      itens: ordemComPagamento.itens,
+      statusOperacional: ordem.status,
+      valorTotal: ordem.valorTotal,
+      valorDesconto: ordem.valorDesconto,
+      valorSinal: ordem.valorSinal,
+      valorPago: ordem.valorPago,
+      pagamentos: pagamentosAtualizados,
+      itens: ordem.itens,
     });
 
     // Gravação condicionada a OS não cancelada: se um cancelamento concorrente
