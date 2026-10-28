@@ -108,6 +108,15 @@ describe("PATCH /api/clientes/[id]", () => {
 
     expect(response.status).toBe(404);
   });
+
+  it("retorna 409 para duplicidade de email ou CPF/CNPJ (P2002) sem expor detalhes", async () => {
+    prismaMock.cliente.update.mockRejectedValueOnce({ code: "P2002", message: "detalhe-interno" });
+
+    const response = await PATCH(criarRequest("cli-1", "PATCH", { email: "duplicado@teste.com" }), wrapParams("cli-1"));
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ message: "Já existe um cliente cadastrado com este e-mail ou CPF/CNPJ." });
+  });
 });
 
 describe("DELETE /api/clientes/[id]", () => {
