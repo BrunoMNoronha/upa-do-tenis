@@ -94,49 +94,52 @@ export default function MovimentacoesClient({ insumoId, initialData }: { insumoI
           <SectionTitle className="mb-4 text-lg">Nova Movimentação</SectionTitle>
           
           {errorMsg && (
-            <div className="mb-4 rounded-md bg-red-500/10 p-3 text-sm text-red-500">
+            <div role="alert" className="mb-4 rounded-md bg-red-500/10 p-3 text-sm text-red-500">
               {errorMsg}
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <Label>Tipo</Label>
+              <Label htmlFor="tipo">Tipo</Label>
               <select 
+                id="tipo"
                 {...register("tipo")}
+                aria-invalid={Boolean(errors.tipo)}
+                aria-describedby={errors.tipo ? "tipo-error" : undefined}
                 className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
               >
                 <option value={TipoMovimentacao.ENTRADA_MANUAL}>Entrada (Adicionar)</option>
                 <option value={TipoMovimentacao.SAIDA_MANUAL}>Saída (Remover)</option>
                 <option value={TipoMovimentacao.AJUSTE}>Ajuste de Saldo</option>
               </select>
-              {errors.tipo && <span className="text-xs text-red-500">{errors.tipo.message}</span>}
+              {errors.tipo && <span id="tipo-error" role="alert" className="text-xs text-red-500">{errors.tipo.message}</span>}
             </div>
 
             {tipoSelecionado === TipoMovimentacao.AJUSTE ? (
               <div>
-                <Label>Novo Saldo</Label>
-                <Input type="number" step="0.01" {...register("novoSaldo", { valueAsNumber: true })} />
-                {errors.novoSaldo && <span className="text-xs text-red-500">{errors.novoSaldo.message}</span>}
+                <Label htmlFor="novoSaldo">Novo Saldo</Label>
+                <Input id="novoSaldo" type="number" step="0.01" {...register("novoSaldo", { valueAsNumber: true })} aria-invalid={Boolean(errors.novoSaldo)} aria-describedby={errors.novoSaldo ? "novoSaldo-error" : undefined} />
+                {errors.novoSaldo && <span id="novoSaldo-error" role="alert" className="text-xs text-red-500">{errors.novoSaldo.message}</span>}
               </div>
             ) : (
               <div>
-                <Label>Quantidade</Label>
-                <Input type="number" step="0.01" {...register("quantidade", { valueAsNumber: true })} />
-                {errors.quantidade && <span className="text-xs text-red-500">{errors.quantidade.message}</span>}
+                <Label htmlFor="quantidade">Quantidade</Label>
+                <Input id="quantidade" type="number" step="0.01" {...register("quantidade", { valueAsNumber: true })} aria-invalid={Boolean(errors.quantidade)} aria-describedby={errors.quantidade ? "quantidade-error" : undefined} />
+                {errors.quantidade && <span id="quantidade-error" role="alert" className="text-xs text-red-500">{errors.quantidade.message}</span>}
               </div>
             )}
 
             <div>
-              <Label>Custo Unitário Referência (Opcional)</Label>
-              <Input type="number" step="0.01" {...register("custoUnitario", { valueAsNumber: true })} placeholder={String(insumo.custoUnitario)} />
-              {errors.custoUnitario && <span className="text-xs text-red-500">{errors.custoUnitario.message}</span>}
+              <Label htmlFor="custoUnitario">Custo Unitário Referência (Opcional)</Label>
+              <Input id="custoUnitario" type="number" step="0.01" {...register("custoUnitario", { valueAsNumber: true })} placeholder={String(insumo.custoUnitario)} aria-invalid={Boolean(errors.custoUnitario)} aria-describedby={errors.custoUnitario ? "custoUnitario-error" : undefined} />
+              {errors.custoUnitario && <span id="custoUnitario-error" role="alert" className="text-xs text-red-500">{errors.custoUnitario.message}</span>}
             </div>
 
             <div>
-              <Label>{tipoSelecionado === TipoMovimentacao.AJUSTE ? "Motivo (Obrigatório)" : "Observação"}</Label>
-              <Input type="text" {...register(tipoSelecionado === TipoMovimentacao.AJUSTE ? "motivo" : "observacao")} />
-              {errors.motivo && <span className="text-xs text-red-500">{errors.motivo.message}</span>}
+              <Label htmlFor="motivo-observacao">{tipoSelecionado === TipoMovimentacao.AJUSTE ? "Motivo (Obrigatório)" : "Observação"}</Label>
+              <Input id="motivo-observacao" type="text" {...register(tipoSelecionado === TipoMovimentacao.AJUSTE ? "motivo" : "observacao")} aria-invalid={Boolean(errors.motivo)} aria-describedby={errors.motivo ? "motivo-observacao-error" : undefined} />
+              {errors.motivo && <span id="motivo-observacao-error" role="alert" className="text-xs text-red-500">{errors.motivo.message}</span>}
             </div>
 
             <Button type="submit" className="w-full" isLoading={isSubmitting}>

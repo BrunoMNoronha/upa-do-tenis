@@ -4,8 +4,9 @@
 
 **Action:** Whenever reviewing a form managed by `react-hook-form`, ensure that:
 1. The `<form>` tag includes `noValidate` to bypass native browser validation.
-2. The `<Input>` tags dynamically receive `aria-invalid={Boolean(errors.fieldName)}`.
-3. The `<Input>` tags dynamically receive `aria-describedby={errors.fieldName ? "fieldName-error" : undefined}`.
+2. The `<Input>` or `<select>` tags dynamically receive `aria-invalid={Boolean(errors.fieldName)}`.
+3. The `<Input>` or `<select>` tags dynamically receive `aria-describedby={errors.fieldName ? "fieldName-error" : undefined}`.
 4. If there's a static hint for the field, include it in the `aria-describedby` as well: `"fieldName-error fieldName-hint"`.
 5. Error messages receive the corresponding `id="fieldName-error"`.
-6. Global submission error messages receive `role="alert"`.
+6. Error messages explicitly have `role="alert"`.
+7. Global submission error messages receive `role="alert"`.
