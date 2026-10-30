@@ -1,0 +1,29 @@
+⚡ Bolt: Consolida contagens de status de OS usando groupBy
+
+## 💡 What
+A função `contarEstatisticasOrdensServico` agora usa `groupBy` no Prisma para as estatísticas categóricas de status.
+
+## 🎯 Why
+Executar uma contagem separada para cada status ("ABERTA", "EM_ANDAMENTO") no banco de dados onera conexões e latência.
+
+## 📊 Impact
+Antes: 4 queries de contagem rodando simultaneamente.
+Depois: 3 queries concorrentes no banco, economizando requisições.
+
+## 🔬 Measurement
+É possível validar o comportamento ao aceder a rota principal de Ordens de Serviço.
+
+## ✅ Validation
+| Command | Result |
+|---|---|
+| lint | Passed |
+| test | Passed |
+| build | Passed |
+
+## 🧩 Scope
+- src/lib/ordens-servico.ts
+- src/lib/ordens-servico-paginacao.test.ts
+- .jules/bolt.md
+
+## ⚠️ Risk
+Low — behavior preserved; change limited to performance optimization.

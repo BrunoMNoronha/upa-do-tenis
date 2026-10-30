@@ -41,3 +41,7 @@
 ## 2026-10-19 - Contagem e projeção de mensagens em passada única
 **Learning:** Em `obterConversaCompleta`, `mensagens.filter(...).length` seguido de `mensagens.map(...).filter(...)` percorria a lista três vezes e alocava arrays intermediários a cada requisição de conversa.
 **Action:** Consolidar contagem (`perguntas`) e projeção (`visiveis`) em um único `for...of` com `continue` para descartar itens, preservando exatamente o mesmo resultado e evitando arrays temporários.
+
+## 2026-10-31 - Redução de queries usando groupBy em contagens categóricas
+**Learning:** Agrupar contagens de registros por atributos categóricos (como status de ordens de serviço) através de múltiplas queries individuais `count` com `where` independentes aumenta o número de requisições ao banco de dados e onera a latência.
+**Action:** Utilize o recurso `groupBy` do banco de dados (ex: Prisma `groupBy`) para consolidar as contagens das diferentes categorias em uma única query com filtro IN e mapeie o resultado iterando em memória, reduzindo o volume de queries disparadas e melhorando o throughput global.
