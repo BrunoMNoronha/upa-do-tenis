@@ -27,6 +27,7 @@ const { prismaMock, valorTotalRef } = vi.hoisted(() => {
       ordemServico: {
         findMany: vi.fn(),
         count: vi.fn(),
+        groupBy: vi.fn(),
         fields: { valorTotal: valorTotalRef },
       },
     },
@@ -279,10 +280,13 @@ describe("contarEstatisticasOrdensServico", () => {
 
   it("conta abertas, em andamento, com saldo e atrasadas sobre o conjunto completo", async () => {
     prismaMock.ordemServico.count
-      .mockResolvedValueOnce(7)
-      .mockResolvedValueOnce(3)
       .mockResolvedValueOnce(5)
       .mockResolvedValueOnce(2);
+
+    prismaMock.ordemServico.groupBy.mockResolvedValueOnce([
+      { status: "ABERTA", _count: { id: 7 } },
+      { status: "EM_ANDAMENTO", _count: { id: 3 } },
+    ]);
 
     const agora = new Date("2026-09-16T13:00:00Z");
     await expect(contarEstatisticasOrdensServico(agora)).resolves.toEqual({
@@ -292,11 +296,9 @@ describe("contarEstatisticasOrdensServico", () => {
       atrasadas: 2,
     });
 
-    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(1, { where: { status: "ABERTA" } });
-    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(2, { where: { status: "EM_ANDAMENTO" } });
-    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(3, { where: { saldo: { gt: 0 } } });
+    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(1, { where: { saldo: { gt: 0 } } });
     // Atrasadas usa exatamente o mesmo where do filtro da listagem.
-    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(4, {
+    expect(prismaMock.ordemServico.count).toHaveBeenNthCalledWith(2, {
       where: {
         AND: [
           { status: { notIn: ["CONCLUIDA", "ENTREGUE", "CANCELADA"] } },
@@ -305,20 +307,32 @@ describe("contarEstatisticasOrdensServico", () => {
         ],
       },
     });
+
+    expect(prismaMock.ordemServico.groupBy).toHaveBeenNthCalledWith(1, {
+      by: ["status"],
+      _count: { id: true },
+      where: { status: { in: ["ABERTA", "EM_ANDAMENTO"] } },
+    });
   });
 
   it("inicia todas as contagens sem aguardar a primeira resposta", async () => {
-    const pendentes: Array<(valor: number) => void> = [];
+    const pendentes: Array<(valor: any) => void> = [];
     // Assim como PrismaPromise, a consulta só inicia ao ser aguardada.
     prismaMock.ordemServico.count.mockImplementation(() => ({
       then: (resolve: (valor: number) => void) => { pendentes.push(resolve); },
     }));
 
+    prismaMock.ordemServico.groupBy.mockImplementation(() => ({
+      then: (resolve: (valor: any[]) => void) => { pendentes.push(resolve); },
+    }));
+
     const resultado = contarEstatisticasOrdensServico(new Date("2026-09-16T13:00:00Z"));
     await Promise.resolve();
     await Promise.resolve();
-    expect(pendentes).toHaveLength(4);
-    for (const resolver of pendentes) resolver(0);
+    expect(pendentes).toHaveLength(3);
+    pendentes[0](0);
+    pendentes[1](0);
+    pendentes[2]([]);
 
     await expect(resultado).resolves.toEqual({ abertas: 0, emAndamento: 0, comSaldo: 0, atrasadas: 0 });
   });
