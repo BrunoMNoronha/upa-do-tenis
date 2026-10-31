@@ -126,14 +126,22 @@ const MAXIMO_DESCRICOES_NO_RESUMO = 2;
 /** Resumo dos itens para o card da listagem, sem depender de `itens[0]`. */
 export function resumirItensOrdem(itens: ItemResumivel[] | null | undefined): ResumoItensOrdem {
   const lista = itens ?? [];
-  const descricoes = lista
-    .map((item) => item.descricao?.trim())
-    .filter((descricao): descricao is string => Boolean(descricao));
-  const servicos = Array.from(new Set(
-    lista
-      .flatMap((item) => (item.servicos ?? []).map((vinculo) => vinculo.servico?.nome?.trim()))
-      .filter((nome): nome is string => Boolean(nome)),
-  ));
+  const descricoes: string[] = [];
+  const servicosSet = new Set<string>();
+
+  for (const item of lista) {
+    const descricao = item.descricao?.trim();
+    if (descricao) descricoes.push(descricao);
+
+    if (item.servicos) {
+      for (const vinculo of item.servicos) {
+        const nome = vinculo.servico?.nome?.trim();
+        if (nome) servicosSet.add(nome);
+      }
+    }
+  }
+
+  const servicos = Array.from(servicosSet);
 
   let resumoItens: string;
   if (descricoes.length === 0) {
