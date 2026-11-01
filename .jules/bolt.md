@@ -41,3 +41,7 @@
 ## 2026-10-19 - Contagem e projeção de mensagens em passada única
 **Learning:** Em `obterConversaCompleta`, `mensagens.filter(...).length` seguido de `mensagens.map(...).filter(...)` percorria a lista três vezes e alocava arrays intermediários a cada requisição de conversa.
 **Action:** Consolidar contagem (`perguntas`) e projeção (`visiveis`) em um único `for...of` com `continue` para descartar itens, preservando exatamente o mesmo resultado e evitando arrays temporários.
+
+## 2026-10-31 - Consolidação de múltiplas contagens em groupBy
+**Learning:** O agrupamento de múltiplos resultados de contagem via `prisma.groupBy` reduz I/O, mas exige manipulação correta dos dados retornados para compatibilidade com o type checking e tempo de execução, dado que propriedades como `_count` retornam objetos aninhados com chaves numéricas `_all`, e não um primitivo `number`. A ordem dos itens de um `groupBy` também não é garantida.
+**Action:** Ao consolidar múltiplas contagens em uma única consulta `prisma.groupBy`, não utilize desestruturação de array baseada em índices fixos para extrair os resultados (ex: `const [{ _count }] = await...`), pois a ordem dos grupos retornados pelo banco de dados não é garantida e pode causar tipagens que falham no typescript. Em vez disso, inicialize as variáveis com 0 e itere sobre o array resultante com um loop `for...of`, atribuindo os valores de `_count._all` (conforme assinatura Prisma API) às variáveis correspondentes com base na categoria agrupada.
