@@ -149,12 +149,22 @@ export async function contarEstatisticasOrdensServico(
     { agora, referencias: { valorTotal: prisma.ordemServico.fields.valorTotal } },
   );
 
-  const [abertas, emAndamento, comSaldo, atrasadas] = await Promise.all([
-    prisma.ordemServico.count({ where: { status: "ABERTA" } }),
-    prisma.ordemServico.count({ where: { status: "EM_ANDAMENTO" } }),
+  const [agrupamentoStatus, comSaldo, atrasadas] = await Promise.all([
+    prisma.ordemServico.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+      where: { status: { in: ['ABERTA', 'EM_ANDAMENTO'] } },
+    }),
     prisma.ordemServico.count({ where: { saldo: { gt: 0 } } }),
     prisma.ordemServico.count({ where: whereAtrasadas }),
   ]);
+
+  let abertas = 0;
+  let emAndamento = 0;
+  for (const grupo of agrupamentoStatus || []) {
+    if (grupo.status === 'ABERTA') abertas = grupo._count._all;
+    else if (grupo.status === 'EM_ANDAMENTO') emAndamento = grupo._count._all;
+  }
 
   return { abertas, emAndamento, comSaldo, atrasadas };
 }
