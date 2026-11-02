@@ -5,9 +5,11 @@
 ## 2025-02-18 - Paralelização Massiva em Agregações do Prisma
 **Learning:** Em funções de dashboard que computam inúmeras métricas agregadas sem dependência de dados entre si (ex: totais recebidos, totais pendentes, contagens segmentadas por status e ticket médio), executar as queries de forma sequencial (11 vezes `await prisma...`) introduz um gargalo de rede clássico O(N).
 **Action:** Utilize o padrão `Promise.all()` agrupando massivamente todas as agregações independentes para resolver de forma concorrente O(max(T)), e execute os queries subsequentes que dependem destes agregados (ex: buscar entidades a partir de arrays de IDs) em um segundo bloco `Promise.all()` logo a seguir.
+
 ## 2026-09-07 - Bulk Insert com createManyAndReturn
 **Learning:** A função `createManyAndReturn` nativa do Prisma 5+ é suportada tanto em PostgreSQL quanto SQLite e é a abordagem ideal e mais limpa para converter inserções independentes `Promise.all(linhas.map(x => tx.x.create(...)))` em bulk inserts quando o ID gerado é necessário para passos subsequentes (ex: baixas de estoque associadas).
 **Action:** Utilizar `createManyAndReturn` (ou `createMany` se os dados retornados não forem necessários) em vez de N inserções independentes agrupadas via `Promise.all()` na camada de transação do backend, reduzindo roundtrips com o banco e melhorando significativamente o tempo total de resposta de O(N) para O(1) na inserção.
+
 ## 2025-02-18 - Paralelização massiva de agregações independentes
 **Learning:** Agregações massivas do banco de dados (ex: `count`, `aggregate`, `sum`, etc) executadas iterativamente usando `await` são ofensoras clássicas de performance (Gargalo O(N)) por manter o I/O bloqueado.
 **Action:** Agrupar sempre operações independentes em um único bloco `Promise.all()` em rotas da API, para que as requisições atinjam o banco concorrentemente. Em otimizações (Bolt), pesquise globalmente por blocos sequenciais `await prisma.<model>.count` usando o bash em todo o repositório.
@@ -19,12 +21,10 @@
 ## 2026-09-15 - Paralelização de I/O em Server Components
 **Learning:** Consultas de banco de dados e chamadas I/O independentes em Server Components Next.js sofrem gargalos de performance ("waterfall" - esperas sequenciais em série) se forem bloqueadas individualmente com `await`.
 **Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
+
 ## 2025-01-20 — Prisma `$transaction` com consultas independentes de leitura não é otimização (Anti-pattern)
-
 **Learning:** Embora possa parecer intuitivo agrupar múltiplas consultas independentes (como `count` ou `findMany`) em um único `prisma.$transaction([...])` para reduzir viagens de rede, o Prisma executa as queries de um array de `$transaction` sequencialmente. Ao substituir `Promise.all` (que executa concorrentemente) por `$transaction`, o tempo total da operação passa a ser a soma dos tempos individuais mais o overhead transacional, degradando a performance em vez de melhorá-la.
-
 **Action:** Nunca substituir `Promise.all` por `prisma.$transaction` para requisições de leitura independentes. O `$transaction` deve ser reservado exclusivamente para casos que requerem garantias ACID (tudo ou nada) ou onde as operações dependem sequencialmente do resultado anterior, geralmente envolvendo escritas.
-**Action:** Sempre identificar e agrupar múltiplas consultas concorrentes e independentes utilizando `Promise.all([consulta1(), consulta2()])` para executá-las paralelamente, reduzindo o tempo final de carregamento.
 
 ## 2026-10-04 - Agregação independente no dashboard
 **Aprendizado:** A agregação de atendimentos rápidos pode iniciar junto às demais consultas. Isso remove uma espera serial, mas não combina todas as consultas em uma instrução SQL.
@@ -41,3 +41,7 @@
 ## 2026-10-19 - Contagem e projeção de mensagens em passada única
 **Learning:** Em `obterConversaCompleta`, `mensagens.filter(...).length` seguido de `mensagens.map(...).filter(...)` percorria a lista três vezes e alocava arrays intermediários a cada requisição de conversa.
 **Action:** Consolidar contagem (`perguntas`) e projeção (`visiveis`) em um único `for...of` com `continue` para descartar itens, preservando exatamente o mesmo resultado e evitando arrays temporários.
+
+## 2026-10-19 - Otimização de consultas repetidas
+**Learning:** Foram encontrados vários pontos onde o count era feito de forma repetida baseada em categorização que seria retornada pela mesma query.
+**Action:** Para otimizar o banco de dados, ao identificar agregações independentes simultâneas baseadas em categorias (ex: múltiplos `prisma.count` para diferentes `status`), consolide-as utilizando uma única consulta `prisma.groupBy` (ex: agrupando por status e contando IDs) iterando sobre o resultado em memória. Isso reduz requisições de rede concorrentes e melhora o throughput.
