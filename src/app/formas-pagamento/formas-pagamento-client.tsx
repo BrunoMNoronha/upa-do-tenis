@@ -132,7 +132,7 @@ export function FormasPagamentoClient({ formas }: FormasPagamentoClientProps) {
           </SectionTitle>
         </div>
 
-        <form className="grid gap-4" onSubmit={onSubmit}>
+        <form className="grid gap-4" onSubmit={onSubmit} noValidate>
           <div className="grid gap-2">
             <Label htmlFor="nome">Nome</Label>
             <Input id="nome" {...register("nome")} placeholder="Ex: Cartão de Crédito Visa" />
