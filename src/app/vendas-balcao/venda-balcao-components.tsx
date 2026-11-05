@@ -221,7 +221,7 @@ export function ProdutoCard({
           onClick={() => onAdicionarProduto(produto)}
           disabled={bloqueado}
           aria-label={`Adicionar ${produto.nome} ao carrinho`}
-          aria-describedby={bloqueado ? idMotivo : undefined}
+          aria-describedby={bloqueado || noCarrinho > 0 ? idMotivo : undefined}
           title={motivoBloqueio || undefined}
           className={`inline-flex h-10 shrink-0 items-center justify-center rounded-full px-3.5 text-[13px] font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-[color:var(--accent)] ${
             bloqueado
@@ -237,7 +237,7 @@ export function ProdutoCard({
           {motivoBloqueio}
         </p>
       ) : noCarrinho > 0 ? (
-        <p className="sr-only">{noCarrinho} no carrinho</p>
+        <p id={idMotivo} className="sr-only">{noCarrinho} no carrinho</p>
       ) : null}
     </article>
   );
