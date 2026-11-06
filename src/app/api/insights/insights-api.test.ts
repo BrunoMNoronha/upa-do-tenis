@@ -46,6 +46,7 @@ function criarRequest(method: string, body?: unknown, url = "http://localhost/ap
 describe("POST /api/insights", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(exigirSessaoApi).mockResolvedValue(null);
     vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(USUARIO);
     vi.mocked(obterChaveClaude).mockResolvedValue("sk-ant-chave");
     vi.mocked(montarPayloadInsights).mockResolvedValue({ periodo: {} } as never);
@@ -69,6 +70,9 @@ describe("POST /api/insights", () => {
   });
 
   it("responde 401 sem sessão", async () => {
+    vi.mocked(exigirSessaoApi).mockResolvedValue(
+      new Response(JSON.stringify({ message: "Não autenticado." }), { status: 401 }) as never,
+    );
     vi.mocked(obterUsuarioSessaoDaRequest).mockResolvedValue(null);
 
     const res = await POST(criarRequest("POST", CORPO_VALIDO));
